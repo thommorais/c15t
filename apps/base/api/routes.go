@@ -76,7 +76,7 @@ func (h *Handler) handleInit(e *core.RequestEvent) error {
 		}
 	}
 
-	go touchKeyUsage(h.app, tenant.KeyID)
+	touchKeyUsage(h.app, tenant.KeyID)
 
 	return e.JSON(http.StatusOK, resp)
 }
@@ -179,7 +179,7 @@ func (h *Handler) handleConsent(e *core.RequestEvent) error {
 		return e.InternalServerError("failed to record consent", err)
 	}
 
-	go touchKeyUsage(h.app, tenant.KeyID)
+	touchKeyUsage(h.app, tenant.KeyID)
 
 	var validUntil *time.Time
 	if v := stored.GetDateTime("validUntil"); !v.IsZero() {
@@ -238,7 +238,7 @@ func (h *Handler) handleListConsent(e *core.RequestEvent) error {
 		})
 	}
 
-	go touchKeyUsage(h.app, tenant.KeyID)
+	touchKeyUsage(h.app, tenant.KeyID)
 
 	return e.JSON(http.StatusOK, map[string]any{"consents": out})
 }
