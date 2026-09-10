@@ -1252,3 +1252,289 @@ func TestSnapshotForDifferentPolicyIsRejected(t *testing.T) {
 		t.Errorf("status = %d, want 409 when the resolved policy differs: %s", rec.Code, rec.Body.String())
 	}
 }
+
+func TestStatus(t *testing.T) {
+	h := newHarness(t, api.DefaultConfig())
+	key := h.key("t1")
+
+	rec := h.do(http.MethodGet, "/api/c15t/status", "",
+		auth(key, "cf-ipcountry", "DE", "X-Forwarded-For", "203.0.113.55"))
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d: %s", rec.Code, rec.Body.String())
+	}
+
+	body := decode(t, rec)
+	if body["version"] == "" || body["version"] == nil {
+		t.Error("version missing")
+	}
+	if body["timestamp"] == nil {
+		t.Error("timestamp missing")
+	}
+
+	client, _ := body["client"].(map[string]any)
+	if client["ip"] != "203.0.113.0" {
+		t.Errorf("ip = %v, want masked", client["ip"])
+	}
+
+	region, _ := client["region"].(map[string]any)
+	if region["countryCode"] != "DE" {
+		t.Errorf("countryCode = %v, want DE", region["countryCode"])
+	}
+}
+
+func TestStatusRequiresAuth(t *testing.T) {
+	h := newHarness(t, api.DefaultConfig())
+
+	rec := h.do(http.MethodGet, "/api/c15t/status", "", nil)
+	if rec.Code != http.StatusUnauthorized {
+		t.Errorf("status = %d, want 401", rec.Code)
+	}
+}
+
+func TestGetSubject(t *testing.T) {
+	h := newHarness(t, api.DefaultConfig())
+	key := h.key("t1")
+
+	rec := h.do(http.MethodPost, "/api/c15t/consent",
+		`{"externalId":"user-1","domain":"example.com","categories":["necessary"]}`,
+		auth(key, "cf-ipcountry", "DE"),
+	)
+	if rec.Code != http.StatusCreated {
+		t.Fatalf("status = %d: %s", rec.Code, rec.Body.String())
+	}
+	subjectID, _ := decode(t, rec)["subjectId"].(string)
+
+	rec = h.do(http.MethodGet, "/api/c15t/subjects/"+subjectID, "", auth(key))
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d: %s", rec.Code, rec.Body.String())
+	}
+
+	body := decode(t, rec)
+	if body["id"] != subjectID {
+		t.Errorf("id = %v, want %q", body["id"], subjectID)
+	}
+	if body["externalId"] != "user-1" {
+		t.Errorf("externalId = %v", body["externalId"])
+	}
+
+	consents, _ := body["consents"].([]any)
+	if len(consents) != 1 {
+		t.Fatalf("consents = %d, want 1", len(consents))
+	}
+
+	item, _ := consents[0].(map[string]any)
+	if item["type"] != "cookie_banner" {
+		t.Errorf("type = %v, want cookie_banner", item["type"])
+	}
+	if item["isLatestPolicy"] != true {
+		t.Errorf("isLatestPolicy = %v, want true", item["isLatestPolicy"])
+	}
+}
+
+func TestGetSubjectNotFound(t *testing.T) {
+	h := newHarness(t, api.DefaultConfig())
+	key := h.key("t1")
+
+	rec := h.do(http.MethodGet, "/api/c15t/subjects/doesnotexist00", "", auth(key))
+	if rec.Code != http.StatusNotFound {
+		t.Errorf("status = %d, want 404", rec.Code)
+	}
+}
+
+func TestGetSubjectIsTenantScoped(t *testing.T) {
+	h := newHarness(t, api.DefaultConfig())
+	keyOne := h.key("t1")
+	keyTwo := h.key("t2")
+
+	rec := h.do(http.MethodPost, "/api/c15t/consent",
+		`{"externalId":"user-1","domain":"example.com","categories":["necessary"]}`,
+		auth(keyOne, "cf-ipcountry", "DE"),
+	)
+	subjectID, _ := decode(t, rec)["subjectId"].(string)
+
+	rec = h.do(http.MethodGet, "/api/c15t/subjects/"+subjectID, "", auth(keyTwo))
+	if rec.Code != http.StatusNotFound {
+		t.Errorf("status = %d, want 404 for a foreign tenant", rec.Code)
+	}
+}
+
+func TestListSubjects(t *testing.T) {
+	h := newHarness(t, api.DefaultConfig())
+	key := h.key("t1")
+
+	rec := h.do(http.MethodGet, "/api/c15t/subjects", "", auth(key))
+	if rec.Code != http.StatusUnprocessableEntity {
+		t.Errorf("status = %d, want 422 without externalId", rec.Code)
+	}
+
+	if rec := h.do(http.MethodPost, "/api/c15t/consent",
+		`{"externalId":"user-1","domain":"example.com","categories":["necessary"]}`,
+		auth(key, "cf-ipcountry", "DE"),
+	); rec.Code != http.StatusCreated {
+		t.Fatalf("status = %d: %s", rec.Code, rec.Body.String())
+	}
+
+	rec = h.do(http.MethodGet, "/api/c15t/subjects?externalId=user-1", "", auth(key))
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d: %s", rec.Code, rec.Body.String())
+	}
+
+	subjects, _ := decode(t, rec)["subjects"].([]any)
+	if len(subjects) != 1 {
+		t.Errorf("subjects = %d, want 1", len(subjects))
+	}
+
+	rec = h.do(http.MethodGet, "/api/c15t/subjects?externalId=nobody", "", auth(key))
+	subjects, _ = decode(t, rec)["subjects"].([]any)
+	if len(subjects) != 0 {
+		t.Errorf("subjects = %d, want 0 for an unknown identity", len(subjects))
+	}
+}
+
+func TestPatchSubject(t *testing.T) {
+	h := newHarness(t, api.DefaultConfig())
+	key := h.key("t1")
+
+	rec := h.do(http.MethodPost, "/api/c15t/consent",
+		`{"externalId":"user-1","domain":"example.com","categories":["necessary"]}`,
+		auth(key, "cf-ipcountry", "DE"),
+	)
+	subjectID, _ := decode(t, rec)["subjectId"].(string)
+	auditBefore := h.count("auditLog")
+
+	rec = h.do(http.MethodPatch, "/api/c15t/subjects/"+subjectID,
+		`{"externalId":"user-renamed","identityProvider":"okta"}`, auth(key))
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d: %s", rec.Code, rec.Body.String())
+	}
+
+	body := decode(t, rec)
+	if body["externalId"] != "user-renamed" {
+		t.Errorf("externalId = %v, want user-renamed", body["externalId"])
+	}
+	if body["identityProvider"] != "okta" {
+		t.Errorf("identityProvider = %v, want okta", body["identityProvider"])
+	}
+
+	if got := h.count("auditLog"); got != auditBefore+1 {
+		t.Errorf("auditLog rows = %d, want one more after a patch", got)
+	}
+}
+
+func TestPatchSubjectValidation(t *testing.T) {
+	h := newHarness(t, api.DefaultConfig())
+	key := h.key("t1")
+
+	rec := h.do(http.MethodPatch, "/api/c15t/subjects/doesnotexist00",
+		`{"externalId":"x"}`, auth(key))
+	if rec.Code != http.StatusNotFound {
+		t.Errorf("status = %d, want 404", rec.Code)
+	}
+
+	rec = h.do(http.MethodPost, "/api/c15t/consent",
+		`{"externalId":"user-1","domain":"example.com","categories":["necessary"]}`,
+		auth(key, "cf-ipcountry", "DE"),
+	)
+	subjectID, _ := decode(t, rec)["subjectId"].(string)
+
+	rec = h.do(http.MethodPatch, "/api/c15t/subjects/"+subjectID, `{}`, auth(key))
+	if rec.Code != http.StatusBadRequest {
+		t.Errorf("status = %d, want 400 without externalId", rec.Code)
+	}
+}
+
+func TestSyncLegalDocument(t *testing.T) {
+	h := newHarness(t, api.DefaultConfig())
+	key := h.key("t1")
+
+	rec := h.do(http.MethodPut, "/api/c15t/legal-documents/privacy_policy/current",
+		`{"version":"1.0.0","hash":"abc","effectiveDate":"2026-01-01T00:00:00Z"}`, auth(key))
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d: %s", rec.Code, rec.Body.String())
+	}
+
+	policy, _ := decode(t, rec)["policy"].(map[string]any)
+	if policy["type"] != "privacy_policy" {
+		t.Errorf("type = %v", policy["type"])
+	}
+	if policy["version"] != "1.0.0" {
+		t.Errorf("version = %v", policy["version"])
+	}
+	if policy["isActive"] != true {
+		t.Error("published document should be active")
+	}
+
+	rec = h.do(http.MethodPut, "/api/c15t/legal-documents/privacy_policy/current",
+		`{"version":"2.0.0","hash":"def","effectiveDate":"2026-06-01T00:00:00Z"}`, auth(key))
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d: %s", rec.Code, rec.Body.String())
+	}
+
+	active, err := h.app.FindRecordsByFilter("consentPolicy",
+		"type = 'privacy_policy' && isActive = true && tenantId = 't1'", "", 0, 0, nil)
+	if err != nil {
+		t.Fatalf("find active: %v", err)
+	}
+	if len(active) != 1 {
+		t.Fatalf("active policies = %d, want exactly 1", len(active))
+	}
+	if active[0].GetString("version") != "2.0.0" {
+		t.Errorf("active version = %q, want 2.0.0", active[0].GetString("version"))
+	}
+}
+
+func TestSyncLegalDocumentValidation(t *testing.T) {
+	h := newHarness(t, api.DefaultConfig())
+	key := h.key("t1")
+
+	tests := []struct {
+		name string
+		path string
+		body string
+		want int
+	}{
+		{
+			name: "unknown type",
+			path: "/api/c15t/legal-documents/shrug/current",
+			body: `{"version":"1.0.0","effectiveDate":"2026-01-01T00:00:00Z"}`,
+			want: http.StatusUnprocessableEntity,
+		},
+		{
+			name: "missing version",
+			path: "/api/c15t/legal-documents/privacy_policy/current",
+			body: `{"effectiveDate":"2026-01-01T00:00:00Z"}`,
+			want: http.StatusUnprocessableEntity,
+		},
+		{
+			name: "missing effective date",
+			path: "/api/c15t/legal-documents/privacy_policy/current",
+			body: `{"version":"1.0.0"}`,
+			want: http.StatusUnprocessableEntity,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			rec := h.do(http.MethodPut, tt.path, tt.body, auth(key))
+			if rec.Code != tt.want {
+				t.Errorf("status = %d, want %d: %s", rec.Code, tt.want, rec.Body.String())
+			}
+		})
+	}
+}
+
+func TestSyncLegalDocumentRejectsHashChange(t *testing.T) {
+	h := newHarness(t, api.DefaultConfig())
+	key := h.key("t1")
+
+	body := `{"version":"1.0.0","hash":"abc","effectiveDate":"2026-01-01T00:00:00Z"}`
+	if rec := h.do(http.MethodPut, "/api/c15t/legal-documents/dpa/current", body, auth(key)); rec.Code != http.StatusOK {
+		t.Fatalf("status = %d: %s", rec.Code, rec.Body.String())
+	}
+
+	rec := h.do(http.MethodPut, "/api/c15t/legal-documents/dpa/current",
+		`{"version":"1.0.0","hash":"different","effectiveDate":"2026-01-01T00:00:00Z"}`, auth(key))
+	if rec.Code != http.StatusConflict {
+		t.Errorf("status = %d, want 409 when a released version changes content", rec.Code)
+	}
+}

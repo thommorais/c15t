@@ -37,6 +37,11 @@ func Register(app core.App, se *core.ServeEvent, cfg Config) {
 	g.POST("/consent", handle(h, h.recordConsent))
 	g.GET("/consent/{subjectId}", handle(h, h.listConsent))
 	g.GET("/consents/check", handle(h, h.checkConsent))
+	g.GET("/status", handle(h, h.status))
+	g.GET("/subjects", handle(h, h.listSubjects))
+	g.GET("/subjects/{id}", handle(h, h.getSubject))
+	g.PATCH("/subjects/{id}", handle(h, h.patchSubject))
+	g.PUT("/legal-documents/{type}/current", handle(h, h.syncLegalDocument))
 }
 
 type initResponse struct {
@@ -261,11 +266,21 @@ func validUntilOf(r *core.Record) *time.Time {
 	return &t
 }
 
-func (h *Handler) resolve(r *http.Request) (jurisdiction.Location, jurisdiction.Code, *policy.Decision, error) {
-	loc := jurisdiction.LocationFromHeaders(r.Header)
+const Version = "0.1.0"
+
+func (h *Handler) locationOf(r *http.Request) jurisdiction.Location {
 	if h.cfg.GeoDisabled {
-		loc = jurisdiction.Location{}
+		return jurisdiction.Location{}
 	}
+	return jurisdiction.LocationFromHeaders(r.Header)
+}
+
+func requestIP(c *Ctx, h *Handler) string {
+	return request.ClientIP(c.Event.Request.Header, h.ipOptions())
+}
+
+func (h *Handler) resolve(r *http.Request) (jurisdiction.Location, jurisdiction.Code, *policy.Decision, error) {
+	loc := h.locationOf(r)
 
 	code := jurisdiction.Resolve(loc, h.cfg.GeoDisabled)
 
