@@ -1,0 +1,163 @@
+{
+	// ========================================
+	// PACKAGE MANAGER
+	// ========================================
+	"npm.packageManager": "pnpm",
+	// ========================================
+	// EDITOR CONFIGURATION
+	// ========================================
+	"editor.formatOnSave": true,
+	"editor.formatOnPaste": true,
+	"editor.codeActionsOnSave": {
+		"source.organizeImports.oxc": "always",
+		"source.addMissingImports.oxc": "explicit",
+		"source.fixAll.oxc": "explicit",
+		"source.organizeImports": "never"
+	},
+	"editor.bracketPairColorization.enabled": true,
+	"editor.guides.bracketPairs": "active",
+	"editor.inlayHints.enabled": "onUnlessPressed",
+	// ========================================
+	// TYPESCRIPT CONFIGURATION
+	// ========================================
+	"js/ts.tsdk.promptToUseWorkspaceVersion": true,
+	"js/ts.preferences.importModuleSpecifier": "non-relative",
+	"js/ts.suggest.autoImports": true,
+	"js/ts.suggest.includeAutomaticOptionalChainCompletions": true,
+	"js/ts.updateImportsOnFileMove.enabled": "always",
+	"js/ts.preferences.includePackageJsonAutoImports": "off",
+	"js/ts.preferences.preferTypeOnlyAutoImports": true,
+	"js/ts.preferences.importModuleSpecifierEnding": "minimal",
+	"js/ts.suggest.completeFunctionCalls": true,
+	"js/ts.inlayHints.parameterNames.enabled": "literals",
+	"js/ts.inlayHints.functionLikeReturnTypes.enabled": true,
+	"js/ts.inlayHints.variableTypes.enabled": true,
+	"js/ts.inlayHints.propertyDeclarationTypes.enabled": true,
+	"js/ts.inlayHints.parameterTypes.enabled": true,
+	"js/ts.inlayHints.enumMemberValues.enabled": true,
+	"js/ts.preferences.quoteStyle": "single",
+	"js/ts.preferences.jsxAttributeCompletionStyle": "auto",
+	// LANGUAGE FORMATTERS
+	// ========================================
+	"[markdown]": {
+		"editor.defaultFormatter": "DavidAnson.vscode-markdownlint"
+	},
+	"[javascript]": {
+		"editor.defaultFormatter": "oxc.oxc-vscode"
+	},
+	"[javascriptreact]": {
+		"editor.defaultFormatter": "oxc.oxc-vscode"
+	},
+	"[typescript]": {
+		"editor.defaultFormatter": "oxc.oxc-vscode"
+	},
+	"[typescriptreact]": {
+		"editor.defaultFormatter": "oxc.oxc-vscode"
+	},
+	"[json]": {
+		"editor.defaultFormatter": "vscode.json-language-features"
+	},
+	"[jsonc]": {
+		"editor.defaultFormatter": "vscode.json-language-features"
+	},
+	"[css]": {
+		"editor.defaultFormatter": "vscode.css-language-features"
+	},
+	// ========================================
+	// OXC CONFIGURATION
+	// ========================================
+	"oxc.fmt.configPath": ".oxfmtrc.json",
+	"oxc.lint.configPath": ".oxlintrc.json",
+	// ========================================
+	// CSS
+	// ========================================
+	"css.lint.unknownAtRules": "ignore",
+	// ========================================
+	// SPELL CHECKER
+	// ========================================
+	"cSpell.words": [
+		"animejs",
+		"oxfmt",
+		"oxlint",
+		"Cocogitto",
+		"Dexie",
+		"gsap",
+		"Highcharts",
+		"HREFS",
+		"inlinesvg",
+		"Leitner",
+		"Nuqs",
+		"opsi",
+		"pocketbase",
+		"português",
+		"primary",
+		"seagrass",
+		"sono",
+		"tailwindcss",
+		"turbopack",
+		"verno",
+		"yeap"
+	],
+	// ========================================
+	// FILE EXPLORER
+	// ========================================
+	"explorer.sortOrder": "filesFirst",
+	"explorer.fileNesting.enabled": true,
+	"explorer.fileNesting.patterns": {
+		"package.json": "package-lock.json, pnpm-workspace.yaml, pnpm-lock.yaml, .nvmrc, .node-version, cog.toml, .oxlintrc.json, nx.json, .oxfmtrc.json, .npmrc",
+		"tsconfig.json": "tsconfig*.json",
+		"*.ts": "${capture}.test.ts, ${capture}.spec.ts, ${capture}.int.spec.ts",
+		"*.tsx": "${capture}.test.tsx, ${capture}.spec.tsx, ${capture}.module.css, ${capture}.stories.tsx",
+		".env": ".env*, .envrc, .env.example",
+		"Dockerfile": "docker-compose*.yml, .dockerignore",
+		"README.md": "CHANGELOG.md, CONTRIBUTING.md, LICENSE, CODE_OF_CONDUCT.md, CLAUDE.md, AGENTS.md",
+		"next.config.js": "next-env.d.ts, next-sitemap.config.cjs",
+		"payload.config.ts": "payload-types.ts",
+		"vitest.config.mts": "vitest.setup.ts"
+	},
+	"explorer.confirmDelete": false,
+	"explorer.confirmDragAndDrop": false,
+	// ========================================
+	// FILES & SEARCH CONFIGURATION
+	// ========================================
+	"files.watcherExclude": {
+		"**/node_modules/**": true,
+		"**/.next/**": true,
+		"**/tmp/**": true,
+		"**/coverage/**": true,
+		"**/dist/**": true,
+		"**/.cache/**": true
+	},
+	"search.exclude": {
+		"**/node_modules": true,
+		"**/.next": true,
+		"**/coverage": true,
+		"**/tmp": true,
+		"**/dist": true,
+		"**/.cache": true,
+		"pnpm-lock.yaml": true,
+		"package-lock.json": false,
+		"**/*.tsbuildinfo": true,
+		"**/payload-types.ts": true
+	},
+	"files.associations": {
+		".env*": "dotenv",
+		"*.graphql": "graphql"
+	},
+	"files.exclude": {
+		"**/.DS_Store": true,
+		"**/.next": false,
+		"**/node_modules": true
+	},
+	"files.trimTrailingWhitespace": true,
+	"files.insertFinalNewline": true,
+	"files.trimFinalNewlines": true,
+	// ========================================
+	// GIT INTEGRATION
+	// ========================================
+	"git.ignoreLimitWarning": true,
+	"git.untrackedChanges": "separate",
+	"git.enableSmartCommit": false,
+	"git.confirmSync": false,
+	"git.autofetch": true
+}

@@ -1,0 +1,35 @@
+{
+	"name": "thom",
+	"private": true,
+	"scripts": {
+		"build": "nx run-many -t build",
+		"dev": "nx run-many -t dev",
+		"clean": "git clean -xdf node_modules",
+		"clean:workspaces": "nx run-many -t clean",
+		"lint": "oxlint .",
+		"typecheck": "nx run-many -t typecheck",
+		"build:icons": "node ./packages/ui/scripts/build-icons.mjs",
+		"web:dev": "nx dev @thom/site",
+		"web:build": "nx build @thom/site",
+		"web:icons": "node ./apps/site/src/scripts/build-icons.mjs",
+		"web:start": "nx start @thom/site",
+		"ui:build": "nx build @thom/ui",
+		"lint:fix": "oxlint --fix .",
+		"format": "oxfmt .",
+		"format:check": "oxfmt --check .",
+		"rename": "nx g @thom/workspace-tools:rename-scope",
+		"new:package": "nx g @thom/workspace-tools:package"
+	},
+	"devDependencies": {
+		"@nx/devkit": "23.1.1",
+		"@thom/workspace-tools": "workspace:*",
+		"nx": "23.1.1",
+		"oxfmt": "0.63.0",
+		"oxlint": "1.78.0",
+		"typescript": "6.0.3"
+	},
+	"engines": {
+		"node": ">=18"
+	},
+	"packageManager": "pnpm@10.28.0"
+}

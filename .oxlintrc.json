@@ -1,0 +1,26 @@
+{
+	"$schema": "./node_modules/oxlint/configuration_schema.json",
+	"ignorePatterns": ["**/pocketbase-types.ts", "**/*.gen.ts", "**/public/**", "**/.next/**", "**/dist/**"],
+	"plugins": ["react", "typescript", "unicorn", "import"],
+	"rules": {
+		"no-unused-vars": [
+			"error",
+			{ "argsIgnorePattern": "^_", "caughtErrorsIgnorePattern": "^_", "varsIgnorePattern": "^_" }
+		],
+		"no-console": "warn",
+		"no-alert": "error",
+		"eqeqeq": ["error", "smart"],
+		"prefer-const": "error",
+		"no-param-reassign": "error",
+		"no-throw-literal": "error",
+		"import/no-default-export": "warn",
+		"typescript/prefer-enum-initializers": "error",
+		"typescript/consistent-type-exports": "error",
+		"typescript/prefer-for-of": "error",
+		"typescript/only-throw-error": "error",
+		"typescript/no-explicit-any": "error",
+		"react/self-closing-comp": "error",
+		"unicorn/filename-case": ["error", { "case": "kebabCase" }],
+		"unicorn/no-array-for-each": "error"
+	}
+}

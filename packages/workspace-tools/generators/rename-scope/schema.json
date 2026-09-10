@@ -1,0 +1,24 @@
+{
+	"$schema": "http://json-schema.org/schema",
+	"$id": "RenameScope",
+	"title": "Renames the workspace scope",
+	"type": "object",
+	"properties": {
+		"name": {
+			"type": "string",
+			"description": "The new scope name, without the leading @ (e.g. acme)",
+			"x-prompt": "What is the new scope name? (without the leading @)",
+			"pattern": "^[a-z0-9][a-z0-9-]*$",
+			"$default": {
+				"$source": "argv",
+				"index": 0
+			}
+		},
+		"from": {
+			"type": "string",
+			"description": "The current scope name to replace, without the leading @",
+			"default": "thom"
+		}
+	},
+	"required": ["name"]
+}

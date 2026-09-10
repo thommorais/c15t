@@ -1,0 +1,12 @@
+{
+	"$schema": "http://json-schema.org/schema",
+	"name": "@thom/ui",
+	"version": "0.1.0",
+	"generators": {
+		"react-component": {
+			"factory": "./generators/react-component/generator",
+			"schema": "./generators/react-component/schema.json",
+			"description": "Adds a new react component"
+		}
+	}
+}

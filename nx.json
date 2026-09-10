@@ -1,0 +1,72 @@
+{
+	"$schema": "./node_modules/nx/schemas/nx-schema.json",
+	"namedInputs": {
+		"sharedGlobals": [
+			"{workspaceRoot}/**/.env",
+			{
+				"env": "API_URL"
+			},
+			{
+				"env": "WEBAPP_URL"
+			},
+			{
+				"env": "reckoner_VERSION"
+			},
+			{
+				"env": "VAPID_PRIVATE_KEY"
+			},
+			{
+				"env": "WEBAPP_VERSION"
+			}
+		],
+		"default": ["{projectRoot}/**/*", "sharedGlobals"]
+	},
+	"targetDefaults": {
+		"format": {
+			"cache": false
+		},
+		"build": {
+			"dependsOn": ["^build"],
+			"outputs": [
+				"{projectRoot}/.next/**",
+				"!{projectRoot}/.next/cache/**",
+				"{projectRoot}/next-env.d.ts",
+				"{projectRoot}/.output/**",
+				"{projectRoot}/.vercel/output/**",
+				"{projectRoot}/.vercel/**"
+			],
+			"cache": true
+		},
+		"ui": {
+			"cache": false
+		},
+		"dev": {
+			"dependsOn": ["^ui"],
+			"cache": false,
+			"continuous": true
+		},
+		"start": {
+			"cache": false,
+			"continuous": true
+		},
+		"lint": {
+			"cache": true
+		},
+		"typecheck": {
+			"dependsOn": ["^build"],
+			"outputs": ["{projectRoot}/node_modules/.cache/tsbuildinfo.json"],
+			"cache": true
+		},
+		"test": {
+			"dependsOn": ["^build"],
+			"cache": true
+		},
+		"test:run": {
+			"dependsOn": ["^build"],
+			"cache": true
+		},
+		"clean": {
+			"cache": false
+		}
+	}
+}

@@ -1,0 +1,27 @@
+{
+	"name": "@thom/utils",
+	"version": "0.1.0",
+	"private": true,
+	"sideEffects": false,
+	"exports": {
+		"./async": "./src/async.ts",
+		"./env": "./src/env.ts",
+		"./object": "./src/object.ts",
+		"./random": "./src/random.ts",
+		"./sort": "./src/sort.ts",
+		"./string": "./src/string.ts"
+	},
+	"scripts": {
+		"check-types": "tsc --noEmit",
+		"lint": "oxlint ./src",
+		"format": "oxfmt ./src",
+		"test": "vitest",
+		"test:run": "vitest run",
+		"test:watch": "vitest --watch"
+	},
+	"devDependencies": {
+		"@thom/typescript-config": "workspace:*",
+		"typescript": "6.0.3",
+		"vitest": "^3.2.4"
+	}
+}

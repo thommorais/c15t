@@ -1,0 +1,38 @@
+{
+	"$schema": "http://json-schema.org/schema",
+	"$id": "Package",
+	"title": "Adds a new workspace library under packages/",
+	"type": "object",
+	"properties": {
+		"name": {
+			"type": "string",
+			"description": "The package name, without the scope (e.g. rate-limit)",
+			"x-prompt": "What is the name of the package?",
+			"pattern": "^[a-z0-9][a-z0-9-]*$",
+			"x-priority": "important",
+			"$default": {
+				"$source": "argv",
+				"index": 0
+			}
+		},
+		"description": {
+			"type": "string",
+			"description": "One line describing what the package is for"
+		},
+		"unitTestRunner": {
+			"type": "string",
+			"description": "Whether to add a vitest config and a colocated test",
+			"enum": ["vitest", "none"],
+			"default": "vitest",
+			"x-prompt": {
+				"message": "Add vitest to this package?",
+				"type": "list",
+				"items": [
+					{ "value": "vitest", "label": "vitest" },
+					{ "value": "none", "label": "none" }
+				]
+			}
+		}
+	},
+	"required": ["name"]
+}

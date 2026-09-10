@@ -1,0 +1,25 @@
+{
+	"name": "@thom/try-catch",
+	"version": "0.1.0",
+	"private": true,
+	"sideEffects": false,
+	"exports": {
+		".": "./src/try-catch.ts"
+	},
+	"scripts": {
+		"check-types": "tsc --noEmit",
+		"lint": "oxlint ./src",
+		"format": "oxfmt ./src",
+		"test": "vitest",
+		"test:run": "vitest run",
+		"test:watch": "vitest --watch"
+	},
+	"dependencies": {
+		"@thom/safe-return": "workspace:*"
+	},
+	"devDependencies": {
+		"@thom/typescript-config": "workspace:*",
+		"typescript": "7.0.2",
+		"vitest": "^3.2.4"
+	}
+}

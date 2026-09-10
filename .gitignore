@@ -1,0 +1,53 @@
+# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+
+# Dependencies
+node_modules
+.pnp
+.pnp.js
+
+# Local env files
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Testing
+coverage
+
+# Vercel
+.vercel
+
+# Build Outputs
+.next/
+out/
+build
+dist
+*.tsbuildinfo
+next-env.d.ts
+
+
+# Debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Misc
+.DS_Store
+*.pem
+
+apps/base/pb_data/
+
+.env*.local
+
+CLAUDE.md
+
+apps/base/.gocache/
+
+.gocache/
+
+
+
+.nx/cache
+.nx/workspace-data
+.nx/migrate-runs

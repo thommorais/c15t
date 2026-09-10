@@ -1,0 +1,18 @@
+{
+	"$schema": "http://json-schema.org/schema",
+	"$id": "ReactComponent",
+	"title": "Adds a new react component",
+	"type": "object",
+	"properties": {
+		"name": {
+			"type": "string",
+			"description": "What is the name of the component?",
+			"x-prompt": "What is the name of the component?",
+			"$default": {
+				"$source": "argv",
+				"index": 0
+			}
+		}
+	},
+	"required": ["name"]
+}

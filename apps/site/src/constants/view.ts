@@ -1,0 +1,4 @@
+export const VIEW = {
+	DESKTOP_VIEW_HEIGHT: 1080,
+	DESKTOP_VIEW_WIDTH: 1920,
+} as const

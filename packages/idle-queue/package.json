@@ -1,0 +1,24 @@
+{
+	"name": "@thom/idle-queue",
+	"version": "0.1.0",
+	"private": true,
+	"sideEffects": false,
+	"exports": {
+		".": "./src/idle-queue.ts",
+		"./idle-callback": "./src/idle-callback.ts",
+		"./queue-microtask": "./src/queue-microtask.ts"
+	},
+	"scripts": {
+		"check-types": "tsc --noEmit",
+		"lint": "oxlint ./src",
+		"format": "oxfmt ./src",
+		"test": "vitest",
+		"test:run": "vitest run",
+		"test:watch": "vitest --watch"
+	},
+	"devDependencies": {
+		"@thom/typescript-config": "workspace:*",
+		"typescript": "6.0.3",
+		"vitest": "^3.2.4"
+	}
+}

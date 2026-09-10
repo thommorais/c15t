@@ -1,0 +1,4 @@
+<% if (description) { %>/** <%= description %> */
+<% } %>export function <%= propertyName %>(): string {
+	return '<%= fileName %>'
+}

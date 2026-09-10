@@ -1,0 +1,8 @@
+import { describe, expect, it } from 'vitest'
+import { <%= propertyName %> } from './<%= fileName %>'
+
+describe('<%= propertyName %>', () => {
+	it('returns its own name', () => {
+		expect(<%= propertyName %>()).toBe('<%= fileName %>')
+	})
+})

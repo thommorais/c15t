@@ -1,0 +1,41 @@
+# Cocogitto configuration
+# https://docs.cocogitto.io/
+
+# Tag prefix for versions
+tag_prefix = "v"
+
+# Changelog configuration
+[changelog]
+path = "CHANGELOG.md"
+template = "remote"
+remote = "github.com"
+repository = "thom"
+owner = "thommorais"
+
+[commit_types]
+feat = { changelog_title = "Features" }
+fix = { changelog_title = "Bug Fixes" }
+docs = { changelog_title = "Documentation" }
+style = { changelog_title = "Styling" }
+refactor = { changelog_title = "Refactoring" }
+perf = { changelog_title = "Performance" }
+test = { changelog_title = "Tests" }
+build = { changelog_title = "Build System" }
+ci = { changelog_title = "CI/CD" }
+chore = { changelog_title = "Miscellaneous" }
+revert = { changelog_title = "Reverts" }
+
+# Git hooks
+[git_hooks.commit-msg]
+script = """#!/bin/sh
+set -e
+echo "[Verifying conventional commit message]"
+cog verify --file $1
+"""
+
+[git_hooks.pre-commit]
+script = """#!/bin/sh
+set -e
+echo "[Running linter]"
+pnpm lint
+"""

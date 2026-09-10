@@ -1,0 +1,22 @@
+{
+	"name": "<%= importPath %>",
+	"version": "0.1.0",
+	"private": true,
+	"sideEffects": false,
+	"exports": {
+		".": "./src/<%= fileName %>.ts"
+	},
+	"scripts": {
+		"check-types": "tsc --noEmit",
+		"lint": "oxlint ./src",
+		"format": "oxfmt ./src"<% if (unitTestRunner === 'vitest') { %>,
+		"test": "vitest",
+		"test:run": "vitest run",
+		"test:watch": "vitest --watch"<% } %>
+	},
+	"devDependencies": {
+		"@<%= scope %>/typescript-config": "workspace:*",
+		"typescript": "<%= typescriptVersion %>"<% if (unitTestRunner === 'vitest') { %>,
+		"vitest": "<%= vitestVersion %>"<% } %>
+	}
+}

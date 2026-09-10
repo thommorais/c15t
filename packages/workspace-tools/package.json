@@ -1,0 +1,17 @@
+{
+	"name": "@thom/workspace-tools",
+	"version": "0.1.0",
+	"private": true,
+	"generators": "./generators.json",
+	"scripts": {
+		"check-types": "tsc --noEmit",
+		"lint": "oxlint ./generators",
+		"format": "oxfmt ./generators"
+	},
+	"devDependencies": {
+		"@nx/devkit": "23.1.1",
+		"@thom/typescript-config": "workspace:*",
+		"@types/node": "^20",
+		"typescript": "6.0.3"
+	}
+}
