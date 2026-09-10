@@ -34,7 +34,31 @@ func (h *Handler) signSnapshot(
 		p.ExpiryDays = c.ExpiryDays
 		p.ScopeMode = string(c.ScopeMode)
 		p.Categories = c.Categories
+		p.PreselectedCategories = c.PreselectedCategories
 		p.GPC = c.GPC
+	}
+
+	if i18n := decision.Policy.I18n; i18n != nil {
+		p.PolicyI18n = i18n
+		if i18n.Language != nil {
+			p.Language = *i18n.Language
+		}
+	}
+
+	if ui := decision.Policy.UI; ui != nil {
+		if ui.Mode != nil {
+			p.UIMode = string(*ui.Mode)
+		}
+		if ui.Banner != nil {
+			p.BannerUI = ui.Banner
+		}
+		if ui.Dialog != nil {
+			p.DialogUI = ui.Dialog
+		}
+	}
+
+	if proof := decision.Policy.Proof; proof != nil {
+		p.ProofConfig = proof
 	}
 
 	return h.signer.Sign(p, time.Now().UTC())

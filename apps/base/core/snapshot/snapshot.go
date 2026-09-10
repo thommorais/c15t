@@ -51,23 +51,33 @@ func ReasonOf(err error) (FailureReason, bool) {
 }
 
 type Payload struct {
-	Issuer       string   `json:"iss"`
-	Audience     string   `json:"aud"`
-	Subject      string   `json:"sub"`
-	TenantID     string   `json:"tenantId,omitempty"`
-	PolicyID     string   `json:"policyId"`
-	Fingerprint  string   `json:"fingerprint"`
-	MatchedBy    string   `json:"matchedBy"`
-	Country      string   `json:"country,omitempty"`
-	Region       string   `json:"region,omitempty"`
-	Jurisdiction string   `json:"jurisdiction"`
-	Model        string   `json:"model"`
-	ExpiryDays   *int     `json:"expiryDays,omitempty"`
-	ScopeMode    string   `json:"scopeMode,omitempty"`
-	Categories   []string `json:"categories,omitempty"`
-	GPC          *bool    `json:"gpc,omitempty"`
-	IssuedAt     int64    `json:"iat"`
-	ExpiresAt    int64    `json:"exp"`
+	Issuer       string `json:"iss"`
+	Audience     string `json:"aud"`
+	Subject      string `json:"sub"`
+	TenantID     string `json:"tenantId,omitempty"`
+	PolicyID     string `json:"policyId"`
+	Fingerprint  string `json:"fingerprint"`
+	MatchedBy    string `json:"matchedBy"`
+	Country      string `json:"country,omitempty"`
+	Region       string `json:"region,omitempty"`
+	Jurisdiction string `json:"jurisdiction"`
+	Language     string `json:"language,omitempty"`
+	Model        string `json:"model"`
+	PolicyI18n   any    `json:"policyI18n,omitempty"`
+
+	ExpiryDays            *int     `json:"expiryDays,omitempty"`
+	ScopeMode             string   `json:"scopeMode,omitempty"`
+	Categories            []string `json:"categories,omitempty"`
+	PreselectedCategories []string `json:"preselectedCategories,omitempty"`
+	GPC                   *bool    `json:"gpc,omitempty"`
+
+	UIMode      string `json:"uiMode,omitempty"`
+	BannerUI    any    `json:"bannerUi,omitempty"`
+	DialogUI    any    `json:"dialogUi,omitempty"`
+	ProofConfig any    `json:"proofConfig,omitempty"`
+
+	IssuedAt  int64 `json:"iat"`
+	ExpiresAt int64 `json:"exp"`
 }
 
 type Signer struct {

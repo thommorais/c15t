@@ -86,6 +86,7 @@ func (h *Handler) upsertDecision(
 	code jurisdiction.Code,
 	decision *policy.Decision,
 	policyType string,
+	storedPolicy *core.Record,
 ) (*core.Record, error) {
 	key := consent.DedupeKey(consent.DecisionKey{
 		TenantID:     tenantID,
@@ -104,11 +105,6 @@ func (h *Handler) upsertDecision(
 	)
 	if err == nil && existing != nil {
 		return existing, nil
-	}
-
-	storedPolicy, err := h.findOrCreatePolicy(app, tenantID, policyType)
-	if err != nil {
-		return nil, err
 	}
 
 	collection, err := app.FindCollectionByNameOrId("runtimePolicyDecision")

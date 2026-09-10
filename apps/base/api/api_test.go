@@ -1,6 +1,7 @@
 package api_test
 
 import (
+	"encoding/base64"
 	"encoding/json"
 	"io"
 	"net/http"
@@ -735,8 +736,8 @@ func TestConsentPolicyType(t *testing.T) {
 		want       int
 	}{
 		{name: "default when omitted", policyType: "", want: http.StatusCreated},
-		{name: "privacy policy", policyType: "privacy_policy", want: http.StatusCreated},
-		{name: "suffixed legal document", policyType: "terms_and_conditions_b2b", want: http.StatusCreated},
+		{name: "legal document without proof", policyType: "privacy_policy", want: http.StatusConflict},
+		{name: "suffixed legal document without proof", policyType: "terms_and_conditions_b2b", want: http.StatusConflict},
 		{name: "age verification", policyType: "age_verification", want: http.StatusCreated},
 		{name: "unknown type", policyType: "shrug", want: http.StatusBadRequest},
 		{name: "empty suffix", policyType: "terms_and_conditions_", want: http.StatusBadRequest},
@@ -780,7 +781,7 @@ func TestConsentPolicyRowReuse(t *testing.T) {
 	}
 
 	rec := h.do(http.MethodPost, "/api/c15t/consent",
-		`{"externalId":"d","domain":"example.com","categories":["necessary"],"policyType":"privacy_policy"}`,
+		`{"externalId":"d","domain":"example.com","categories":["necessary"],"policyType":"age_verification"}`,
 		auth(key, "cf-ipcountry", "DE"),
 	)
 	if rec.Code != http.StatusCreated {
@@ -887,7 +888,7 @@ func TestConsentDistinctSubmissionsAreSeparate(t *testing.T) {
 		`{"externalId":"user-1","domain":"example.com","categories":["necessary"],"givenAt":"2026-03-01T12:00:01Z"}`,
 		`{"externalId":"user-1","domain":"other.com","categories":["necessary"],"givenAt":"2026-03-01T12:00:00Z"}`,
 		`{"externalId":"user-2","domain":"example.com","categories":["necessary"],"givenAt":"2026-03-01T12:00:00Z"}`,
-		`{"externalId":"user-1","domain":"example.com","categories":["necessary"],"givenAt":"2026-03-01T12:00:00Z","policyType":"privacy_policy"}`,
+		`{"externalId":"user-1","domain":"example.com","categories":["necessary"],"givenAt":"2026-03-01T12:00:00Z","policyType":"age_verification"}`,
 	}
 
 	for i, body := range bodies {
@@ -1536,5 +1537,141 @@ func TestSyncLegalDocumentRejectsHashChange(t *testing.T) {
 		`{"version":"1.0.0","hash":"different","effectiveDate":"2026-01-01T00:00:00Z"}`, auth(key))
 	if rec.Code != http.StatusConflict {
 		t.Errorf("status = %d, want 409 when a released version changes content", rec.Code)
+	}
+}
+
+func publishDocument(t *testing.T, h *harness, key, docType, version, hash string) string {
+	t.Helper()
+
+	rec := h.do(http.MethodPut, "/api/c15t/legal-documents/"+docType+"/current",
+		`{"version":"`+version+`","hash":"`+hash+`","effectiveDate":"2026-01-01T00:00:00Z"}`, auth(key))
+	if rec.Code != http.StatusOK {
+		t.Fatalf("publish %s: status = %d: %s", docType, rec.Code, rec.Body.String())
+	}
+
+	policy, _ := decode(t, rec)["policy"].(map[string]any)
+	id, _ := policy["id"].(string)
+	return id
+}
+
+func TestLegalDocumentConsentAcceptsExplicitPolicyID(t *testing.T) {
+	h := newHarness(t, api.DefaultConfig())
+	key := h.key("t1")
+	policyID := publishDocument(t, h, key, "privacy_policy", "1.0.0", "abc")
+
+	rec := h.do(http.MethodPost, "/api/c15t/consent",
+		`{"externalId":"x","domain":"example.com","categories":["necessary"],"policyType":"privacy_policy","policyId":"`+policyID+`"}`,
+		auth(key, "cf-ipcountry", "DE"),
+	)
+	if rec.Code != http.StatusCreated {
+		t.Fatalf("status = %d, want 201: %s", rec.Code, rec.Body.String())
+	}
+}
+
+func TestLegalDocumentConsentAcceptsPolicyHash(t *testing.T) {
+	h := newHarness(t, api.DefaultConfig())
+	key := h.key("t1")
+	publishDocument(t, h, key, "privacy_policy", "1.0.0", "abc")
+
+	rec := h.do(http.MethodPost, "/api/c15t/consent",
+		`{"externalId":"x","domain":"example.com","categories":["necessary"],"policyType":"privacy_policy","policyHash":"abc"}`,
+		auth(key, "cf-ipcountry", "DE"),
+	)
+	if rec.Code != http.StatusCreated {
+		t.Fatalf("status = %d, want 201: %s", rec.Code, rec.Body.String())
+	}
+}
+
+func TestConsentPolicyReferenceErrors(t *testing.T) {
+	tests := []struct {
+		name string
+		ref  string
+		want int
+	}{
+		{name: "unknown policy id", ref: `"policyId":"doesnotexist00"`, want: http.StatusNotFound},
+		{name: "unknown policy hash", ref: `"policyHash":"nosuchhash"`, want: http.StatusNotFound},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			h := newHarness(t, api.DefaultConfig())
+			key := h.key("t1")
+
+			rec := h.do(http.MethodPost, "/api/c15t/consent",
+				`{"externalId":"x","domain":"example.com","categories":["necessary"],"policyType":"privacy_policy",`+tt.ref+`}`,
+				auth(key, "cf-ipcountry", "DE"),
+			)
+			if rec.Code != tt.want {
+				t.Errorf("status = %d, want %d: %s", rec.Code, tt.want, rec.Body.String())
+			}
+		})
+	}
+}
+
+func TestConsentRejectsInactivePolicy(t *testing.T) {
+	h := newHarness(t, api.DefaultConfig())
+	key := h.key("t1")
+
+	retired := publishDocument(t, h, key, "privacy_policy", "1.0.0", "abc")
+	publishDocument(t, h, key, "privacy_policy", "2.0.0", "def")
+
+	rec := h.do(http.MethodPost, "/api/c15t/consent",
+		`{"externalId":"x","domain":"example.com","categories":["necessary"],"policyType":"privacy_policy","policyId":"`+retired+`"}`,
+		auth(key, "cf-ipcountry", "DE"),
+	)
+	if rec.Code != http.StatusBadRequest {
+		t.Errorf("status = %d, want 400 for a retired policy: %s", rec.Code, rec.Body.String())
+	}
+}
+
+func TestLegalDocumentConsentAllowedWithSnapshotSigner(t *testing.T) {
+	h := newHarness(t, snapshotConfig(false))
+	key := h.key("t1")
+
+	rec := h.do(http.MethodPost, "/api/c15t/consent",
+		`{"externalId":"x","domain":"example.com","categories":["necessary"],"policyType":"privacy_policy"}`,
+		auth(key, "cf-ipcountry", "DE"),
+	)
+	if rec.Code != http.StatusCreated {
+		t.Errorf("status = %d, want 201 when a signing key is configured: %s", rec.Code, rec.Body.String())
+	}
+}
+
+func TestSnapshotPayloadCarriesPolicyDetail(t *testing.T) {
+	h := newHarness(t, snapshotConfig(false))
+	key := h.key("t1")
+
+	rec := h.do(http.MethodGet, "/api/c15t/init", "", auth(key, "cf-ipcountry", "DE"))
+	token, _ := decode(t, rec)["policySnapshotToken"].(string)
+	if token == "" {
+		t.Fatal("no snapshot token issued")
+	}
+
+	segments := strings.Split(token, ".")
+	raw, err := base64.RawURLEncoding.DecodeString(segments[1])
+	if err != nil {
+		t.Fatalf("decode payload: %v", err)
+	}
+
+	var payload map[string]any
+	if err := json.Unmarshal(raw, &payload); err != nil {
+		t.Fatalf("unmarshal payload: %v", err)
+	}
+
+	for _, field := range []string{
+		"iss", "aud", "sub", "policyId", "fingerprint", "matchedBy",
+		"jurisdiction", "model", "expiryDays", "scopeMode", "uiMode",
+		"bannerUi", "dialogUi", "proofConfig", "iat", "exp",
+	} {
+		if _, present := payload[field]; !present {
+			t.Errorf("snapshot payload missing %q", field)
+		}
+	}
+
+	if payload["uiMode"] != "banner" {
+		t.Errorf("uiMode = %v, want banner", payload["uiMode"])
+	}
+	if payload["country"] != "DE" {
+		t.Errorf("country = %v, want DE", payload["country"])
 	}
 }

@@ -41,10 +41,10 @@ func ValidPolicyType(value string) bool {
 	if slices.Contains(policyTypes, value) {
 		return true
 	}
-	return isLegalDocumentType(value)
+	return IsLegalDocumentType(value)
 }
 
-func isLegalDocumentType(value string) bool {
+func IsLegalDocumentType(value string) bool {
 	for _, prefix := range legalDocumentPrefixes {
 		if value == prefix {
 			return true

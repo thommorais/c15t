@@ -103,6 +103,8 @@ type consentRequest struct {
 	Domain        string         `json:"domain"`
 	Categories    []string       `json:"categories"`
 	PolicyType    string         `json:"policyType"`
+	PolicyID      string         `json:"policyId"`
+	PolicyHash    string         `json:"policyHash"`
 	UISource      string         `json:"uiSource"`
 	Action        string         `json:"action"`
 	TCString      string         `json:"tcString"`
@@ -149,6 +151,10 @@ func (h *Handler) recordConsent(c *Ctx, body consentRequest) (Status, error) {
 		return Status{}, err
 	}
 
+	if err := h.requireLegalDocumentProof(policyType, body); err != nil {
+		return Status{}, err
+	}
+
 	givenAt := consent.ClampGivenAt(body.GivenAt, time.Now().UTC())
 
 	var (
@@ -188,7 +194,12 @@ func (h *Handler) recordConsent(c *Ctx, body consentRequest) (Status, error) {
 			return err
 		}
 
-		rpd, err := h.upsertDecision(txApp, c.Tenant.TenantID, loc, code, decision, policyType)
+		policyRecord, err := h.resolvePolicyRecord(txApp, c.Tenant.TenantID, policyType, body)
+		if err != nil {
+			return err
+		}
+
+		rpd, err := h.upsertDecision(txApp, c.Tenant.TenantID, loc, code, decision, policyType, policyRecord)
 		if err != nil {
 			return err
 		}
