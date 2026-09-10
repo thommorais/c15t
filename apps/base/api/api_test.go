@@ -1119,3 +1119,136 @@ func TestCheckConsentRequiresAuth(t *testing.T) {
 		t.Errorf("status = %d, want 401", rec.Code)
 	}
 }
+
+func snapshotConfig(required bool) api.Config {
+	cfg := api.DefaultConfig()
+	cfg.SnapshotSecret = "test-secret"
+	cfg.SnapshotRequired = required
+	return cfg
+}
+
+func TestSnapshotTokenAbsentWithoutSecret(t *testing.T) {
+	h := newHarness(t, api.DefaultConfig())
+	key := h.key("t1")
+
+	rec := h.do(http.MethodGet, "/api/c15t/init", "", auth(key, "cf-ipcountry", "DE"))
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d: %s", rec.Code, rec.Body.String())
+	}
+
+	if _, present := decode(t, rec)["policySnapshotToken"]; present {
+		t.Error("a snapshot token was issued without a configured secret")
+	}
+}
+
+func TestSnapshotTokenIssuedOnInit(t *testing.T) {
+	h := newHarness(t, snapshotConfig(false))
+	key := h.key("t1")
+
+	rec := h.do(http.MethodGet, "/api/c15t/init", "", auth(key, "cf-ipcountry", "DE"))
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d: %s", rec.Code, rec.Body.String())
+	}
+
+	token, _ := decode(t, rec)["policySnapshotToken"].(string)
+	if token == "" {
+		t.Fatal("no snapshot token issued")
+	}
+	if strings.Count(token, ".") != 2 {
+		t.Errorf("token %q is not a three segment jwt", token)
+	}
+}
+
+func TestSnapshotRoundTrip(t *testing.T) {
+	h := newHarness(t, snapshotConfig(true))
+	key := h.key("t1")
+
+	rec := h.do(http.MethodGet, "/api/c15t/init", "", auth(key, "cf-ipcountry", "DE"))
+	token, _ := decode(t, rec)["policySnapshotToken"].(string)
+	if token == "" {
+		t.Fatal("no snapshot token issued")
+	}
+
+	rec = h.do(http.MethodPost, "/api/c15t/consent",
+		`{"externalId":"x","domain":"example.com","categories":["necessary"],"policySnapshotToken":"`+token+`"}`,
+		auth(key, "cf-ipcountry", "DE"),
+	)
+	if rec.Code != http.StatusCreated {
+		t.Fatalf("status = %d, want 201: %s", rec.Code, rec.Body.String())
+	}
+}
+
+func TestSnapshotRequiredRejectsBadTokens(t *testing.T) {
+	tests := []struct {
+		name  string
+		token string
+	}{
+		{name: "missing", token: ""},
+		{name: "malformed", token: "not-a-jwt"},
+		{name: "tampered", token: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJwb2xpY3lJZCI6IngifQ.AAAA"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			h := newHarness(t, snapshotConfig(true))
+			key := h.key("t1")
+
+			body := `{"externalId":"x","domain":"example.com","categories":["necessary"]`
+			if tt.token != "" {
+				body += `,"policySnapshotToken":"` + tt.token + `"`
+			}
+			body += `}`
+
+			rec := h.do(http.MethodPost, "/api/c15t/consent", body, auth(key, "cf-ipcountry", "DE"))
+			if rec.Code != http.StatusConflict {
+				t.Errorf("status = %d, want 409: %s", rec.Code, rec.Body.String())
+			}
+		})
+	}
+}
+
+func TestSnapshotOptionalFallsBackToCurrentPolicy(t *testing.T) {
+	h := newHarness(t, snapshotConfig(false))
+	key := h.key("t1")
+
+	rec := h.do(http.MethodPost, "/api/c15t/consent",
+		`{"externalId":"x","domain":"example.com","categories":["necessary"],"policySnapshotToken":"garbage"}`,
+		auth(key, "cf-ipcountry", "DE"),
+	)
+	if rec.Code != http.StatusCreated {
+		t.Errorf("status = %d, want 201 when snapshots are optional: %s", rec.Code, rec.Body.String())
+	}
+}
+
+func TestSnapshotFromAnotherTenantIsRejected(t *testing.T) {
+	h := newHarness(t, snapshotConfig(true))
+	keyOne := h.key("t1")
+	keyTwo := h.key("t2")
+
+	rec := h.do(http.MethodGet, "/api/c15t/init", "", auth(keyOne, "cf-ipcountry", "DE"))
+	token, _ := decode(t, rec)["policySnapshotToken"].(string)
+
+	rec = h.do(http.MethodPost, "/api/c15t/consent",
+		`{"externalId":"x","domain":"example.com","categories":["necessary"],"policySnapshotToken":"`+token+`"}`,
+		auth(keyTwo, "cf-ipcountry", "DE"),
+	)
+	if rec.Code != http.StatusConflict {
+		t.Errorf("status = %d, want 409 for a foreign tenant's token: %s", rec.Code, rec.Body.String())
+	}
+}
+
+func TestSnapshotForDifferentPolicyIsRejected(t *testing.T) {
+	h := newHarness(t, snapshotConfig(true))
+	key := h.key("t1")
+
+	rec := h.do(http.MethodGet, "/api/c15t/init", "", auth(key, "cf-ipcountry", "DE"))
+	token, _ := decode(t, rec)["policySnapshotToken"].(string)
+
+	rec = h.do(http.MethodPost, "/api/c15t/consent",
+		`{"externalId":"x","domain":"example.com","categories":["necessary"],"policySnapshotToken":"`+token+`"}`,
+		auth(key, "x-vercel-ip-country", "US", "x-vercel-ip-country-region", "CA"),
+	)
+	if rec.Code != http.StatusConflict {
+		t.Errorf("status = %d, want 409 when the resolved policy differs: %s", rec.Code, rec.Body.String())
+	}
+}

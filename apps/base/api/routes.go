@@ -12,15 +12,25 @@ import (
 	"thom/core/jurisdiction"
 	"thom/core/policy"
 	"thom/core/request"
+	"thom/core/snapshot"
 )
 
 type Handler struct {
-	app core.App
-	cfg Config
+	app    core.App
+	cfg    Config
+	signer *snapshot.Signer
 }
 
 func Register(app core.App, se *core.ServeEvent, cfg Config) {
 	h := &Handler{app: app, cfg: cfg}
+	if cfg.SnapshotSecret != "" {
+		h.signer = snapshot.NewSigner(
+			cfg.SnapshotSecret,
+			cfg.SnapshotIssuer,
+			cfg.SnapshotAudience,
+			cfg.SnapshotTTL,
+		)
+	}
 
 	g := se.Router.Group("/api/c15t")
 	g.GET("/init", handle(h, h.init))
@@ -30,10 +40,11 @@ func Register(app core.App, se *core.ServeEvent, cfg Config) {
 }
 
 type initResponse struct {
-	Jurisdiction string           `json:"jurisdiction"`
-	Location     locationPayload  `json:"location"`
-	Policy       *policy.Resolved `json:"policy,omitempty"`
-	Decision     *decisionPayload `json:"policyDecision,omitempty"`
+	Jurisdiction  string           `json:"jurisdiction"`
+	Location      locationPayload  `json:"location"`
+	Policy        *policy.Resolved `json:"policy,omitempty"`
+	Decision      *decisionPayload `json:"policyDecision,omitempty"`
+	SnapshotToken string           `json:"policySnapshotToken,omitempty"`
 }
 
 type locationPayload struct {
@@ -70,22 +81,29 @@ func (h *Handler) init(c *Ctx, _ any) (initResponse, error) {
 			MatchedBy:    string(decision.MatchedBy),
 			Jurisdiction: string(code),
 		}
+
+		token, err := h.signSnapshot(c.Tenant.TenantID, loc, code, decision)
+		if err != nil {
+			return initResponse{}, err
+		}
+		resp.SnapshotToken = token
 	}
 
 	return resp, nil
 }
 
 type consentRequest struct {
-	SubjectID  string         `json:"subjectId"`
-	ExternalID string         `json:"externalId"`
-	Domain     string         `json:"domain"`
-	Categories []string       `json:"categories"`
-	PolicyType string         `json:"policyType"`
-	UISource   string         `json:"uiSource"`
-	Action     string         `json:"action"`
-	TCString   string         `json:"tcString"`
-	GivenAt    *time.Time     `json:"givenAt"`
-	Metadata   map[string]any `json:"metadata"`
+	SubjectID     string         `json:"subjectId"`
+	ExternalID    string         `json:"externalId"`
+	Domain        string         `json:"domain"`
+	Categories    []string       `json:"categories"`
+	PolicyType    string         `json:"policyType"`
+	UISource      string         `json:"uiSource"`
+	Action        string         `json:"action"`
+	TCString      string         `json:"tcString"`
+	GivenAt       *time.Time     `json:"givenAt"`
+	SnapshotToken string         `json:"policySnapshotToken"`
+	Metadata      map[string]any `json:"metadata"`
 }
 
 type consentResponse struct {
@@ -120,6 +138,10 @@ func (h *Handler) recordConsent(c *Ctx, body consentRequest) (Status, error) {
 	}
 	if decision == nil {
 		return Status{}, BadRequest("no policy applies to this request")
+	}
+
+	if err := h.verifySnapshot(body.SnapshotToken, c.Tenant.TenantID, decision); err != nil {
+		return Status{}, err
 	}
 
 	givenAt := consent.ClampGivenAt(body.GivenAt, time.Now().UTC())

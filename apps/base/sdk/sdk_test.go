@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"github.com/pocketbase/pocketbase/apis"
 	"github.com/pocketbase/pocketbase/core"
@@ -443,5 +444,82 @@ func TestGeoHintsAreSent(t *testing.T) {
 		if got.Get(header) != value {
 			t.Errorf("%s = %q, want %q", header, got.Get(header), value)
 		}
+	}
+}
+
+func TestCheckConsent(t *testing.T) {
+	client, _ := newServer(t)
+	ctx := context.Background()
+
+	got, err := client.CheckConsent(ctx, "nobody", []string{"cookie_banner"})
+	if err != nil {
+		t.Fatalf("CheckConsent: %v", err)
+	}
+	if got["cookie_banner"].HasConsent {
+		t.Error("unknown identity reported as consented")
+	}
+
+	if _, err := client.RecordConsent(ctx, sdk.ConsentRequest{
+		ExternalID: "user-1",
+		Domain:     "example.com",
+		Categories: []string{"necessary"},
+	}, sdk.GeoHints{CountryCode: "DE"}); err != nil {
+		t.Fatalf("RecordConsent: %v", err)
+	}
+
+	got, err = client.CheckConsent(ctx, "user-1", []string{"cookie_banner", "privacy_policy"})
+	if err != nil {
+		t.Fatalf("CheckConsent: %v", err)
+	}
+
+	if !got["cookie_banner"].HasConsent {
+		t.Error("cookie_banner should report consent")
+	}
+	if !got["cookie_banner"].IsLatestPolicy {
+		t.Error("cookie_banner should be the latest policy")
+	}
+	if got["privacy_policy"].HasConsent {
+		t.Error("privacy_policy should not report consent")
+	}
+}
+
+func TestCheckConsentValidation(t *testing.T) {
+	client, _ := newServer(t)
+
+	if _, err := client.CheckConsent(context.Background(), "", []string{"cookie_banner"}); err == nil {
+		t.Error("expected a rejection for an empty externalId")
+	}
+	if _, err := client.CheckConsent(context.Background(), "x", nil); err == nil {
+		t.Error("expected a rejection for no types")
+	}
+}
+
+func TestRecordConsentIsIdempotent(t *testing.T) {
+	client, _ := newServer(t)
+	ctx := context.Background()
+
+	givenAt := time.Date(2026, 3, 1, 12, 0, 0, 0, time.UTC)
+	req := sdk.ConsentRequest{
+		ExternalID: "user-1",
+		Domain:     "example.com",
+		Categories: []string{"necessary"},
+		GivenAt:    &givenAt,
+	}
+
+	first, err := client.RecordConsent(ctx, req, sdk.GeoHints{CountryCode: "DE"})
+	if err != nil {
+		t.Fatalf("first RecordConsent: %v", err)
+	}
+
+	second, err := client.RecordConsent(ctx, req, sdk.GeoHints{CountryCode: "DE"})
+	if err != nil {
+		t.Fatalf("repeat RecordConsent: %v", err)
+	}
+
+	if first.ID != second.ID {
+		t.Errorf("repeat returned a different consent: %q vs %q", first.ID, second.ID)
+	}
+	if !second.Duplicate {
+		t.Error("repeat was not flagged as a duplicate")
 	}
 }

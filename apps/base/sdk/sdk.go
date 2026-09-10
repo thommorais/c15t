@@ -85,10 +85,11 @@ type ResolvedPolicy struct {
 }
 
 type InitResult struct {
-	Jurisdiction string          `json:"jurisdiction"`
-	Location     Location        `json:"location"`
-	Policy       *ResolvedPolicy `json:"policy,omitempty"`
-	Decision     *PolicyDecision `json:"policyDecision,omitempty"`
+	Jurisdiction  string          `json:"jurisdiction"`
+	Location      Location        `json:"location"`
+	Policy        *ResolvedPolicy `json:"policy,omitempty"`
+	Decision      *PolicyDecision `json:"policyDecision,omitempty"`
+	SnapshotToken string          `json:"policySnapshotToken,omitempty"`
 }
 
 // GeoHints override the geo headers the server would otherwise read from the
@@ -110,15 +111,17 @@ func (c *Client) Init(ctx context.Context, geo GeoHints) (*InitResult, error) {
 }
 
 type ConsentRequest struct {
-	SubjectID  string         `json:"subjectId,omitempty"`
-	ExternalID string         `json:"externalId,omitempty"`
-	Domain     string         `json:"domain"`
-	Categories []string       `json:"categories"`
-	PolicyType string         `json:"policyType,omitempty"`
-	UISource   string         `json:"uiSource,omitempty"`
-	Action     string         `json:"action,omitempty"`
-	TCString   string         `json:"tcString,omitempty"`
-	Metadata   map[string]any `json:"metadata,omitempty"`
+	SubjectID     string         `json:"subjectId,omitempty"`
+	ExternalID    string         `json:"externalId,omitempty"`
+	Domain        string         `json:"domain"`
+	Categories    []string       `json:"categories"`
+	PolicyType    string         `json:"policyType,omitempty"`
+	UISource      string         `json:"uiSource,omitempty"`
+	Action        string         `json:"action,omitempty"`
+	TCString      string         `json:"tcString,omitempty"`
+	GivenAt       *time.Time     `json:"givenAt,omitempty"`
+	SnapshotToken string         `json:"policySnapshotToken,omitempty"`
+	Metadata      map[string]any `json:"metadata,omitempty"`
 }
 
 type ConsentRecord struct {
@@ -128,6 +131,7 @@ type ConsentRecord struct {
 	GivenAt    time.Time  `json:"givenAt"`
 	ValidUntil *time.Time `json:"validUntil,omitempty"`
 	Action     string     `json:"action,omitempty"`
+	Duplicate  bool       `json:"duplicate,omitempty"`
 }
 
 func (c *Client) RecordConsent(ctx context.Context, req ConsentRequest, geo GeoHints) (*ConsentRecord, error) {
@@ -260,4 +264,34 @@ func extractMessage(payload []byte) string {
 		return ""
 	}
 	return body.Message
+}
+
+type CheckResult struct {
+	HasConsent     bool `json:"hasConsent"`
+	IsLatestPolicy bool `json:"isLatestPolicy"`
+}
+
+// CheckConsent reports whether an external identity has already consented to
+// each of the given policy types. It returns no identifiers, so it is safe to
+// call before a banner is shown.
+func (c *Client) CheckConsent(ctx context.Context, externalID string, types []string) (map[string]CheckResult, error) {
+	if externalID == "" {
+		return nil, errors.New("sdk: externalId is required")
+	}
+	if len(types) == 0 {
+		return nil, errors.New("sdk: at least one type is required")
+	}
+
+	var out struct {
+		Results map[string]CheckResult `json:"results"`
+	}
+
+	path := "/api/c15t/consents/check?externalId=" + url.QueryEscape(externalID) +
+		"&type=" + url.QueryEscape(strings.Join(types, ","))
+
+	if err := c.do(ctx, http.MethodGet, path, nil, GeoHints{}, &out); err != nil {
+		return nil, err
+	}
+
+	return out.Results, nil
 }
