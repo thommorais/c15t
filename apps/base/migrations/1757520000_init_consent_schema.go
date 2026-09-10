@@ -231,10 +231,12 @@ func consentCollection() *core.Collection {
 		&core.TextField{Name: "uiSource", Max: 32},
 		&core.TextField{Name: "consentAction", Max: 32},
 		&core.TextField{Name: "runtimePolicySource", Max: 64},
+		&core.TextField{Name: "submissionKey", Required: true, Max: 64},
 		tenantField(),
 		createdField(),
 	)
 	c.Indexes = []string{
+		`CREATE UNIQUE INDEX idx_consent_submission ON consent (submissionKey)`,
 		`CREATE INDEX idx_consent_subject ON consent (tenantId, subject, givenAt)`,
 		`CREATE INDEX idx_consent_domain ON consent (tenantId, domain, givenAt)`,
 		`CREATE INDEX idx_consent_valid ON consent (tenantId, validUntil)`,

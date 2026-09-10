@@ -184,15 +184,36 @@ func (h *Handler) findOrCreatePolicy(app core.App, tenantID, policyType string) 
 	return record, nil
 }
 
-func (h *Handler) insertConsent(app core.App, rec consent.Record, decision *core.Record) (*core.Record, error) {
+func (h *Handler) insertConsent(
+	app core.App,
+	rec consent.Record,
+	decision *core.Record,
+	policyType string,
+) (*core.Record, bool, error) {
+	key := consent.SubmissionKey(consent.Submission{
+		TenantID:   rec.TenantID,
+		SubjectID:  rec.SubjectID,
+		DomainID:   rec.DomainID,
+		PolicyType: policyType,
+		GivenAt:    rec.GivenAt,
+	})
+
+	if existing, err := app.FindFirstRecordByFilter(
+		"consent",
+		"submissionKey = {:key}",
+		dbx.Params{"key": key},
+	); err == nil && existing != nil {
+		return existing, true, nil
+	}
+
 	purposeIDs, err := h.resolvePurposes(app, rec.TenantID, rec.Categories)
 	if err != nil {
-		return nil, err
+		return nil, false, err
 	}
 
 	collection, err := app.FindCollectionByNameOrId("consent")
 	if err != nil {
-		return nil, err
+		return nil, false, err
 	}
 
 	record := core.NewRecord(collection)
@@ -210,6 +231,7 @@ func (h *Handler) insertConsent(app core.App, rec consent.Record, decision *core
 	record.Set("tcString", rec.TCString)
 	record.Set("givenAt", rec.GivenAt)
 	record.Set("runtimePolicySource", "runtime")
+	record.Set("submissionKey", key)
 	record.Set("tenantId", rec.TenantID)
 
 	if rec.Metadata != nil {
@@ -220,10 +242,18 @@ func (h *Handler) insertConsent(app core.App, rec consent.Record, decision *core
 	}
 
 	if err := app.Save(record); err != nil {
-		return nil, err
+		// A concurrent request won the unique index; its row is the winner.
+		if existing, findErr := app.FindFirstRecordByFilter(
+			"consent",
+			"submissionKey = {:key}",
+			dbx.Params{"key": key},
+		); findErr == nil && existing != nil {
+			return existing, true, nil
+		}
+		return nil, false, err
 	}
 
-	return record, nil
+	return record, false, nil
 }
 
 func (h *Handler) resolvePurposes(app core.App, tenantID string, categories []string) ([]string, error) {

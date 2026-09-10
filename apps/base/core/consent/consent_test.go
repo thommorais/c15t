@@ -413,3 +413,83 @@ func TestOutOfScopeIsAlsoInvalid(t *testing.T) {
 		t.Errorf("out-of-scope error %v should count as invalid input", err)
 	}
 }
+
+func TestSubmissionKeyIsStableAndScoped(t *testing.T) {
+	base := Submission{
+		TenantID:   "t1",
+		SubjectID:  "s1",
+		DomainID:   "d1",
+		PolicyType: "cookie_banner",
+		GivenAt:    fixedNow,
+	}
+
+	first, second := SubmissionKey(base), SubmissionKey(base)
+	if first != second {
+		t.Errorf("submission key not stable: %q vs %q", first, second)
+	}
+
+	variants := map[string]Submission{
+		"tenant":      {TenantID: "t2", SubjectID: "s1", DomainID: "d1", PolicyType: "cookie_banner", GivenAt: fixedNow},
+		"subject":     {TenantID: "t1", SubjectID: "s2", DomainID: "d1", PolicyType: "cookie_banner", GivenAt: fixedNow},
+		"domain":      {TenantID: "t1", SubjectID: "s1", DomainID: "d2", PolicyType: "cookie_banner", GivenAt: fixedNow},
+		"policy type": {TenantID: "t1", SubjectID: "s1", DomainID: "d1", PolicyType: "privacy_policy", GivenAt: fixedNow},
+		"given at":    {TenantID: "t1", SubjectID: "s1", DomainID: "d1", PolicyType: "cookie_banner", GivenAt: fixedNow.Add(time.Second)},
+	}
+
+	for name, v := range variants {
+		t.Run(name, func(t *testing.T) {
+			if SubmissionKey(v) == first {
+				t.Errorf("%s did not change the submission key", name)
+			}
+		})
+	}
+}
+
+func TestClampGivenAt(t *testing.T) {
+	now := fixedNow
+
+	tests := []struct {
+		name  string
+		given *time.Time
+		want  time.Time
+	}{
+		{
+			name:  "nil uses server time",
+			given: nil,
+			want:  now,
+		},
+		{
+			name:  "past is preserved",
+			given: ptr(now.Add(-72 * time.Hour)),
+			want:  now.Add(-72 * time.Hour),
+		},
+		{
+			name:  "small future skew is preserved",
+			given: ptr(now.Add(2 * time.Minute)),
+			want:  now.Add(2 * time.Minute),
+		},
+		{
+			name:  "far future is clamped to server time",
+			given: ptr(now.Add(30 * time.Minute)),
+			want:  now,
+		},
+		{
+			name:  "exactly at the tolerance is preserved",
+			given: ptr(now.Add(5 * time.Minute)),
+			want:  now.Add(5 * time.Minute),
+		},
+		{
+			name:  "just past the tolerance is clamped",
+			given: ptr(now.Add(5*time.Minute + time.Second)),
+			want:  now,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := ClampGivenAt(tt.given, now); !got.Equal(tt.want) {
+				t.Errorf("ClampGivenAt = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}

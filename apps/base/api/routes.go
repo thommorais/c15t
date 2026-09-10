@@ -1,8 +1,8 @@
 package api
 
 import (
-	"errors"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/pocketbase/dbx"
@@ -23,9 +23,10 @@ func Register(app core.App, se *core.ServeEvent, cfg Config) {
 	h := &Handler{app: app, cfg: cfg}
 
 	g := se.Router.Group("/api/c15t")
-	g.GET("/init", h.handleInit)
-	g.POST("/consent", h.handleConsent)
-	g.GET("/consent/{subjectId}", h.handleListConsent)
+	g.GET("/init", handle(h, h.init))
+	g.POST("/consent", handle(h, h.recordConsent))
+	g.GET("/consent/{subjectId}", handle(h, h.listConsent))
+	g.GET("/consents/check", handle(h, h.checkConsent))
 }
 
 type initResponse struct {
@@ -47,15 +48,10 @@ type decisionPayload struct {
 	Jurisdiction string `json:"jurisdiction"`
 }
 
-func (h *Handler) handleInit(e *core.RequestEvent) error {
-	tenant, err := authenticate(h.app, e.Request)
+func (h *Handler) init(c *Ctx, _ any) (initResponse, error) {
+	loc, code, decision, err := h.resolve(c.Event.Request)
 	if err != nil {
-		return e.UnauthorizedError("invalid or missing api key", nil)
-	}
-
-	loc, code, decision, err := h.resolve(e.Request)
-	if err != nil {
-		return e.InternalServerError("policy resolution failed", err)
+		return initResponse{}, err
 	}
 
 	resp := initResponse{
@@ -76,9 +72,7 @@ func (h *Handler) handleInit(e *core.RequestEvent) error {
 		}
 	}
 
-	touchKeyUsage(h.app, tenant.KeyID)
-
-	return e.JSON(http.StatusOK, resp)
+	return resp, nil
 }
 
 type consentRequest struct {
@@ -90,6 +84,7 @@ type consentRequest struct {
 	UISource   string         `json:"uiSource"`
 	Action     string         `json:"action"`
 	TCString   string         `json:"tcString"`
+	GivenAt    *time.Time     `json:"givenAt"`
 	Metadata   map[string]any `json:"metadata"`
 }
 
@@ -100,23 +95,15 @@ type consentResponse struct {
 	GivenAt    time.Time  `json:"givenAt"`
 	ValidUntil *time.Time `json:"validUntil,omitempty"`
 	Action     string     `json:"action,omitempty"`
+	Duplicate  bool       `json:"duplicate,omitempty"`
 }
 
-func (h *Handler) handleConsent(e *core.RequestEvent) error {
-	tenant, err := authenticate(h.app, e.Request)
-	if err != nil {
-		return e.UnauthorizedError("invalid or missing api key", nil)
-	}
-
-	var body consentRequest
-	if err := e.BindBody(&body); err != nil {
-		return e.BadRequestError("malformed request body", err)
-	}
+func (h *Handler) recordConsent(c *Ctx, body consentRequest) (Status, error) {
 	if body.Domain == "" {
-		return e.BadRequestError("domain is required", nil)
+		return Status{}, BadRequest("domain is required")
 	}
 	if body.SubjectID == "" && body.ExternalID == "" {
-		return e.BadRequestError("subjectId or externalId is required", nil)
+		return Status{}, BadRequest("subjectId or externalId is required")
 	}
 
 	policyType := body.PolicyType
@@ -124,26 +111,31 @@ func (h *Handler) handleConsent(e *core.RequestEvent) error {
 		policyType = consent.DefaultPolicyType
 	}
 	if !consent.ValidPolicyType(policyType) {
-		return e.BadRequestError("unknown policyType "+policyType, nil)
+		return Status{}, BadRequest("unknown policyType " + policyType)
 	}
 
-	loc, code, decision, err := h.resolve(e.Request)
+	loc, code, decision, err := h.resolve(c.Event.Request)
 	if err != nil {
-		return e.InternalServerError("policy resolution failed", err)
+		return Status{}, err
 	}
 	if decision == nil {
-		return e.BadRequestError("no policy applies to this request", nil)
+		return Status{}, BadRequest("no policy applies to this request")
 	}
 
-	var stored *core.Record
+	givenAt := consent.ClampGivenAt(body.GivenAt, time.Now().UTC())
+
+	var (
+		stored    *core.Record
+		duplicate bool
+	)
 
 	err = h.app.RunInTransaction(func(txApp core.App) error {
-		subject, err := h.findOrCreateSubject(txApp, tenant.TenantID, body)
+		subject, err := h.findOrCreateSubject(txApp, c.Tenant.TenantID, body)
 		if err != nil {
 			return err
 		}
 
-		domain, err := h.findOrCreateDomain(txApp, tenant.TenantID, body.Domain)
+		domain, err := h.findOrCreateDomain(txApp, c.Tenant.TenantID, body.Domain)
 		if err != nil {
 			return err
 		}
@@ -151,70 +143,64 @@ func (h *Handler) handleConsent(e *core.RequestEvent) error {
 		record, err := consent.Build(consent.Input{
 			SubjectID:    subject.Id,
 			DomainID:     domain.Id,
-			TenantID:     tenant.TenantID,
+			TenantID:     c.Tenant.TenantID,
 			Categories:   body.Categories,
 			Policy:       decision.Policy,
 			Jurisdiction: code,
-			IPAddress:    request.ClientIP(e.Request.Header, h.ipOptions()),
-			UserAgent:    e.Request.UserAgent(),
-			Language:     acceptLanguage(e.Request),
+			IPAddress:    request.ClientIP(c.Event.Request.Header, h.ipOptions()),
+			UserAgent:    c.Event.Request.UserAgent(),
+			Language:     acceptLanguage(c.Event.Request),
 			UISource:     consent.UISource(body.UISource),
 			Action:       consent.Action(body.Action),
 			TCString:     body.TCString,
 			Metadata:     body.Metadata,
-			GPCSignal:    hasGPCSignal(e.Request),
+			GPCSignal:    hasGPCSignal(c.Event.Request),
+			Now:          givenAt,
 		})
 		if err != nil {
 			return err
 		}
 
-		rpd, err := h.upsertDecision(txApp, tenant.TenantID, loc, code, decision, policyType)
+		rpd, err := h.upsertDecision(txApp, c.Tenant.TenantID, loc, code, decision, policyType)
 		if err != nil {
 			return err
 		}
 
-		stored, err = h.insertConsent(txApp, record, rpd)
+		stored, duplicate, err = h.insertConsent(txApp, record, rpd, policyType)
 		if err != nil {
 			return err
 		}
+		if duplicate {
+			return nil
+		}
 
-		return h.appendAudit(txApp, tenant.TenantID, stored, record)
+		return h.appendAudit(txApp, c.Tenant.TenantID, stored, record)
 	})
-
 	if err != nil {
-		if consent.IsInvalid(err) || errors.Is(err, errInvalidInput) {
-			return e.BadRequestError(err.Error(), nil)
-		}
-		return e.InternalServerError("failed to record consent", err)
+		return Status{}, err
 	}
 
-	touchKeyUsage(h.app, tenant.KeyID)
-
-	var validUntil *time.Time
-	if v := stored.GetDateTime("validUntil"); !v.IsZero() {
-		t := v.Time()
-		validUntil = &t
-	}
-
-	return e.JSON(http.StatusCreated, consentResponse{
+	resp := consentResponse{
 		ID:         stored.Id,
 		SubjectID:  stored.GetString("subject"),
 		PolicyID:   decision.Policy.ID,
 		GivenAt:    stored.GetDateTime("givenAt").Time(),
-		ValidUntil: validUntil,
+		ValidUntil: validUntilOf(stored),
 		Action:     stored.GetString("consentAction"),
-	})
-}
-
-func (h *Handler) handleListConsent(e *core.RequestEvent) error {
-	tenant, err := authenticate(h.app, e.Request)
-	if err != nil {
-		return e.UnauthorizedError("invalid or missing api key", nil)
+		Duplicate:  duplicate,
 	}
 
-	subjectID := e.Request.PathValue("subjectId")
+	if duplicate {
+		return Status{Code: http.StatusOK, Body: resp}, nil
+	}
+
+	return Status{Code: http.StatusCreated, Body: resp}, nil
+}
+
+func (h *Handler) listConsent(c *Ctx, _ any) (map[string]any, error) {
+	subjectID := c.Path("subjectId")
 	if subjectID == "" {
-		return e.BadRequestError("subjectId is required", nil)
+		return nil, BadRequest("subjectId is required")
 	}
 
 	records, err := h.app.FindRecordsByFilter(
@@ -223,33 +209,34 @@ func (h *Handler) handleListConsent(e *core.RequestEvent) error {
 		"-givenAt",
 		100,
 		0,
-		dbx.Params{"subject": subjectID, "tenant": tenant.TenantID},
+		dbx.Params{"subject": subjectID, "tenant": c.Tenant.TenantID},
 	)
 	if err != nil {
-		return e.InternalServerError("failed to load consent", err)
+		return nil, err
 	}
 
 	out := make([]consentResponse, 0, len(records))
 	for _, r := range records {
-		var validUntil *time.Time
-		if v := r.GetDateTime("validUntil"); !v.IsZero() {
-			t := v.Time()
-			validUntil = &t
-		}
-
 		out = append(out, consentResponse{
 			ID:         r.Id,
 			SubjectID:  r.GetString("subject"),
 			PolicyID:   r.GetString("policy"),
 			GivenAt:    r.GetDateTime("givenAt").Time(),
-			ValidUntil: validUntil,
+			ValidUntil: validUntilOf(r),
 			Action:     r.GetString("consentAction"),
 		})
 	}
 
-	touchKeyUsage(h.app, tenant.KeyID)
+	return map[string]any{"consents": out}, nil
+}
 
-	return e.JSON(http.StatusOK, map[string]any{"consents": out})
+func validUntilOf(r *core.Record) *time.Time {
+	v := r.GetDateTime("validUntil")
+	if v.IsZero() {
+		return nil
+	}
+	t := v.Time()
+	return &t
 }
 
 func (h *Handler) resolve(r *http.Request) (jurisdiction.Location, jurisdiction.Code, *policy.Decision, error) {
@@ -288,4 +275,108 @@ func hasGPCSignal(r *http.Request) bool {
 
 func acceptLanguage(r *http.Request) string {
 	return r.Header.Get("Accept-Language")
+}
+
+type checkResult struct {
+	HasConsent     bool `json:"hasConsent"`
+	IsLatestPolicy bool `json:"isLatestPolicy"`
+}
+
+// checkConsent answers whether an external identity has already consented,
+// before a banner is shown. It returns booleans only: no subject ids, no
+// consent detail, so it stays safe to call from an unauthenticated surface.
+func (h *Handler) checkConsent(c *Ctx, _ any) (map[string]any, error) {
+	externalID := c.Query("externalId")
+	if externalID == "" {
+		return nil, Unprocessable("externalId query parameter is required")
+	}
+
+	rawTypes := c.Query("type")
+	if rawTypes == "" {
+		return nil, Unprocessable("type query parameter is required")
+	}
+
+	results := map[string]checkResult{}
+	var types []string
+	for _, t := range strings.Split(rawTypes, ",") {
+		t = strings.TrimSpace(t)
+		if t == "" {
+			continue
+		}
+		if _, seen := results[t]; seen {
+			continue
+		}
+		results[t] = checkResult{}
+		types = append(types, t)
+	}
+
+	if len(types) == 0 {
+		return nil, Unprocessable("type query parameter is required")
+	}
+
+	subjects, err := h.app.FindRecordsByFilter(
+		"subject",
+		"externalId = {:ext} && tenantId = {:tenant}",
+		"",
+		0,
+		0,
+		dbx.Params{"ext": externalID, "tenant": c.Tenant.TenantID},
+	)
+	if err != nil || len(subjects) == 0 {
+		return map[string]any{"results": results}, nil
+	}
+
+	var consents []*core.Record
+	for _, subject := range subjects {
+		found, err := h.app.FindRecordsByFilter(
+			"consent",
+			"subject = {:subject} && tenantId = {:tenant}",
+			"-givenAt",
+			0,
+			0,
+			dbx.Params{"subject": subject.Id, "tenant": c.Tenant.TenantID},
+		)
+		if err != nil {
+			return nil, err
+		}
+		consents = append(consents, found...)
+	}
+
+	latestByType := map[string]string{}
+	for _, t := range types {
+		latest, err := h.app.FindFirstRecordByFilter(
+			"consentPolicy",
+			"type = {:type} && isActive = true && tenantId = {:tenant}",
+			dbx.Params{"type": t, "tenant": c.Tenant.TenantID},
+		)
+		if err == nil && latest != nil {
+			latestByType[t] = latest.Id
+		}
+	}
+
+	for _, record := range consents {
+		policyID := record.GetString("policy")
+		if policyID == "" {
+			continue
+		}
+
+		policyRecord, err := h.app.FindRecordById("consentPolicy", policyID)
+		if err != nil {
+			continue
+		}
+
+		policyType := policyRecord.GetString("type")
+		entry, wanted := results[policyType]
+		if !wanted {
+			continue
+		}
+
+		entry.HasConsent = true
+		if latestByType[policyType] == policyID {
+			entry.IsLatestPolicy = true
+		}
+		results[policyType] = entry
+	}
+
+	return map[string]any{"results": results}, nil
 }

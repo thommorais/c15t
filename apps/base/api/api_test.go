@@ -7,6 +7,7 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/pocketbase/dbx"
 	"github.com/pocketbase/pocketbase/apis"
@@ -842,5 +843,279 @@ func TestOnlyOneActivePolicyPerType(t *testing.T) {
 		if version == "2.0.0" && err == nil {
 			t.Error("a second active policy of the same type was accepted")
 		}
+	}
+}
+
+func TestConsentIsIdempotent(t *testing.T) {
+	h := newHarness(t, api.DefaultConfig())
+	key := h.key("t1")
+
+	body := `{"externalId":"user-1","domain":"example.com","categories":["necessary"],"givenAt":"2026-03-01T12:00:00Z"}`
+
+	first := h.do(http.MethodPost, "/api/c15t/consent", body, auth(key, "cf-ipcountry", "DE"))
+	if first.Code != http.StatusCreated {
+		t.Fatalf("first status = %d, want 201: %s", first.Code, first.Body.String())
+	}
+
+	second := h.do(http.MethodPost, "/api/c15t/consent", body, auth(key, "cf-ipcountry", "DE"))
+	if second.Code != http.StatusOK {
+		t.Fatalf("repeat status = %d, want 200: %s", second.Code, second.Body.String())
+	}
+
+	firstBody, secondBody := decode(t, first), decode(t, second)
+	if firstBody["id"] != secondBody["id"] {
+		t.Errorf("repeat returned a different consent: %v vs %v", firstBody["id"], secondBody["id"])
+	}
+	if secondBody["duplicate"] != true {
+		t.Error("repeat was not flagged as a duplicate")
+	}
+
+	if got := h.count("consent"); got != 1 {
+		t.Errorf("consent rows = %d, want 1 after a repeated submission", got)
+	}
+	if got := h.count("auditLog"); got != 1 {
+		t.Errorf("auditLog rows = %d, want 1, a duplicate must not re-audit", got)
+	}
+}
+
+func TestConsentDistinctSubmissionsAreSeparate(t *testing.T) {
+	h := newHarness(t, api.DefaultConfig())
+	key := h.key("t1")
+
+	bodies := []string{
+		`{"externalId":"user-1","domain":"example.com","categories":["necessary"],"givenAt":"2026-03-01T12:00:00Z"}`,
+		`{"externalId":"user-1","domain":"example.com","categories":["necessary"],"givenAt":"2026-03-01T12:00:01Z"}`,
+		`{"externalId":"user-1","domain":"other.com","categories":["necessary"],"givenAt":"2026-03-01T12:00:00Z"}`,
+		`{"externalId":"user-2","domain":"example.com","categories":["necessary"],"givenAt":"2026-03-01T12:00:00Z"}`,
+		`{"externalId":"user-1","domain":"example.com","categories":["necessary"],"givenAt":"2026-03-01T12:00:00Z","policyType":"privacy_policy"}`,
+	}
+
+	for i, body := range bodies {
+		rec := h.do(http.MethodPost, "/api/c15t/consent", body, auth(key, "cf-ipcountry", "DE"))
+		if rec.Code != http.StatusCreated {
+			t.Fatalf("body %d status = %d, want 201: %s", i, rec.Code, rec.Body.String())
+		}
+	}
+
+	if got := h.count("consent"); got != len(bodies) {
+		t.Errorf("consent rows = %d, want %d distinct submissions", got, len(bodies))
+	}
+}
+
+func TestConsentClientTime(t *testing.T) {
+	tests := []struct {
+		name    string
+		givenAt string
+		check   func(t *testing.T, got time.Time, now time.Time)
+	}{
+		{
+			name:    "past timestamp is preserved",
+			givenAt: "2026-01-01T00:00:00Z",
+			check: func(t *testing.T, got, _ time.Time) {
+				want := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
+				if !got.Equal(want) {
+					t.Errorf("givenAt = %v, want %v preserved", got, want)
+				}
+			},
+		},
+		{
+			name:    "far future is clamped to server time",
+			givenAt: "2099-01-01T00:00:00Z",
+			check: func(t *testing.T, got, now time.Time) {
+				if got.After(now.Add(time.Minute)) {
+					t.Errorf("givenAt = %v, want clamping to about %v", got, now)
+				}
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			h := newHarness(t, api.DefaultConfig())
+			key := h.key("t1")
+			now := time.Now().UTC()
+
+			rec := h.do(http.MethodPost, "/api/c15t/consent",
+				`{"externalId":"x","domain":"example.com","categories":["necessary"],"givenAt":"`+tt.givenAt+`"}`,
+				auth(key, "cf-ipcountry", "DE"),
+			)
+			if rec.Code != http.StatusCreated {
+				t.Fatalf("status = %d: %s", rec.Code, rec.Body.String())
+			}
+
+			stored, err := h.app.FindFirstRecordByFilter("consent", "tenantId = 't1'", nil)
+			if err != nil {
+				t.Fatalf("find consent: %v", err)
+			}
+
+			tt.check(t, stored.GetDateTime("givenAt").Time().UTC(), now)
+		})
+	}
+}
+
+func TestConsentOmittedTimeUsesServerClock(t *testing.T) {
+	h := newHarness(t, api.DefaultConfig())
+	key := h.key("t1")
+	before := time.Now().UTC().Add(-time.Second)
+
+	rec := h.do(http.MethodPost, "/api/c15t/consent",
+		`{"externalId":"x","domain":"example.com","categories":["necessary"]}`,
+		auth(key, "cf-ipcountry", "DE"),
+	)
+	if rec.Code != http.StatusCreated {
+		t.Fatalf("status = %d: %s", rec.Code, rec.Body.String())
+	}
+
+	stored, err := h.app.FindFirstRecordByFilter("consent", "tenantId = 't1'", nil)
+	if err != nil {
+		t.Fatalf("find consent: %v", err)
+	}
+
+	got := stored.GetDateTime("givenAt").Time().UTC()
+	if got.Before(before) || got.After(time.Now().UTC().Add(time.Second)) {
+		t.Errorf("givenAt = %v, want approximately now", got)
+	}
+}
+
+func TestCheckConsentValidation(t *testing.T) {
+	h := newHarness(t, api.DefaultConfig())
+	key := h.key("t1")
+
+	tests := []struct {
+		name string
+		url  string
+	}{
+		{name: "missing both", url: "/api/c15t/consents/check"},
+		{name: "missing type", url: "/api/c15t/consents/check?externalId=x"},
+		{name: "missing external id", url: "/api/c15t/consents/check?type=cookie_banner"},
+		{name: "blank type list", url: "/api/c15t/consents/check?externalId=x&type=,,"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			rec := h.do(http.MethodGet, tt.url, "", auth(key))
+			if rec.Code != http.StatusUnprocessableEntity {
+				t.Errorf("status = %d, want 422: %s", rec.Code, rec.Body.String())
+			}
+		})
+	}
+}
+
+func TestCheckConsentUnknownExternalIDIsAllFalse(t *testing.T) {
+	h := newHarness(t, api.DefaultConfig())
+	key := h.key("t1")
+
+	rec := h.do(http.MethodGet,
+		"/api/c15t/consents/check?externalId=nobody&type=cookie_banner,privacy_policy", "", auth(key))
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d: %s", rec.Code, rec.Body.String())
+	}
+
+	results, ok := decode(t, rec)["results"].(map[string]any)
+	if !ok {
+		t.Fatalf("results missing from %s", rec.Body.String())
+	}
+	if len(results) != 2 {
+		t.Fatalf("results = %d, want one entry per requested type", len(results))
+	}
+
+	for typeName, raw := range results {
+		entry, _ := raw.(map[string]any)
+		if entry["hasConsent"] != false || entry["isLatestPolicy"] != false {
+			t.Errorf("%s = %v, want both false", typeName, entry)
+		}
+	}
+}
+
+func TestCheckConsentReportsExistingConsent(t *testing.T) {
+	h := newHarness(t, api.DefaultConfig())
+	key := h.key("t1")
+
+	rec := h.do(http.MethodPost, "/api/c15t/consent",
+		`{"externalId":"user-1","domain":"example.com","categories":["necessary"]}`,
+		auth(key, "cf-ipcountry", "DE"),
+	)
+	if rec.Code != http.StatusCreated {
+		t.Fatalf("status = %d: %s", rec.Code, rec.Body.String())
+	}
+
+	rec = h.do(http.MethodGet,
+		"/api/c15t/consents/check?externalId=user-1&type=cookie_banner,privacy_policy", "", auth(key))
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d: %s", rec.Code, rec.Body.String())
+	}
+
+	results, _ := decode(t, rec)["results"].(map[string]any)
+
+	banner, _ := results["cookie_banner"].(map[string]any)
+	if banner["hasConsent"] != true {
+		t.Errorf("cookie_banner hasConsent = %v, want true", banner["hasConsent"])
+	}
+	if banner["isLatestPolicy"] != true {
+		t.Errorf("cookie_banner isLatestPolicy = %v, want true", banner["isLatestPolicy"])
+	}
+
+	privacy, _ := results["privacy_policy"].(map[string]any)
+	if privacy["hasConsent"] != false {
+		t.Errorf("privacy_policy hasConsent = %v, want false", privacy["hasConsent"])
+	}
+}
+
+func TestCheckConsentLeaksNoIdentifiers(t *testing.T) {
+	h := newHarness(t, api.DefaultConfig())
+	key := h.key("t1")
+
+	rec := h.do(http.MethodPost, "/api/c15t/consent",
+		`{"externalId":"user-1","domain":"example.com","categories":["necessary"]}`,
+		auth(key, "cf-ipcountry", "DE"),
+	)
+	if rec.Code != http.StatusCreated {
+		t.Fatalf("status = %d: %s", rec.Code, rec.Body.String())
+	}
+	subjectID, _ := decode(t, rec)["subjectId"].(string)
+
+	rec = h.do(http.MethodGet,
+		"/api/c15t/consents/check?externalId=user-1&type=cookie_banner", "", auth(key))
+
+	body := rec.Body.String()
+	for _, leak := range []string{subjectID, "example.com", "necessary", "ipAddress"} {
+		if strings.Contains(body, leak) {
+			t.Errorf("check response leaked %q: %s", leak, body)
+		}
+	}
+}
+
+func TestCheckConsentIsTenantScoped(t *testing.T) {
+	h := newHarness(t, api.DefaultConfig())
+	keyOne := h.key("t1")
+	keyTwo := h.key("t2")
+
+	rec := h.do(http.MethodPost, "/api/c15t/consent",
+		`{"externalId":"shared-id","domain":"example.com","categories":["necessary"]}`,
+		auth(keyOne, "cf-ipcountry", "DE"),
+	)
+	if rec.Code != http.StatusCreated {
+		t.Fatalf("status = %d: %s", rec.Code, rec.Body.String())
+	}
+
+	rec = h.do(http.MethodGet,
+		"/api/c15t/consents/check?externalId=shared-id&type=cookie_banner", "", auth(keyTwo))
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d: %s", rec.Code, rec.Body.String())
+	}
+
+	results, _ := decode(t, rec)["results"].(map[string]any)
+	entry, _ := results["cookie_banner"].(map[string]any)
+	if entry["hasConsent"] != false {
+		t.Error("a foreign tenant saw another tenant's consent")
+	}
+}
+
+func TestCheckConsentRequiresAuth(t *testing.T) {
+	h := newHarness(t, api.DefaultConfig())
+
+	rec := h.do(http.MethodGet, "/api/c15t/consents/check?externalId=x&type=cookie_banner", "", nil)
+	if rec.Code != http.StatusUnauthorized {
+		t.Errorf("status = %d, want 401", rec.Code)
 	}
 }
