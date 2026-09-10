@@ -86,6 +86,7 @@ type consentRequest struct {
 	ExternalID string         `json:"externalId"`
 	Domain     string         `json:"domain"`
 	Categories []string       `json:"categories"`
+	PolicyType string         `json:"policyType"`
 	UISource   string         `json:"uiSource"`
 	Action     string         `json:"action"`
 	TCString   string         `json:"tcString"`
@@ -116,6 +117,14 @@ func (h *Handler) handleConsent(e *core.RequestEvent) error {
 	}
 	if body.SubjectID == "" && body.ExternalID == "" {
 		return e.BadRequestError("subjectId or externalId is required", nil)
+	}
+
+	policyType := body.PolicyType
+	if policyType == "" {
+		policyType = consent.DefaultPolicyType
+	}
+	if !consent.ValidPolicyType(policyType) {
+		return e.BadRequestError("unknown policyType "+policyType, nil)
 	}
 
 	loc, code, decision, err := h.resolve(e.Request)
@@ -159,7 +168,7 @@ func (h *Handler) handleConsent(e *core.RequestEvent) error {
 			return err
 		}
 
-		rpd, err := h.upsertDecision(txApp, tenant.TenantID, loc, code, decision)
+		rpd, err := h.upsertDecision(txApp, tenant.TenantID, loc, code, decision, policyType)
 		if err != nil {
 			return err
 		}

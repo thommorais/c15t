@@ -114,6 +114,7 @@ type ConsentRequest struct {
 	ExternalID string         `json:"externalId,omitempty"`
 	Domain     string         `json:"domain"`
 	Categories []string       `json:"categories"`
+	PolicyType string         `json:"policyType,omitempty"`
 	UISource   string         `json:"uiSource,omitempty"`
 	Action     string         `json:"action,omitempty"`
 	TCString   string         `json:"tcString,omitempty"`

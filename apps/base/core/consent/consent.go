@@ -223,6 +223,7 @@ func dedupeTrimmed(values []string) []string {
 
 type DecisionKey struct {
 	TenantID     string
+	PolicyType   string
 	Fingerprint  string
 	MatchedBy    string
 	CountryCode  string
@@ -234,6 +235,7 @@ type DecisionKey struct {
 func DedupeKey(k DecisionKey) string {
 	parts := strings.Join([]string{
 		k.TenantID,
+		k.PolicyType,
 		k.Fingerprint,
 		k.MatchedBy,
 		k.CountryCode,

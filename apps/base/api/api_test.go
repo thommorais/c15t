@@ -726,3 +726,121 @@ func strictPack() []policy.Config {
 		policy.PresetWorldNoBanner(),
 	}
 }
+
+func TestConsentPolicyType(t *testing.T) {
+	tests := []struct {
+		name       string
+		policyType string
+		want       int
+	}{
+		{name: "default when omitted", policyType: "", want: http.StatusCreated},
+		{name: "privacy policy", policyType: "privacy_policy", want: http.StatusCreated},
+		{name: "suffixed legal document", policyType: "terms_and_conditions_b2b", want: http.StatusCreated},
+		{name: "age verification", policyType: "age_verification", want: http.StatusCreated},
+		{name: "unknown type", policyType: "shrug", want: http.StatusBadRequest},
+		{name: "empty suffix", policyType: "terms_and_conditions_", want: http.StatusBadRequest},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			h := newHarness(t, api.DefaultConfig())
+			key := h.key("t1")
+
+			body := `{"externalId":"x","domain":"example.com","categories":["necessary"]`
+			if tt.policyType != "" {
+				body += `,"policyType":"` + tt.policyType + `"`
+			}
+			body += `}`
+
+			rec := h.do(http.MethodPost, "/api/c15t/consent", body, auth(key, "cf-ipcountry", "DE"))
+			if rec.Code != tt.want {
+				t.Errorf("status = %d, want %d: %s", rec.Code, tt.want, rec.Body.String())
+			}
+		})
+	}
+}
+
+func TestConsentPolicyRowReuse(t *testing.T) {
+	h := newHarness(t, api.DefaultConfig())
+	key := h.key("t1")
+
+	for _, ext := range []string{"a", "b", "c"} {
+		rec := h.do(http.MethodPost, "/api/c15t/consent",
+			`{"externalId":"`+ext+`","domain":"example.com","categories":["necessary"]}`,
+			auth(key, "cf-ipcountry", "DE"),
+		)
+		if rec.Code != http.StatusCreated {
+			t.Fatalf("status = %d: %s", rec.Code, rec.Body.String())
+		}
+	}
+
+	if got := h.count("consentPolicy"); got != 1 {
+		t.Errorf("consentPolicy rows = %d, want 1 reused active policy", got)
+	}
+
+	rec := h.do(http.MethodPost, "/api/c15t/consent",
+		`{"externalId":"d","domain":"example.com","categories":["necessary"],"policyType":"privacy_policy"}`,
+		auth(key, "cf-ipcountry", "DE"),
+	)
+	if rec.Code != http.StatusCreated {
+		t.Fatalf("status = %d: %s", rec.Code, rec.Body.String())
+	}
+
+	if got := h.count("consentPolicy"); got != 2 {
+		t.Errorf("consentPolicy rows = %d, want a separate row per type", got)
+	}
+}
+
+func TestConsentPolicyStartsAtVersionOne(t *testing.T) {
+	h := newHarness(t, api.DefaultConfig())
+	key := h.key("t1")
+
+	rec := h.do(http.MethodPost, "/api/c15t/consent",
+		`{"externalId":"x","domain":"example.com","categories":["necessary"]}`,
+		auth(key, "cf-ipcountry", "DE"),
+	)
+	if rec.Code != http.StatusCreated {
+		t.Fatalf("status = %d: %s", rec.Code, rec.Body.String())
+	}
+
+	stored, err := h.app.FindFirstRecordByFilter("consentPolicy", "tenantId = 't1'", nil)
+	if err != nil {
+		t.Fatalf("find policy: %v", err)
+	}
+
+	if got := stored.GetString("version"); got != "1.0.0" {
+		t.Errorf("version = %q, want 1.0.0", got)
+	}
+	if got := stored.GetString("type"); got != "cookie_banner" {
+		t.Errorf("type = %q, want cookie_banner", got)
+	}
+	if !stored.GetBool("isActive") {
+		t.Error("policy should be active")
+	}
+}
+
+func TestOnlyOneActivePolicyPerType(t *testing.T) {
+	h := newHarness(t, api.DefaultConfig())
+
+	collection, err := h.app.FindCollectionByNameOrId("consentPolicy")
+	if err != nil {
+		t.Fatalf("find collection: %v", err)
+	}
+
+	for _, version := range []string{"1.0.0", "2.0.0"} {
+		record := core.NewRecord(collection)
+		record.Set("type", "privacy_policy")
+		record.Set("version", version)
+		record.Set("effectiveDate", "2026-01-01 00:00:00.000Z")
+		record.Set("isActive", true)
+		record.Set("tenantId", "t1")
+
+		err := h.app.Save(record)
+		if version == "1.0.0" && err != nil {
+			t.Fatalf("first active policy rejected: %v", err)
+		}
+		if version == "2.0.0" && err == nil {
+			t.Error("a second active policy of the same type was accepted")
+		}
+	}
+}

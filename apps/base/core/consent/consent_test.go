@@ -331,6 +331,7 @@ func TestDedupeKeyIsStableAndScoped(t *testing.T) {
 
 	base := DecisionKey{
 		TenantID:     "t1",
+		PolicyType:   "cookie_banner",
 		Fingerprint:  decision.Fingerprint,
 		MatchedBy:    string(decision.MatchedBy),
 		CountryCode:  "DE",
@@ -344,11 +345,12 @@ func TestDedupeKeyIsStableAndScoped(t *testing.T) {
 	}
 
 	variants := map[string]DecisionKey{
-		"tenant":       {TenantID: "t2", Fingerprint: "abc123", MatchedBy: "country", CountryCode: "DE", Jurisdiction: "GDPR"},
-		"fingerprint":  {TenantID: "t1", Fingerprint: "def456", MatchedBy: "country", CountryCode: "DE", Jurisdiction: "GDPR"},
+		"policy type":  {TenantID: "t1", PolicyType: "privacy_policy", Fingerprint: "abc123", MatchedBy: "country", CountryCode: "DE", Jurisdiction: "GDPR"},
+		"tenant":       {TenantID: "t2", PolicyType: "cookie_banner", Fingerprint: "abc123", MatchedBy: "country", CountryCode: "DE", Jurisdiction: "GDPR"},
+		"fingerprint":  {TenantID: "t1", PolicyType: "cookie_banner", Fingerprint: "def456", MatchedBy: "country", CountryCode: "DE", Jurisdiction: "GDPR"},
 		"matchedBy":    {TenantID: "t1", Fingerprint: "abc123", MatchedBy: "default", CountryCode: "DE", Jurisdiction: "GDPR"},
 		"country":      {TenantID: "t1", Fingerprint: "abc123", MatchedBy: "country", CountryCode: "FR", Jurisdiction: "GDPR"},
-		"jurisdiction": {TenantID: "t1", Fingerprint: "abc123", MatchedBy: "country", CountryCode: "DE", Jurisdiction: "NONE"},
+		"jurisdiction": {TenantID: "t1", PolicyType: "cookie_banner", Fingerprint: "abc123", MatchedBy: "country", CountryCode: "DE", Jurisdiction: "NONE"},
 	}
 
 	for name, v := range variants {

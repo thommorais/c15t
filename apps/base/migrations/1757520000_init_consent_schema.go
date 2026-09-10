@@ -143,7 +143,7 @@ func consentPolicyCollection() *core.Collection {
 	)
 	c.Indexes = []string{
 		`CREATE UNIQUE INDEX idx_policy_version ON consentPolicy (tenantId, type, version)`,
-		`CREATE INDEX idx_policy_active ON consentPolicy (tenantId, type, isActive)`,
+		`CREATE UNIQUE INDEX idx_policy_active ON consentPolicy (tenantId, type) WHERE isActive = true`,
 	}
 
 	return c

@@ -14,6 +14,8 @@ import (
 
 var errInvalidInput = errors.New("invalid input")
 
+const initialPolicyVersion = "1.0.0"
+
 func (h *Handler) findOrCreateSubject(app core.App, tenantID string, body consentRequest) (*core.Record, error) {
 	if body.SubjectID != "" {
 		record, err := app.FindRecordById("subject", body.SubjectID)
@@ -83,9 +85,11 @@ func (h *Handler) upsertDecision(
 	loc jurisdiction.Location,
 	code jurisdiction.Code,
 	decision *policy.Decision,
+	policyType string,
 ) (*core.Record, error) {
 	key := consent.DedupeKey(consent.DecisionKey{
 		TenantID:     tenantID,
+		PolicyType:   policyType,
 		Fingerprint:  decision.Fingerprint,
 		MatchedBy:    string(decision.MatchedBy),
 		CountryCode:  loc.CountryCode,
@@ -102,7 +106,7 @@ func (h *Handler) upsertDecision(
 		return existing, nil
 	}
 
-	storedPolicy, err := h.findOrCreatePolicy(app, tenantID, decision)
+	storedPolicy, err := h.findOrCreatePolicy(app, tenantID, policyType)
 	if err != nil {
 		return nil, err
 	}
@@ -151,15 +155,11 @@ func (h *Handler) upsertDecision(
 	return record, nil
 }
 
-func (h *Handler) findOrCreatePolicy(app core.App, tenantID string, decision *policy.Decision) (*core.Record, error) {
+func (h *Handler) findOrCreatePolicy(app core.App, tenantID, policyType string) (*core.Record, error) {
 	existing, err := app.FindFirstRecordByFilter(
 		"consentPolicy",
-		"type = {:type} && version = {:version} && tenantId = {:tenant}",
-		dbx.Params{
-			"type":    decision.Policy.ID,
-			"version": decision.Fingerprint[:12],
-			"tenant":  tenantID,
-		},
+		"type = {:type} && isActive = true && tenantId = {:tenant}",
+		dbx.Params{"type": policyType, "tenant": tenantID},
 	)
 	if err == nil && existing != nil {
 		return existing, nil
@@ -171,9 +171,8 @@ func (h *Handler) findOrCreatePolicy(app core.App, tenantID string, decision *po
 	}
 
 	record := core.NewRecord(collection)
-	record.Set("type", decision.Policy.ID)
-	record.Set("version", decision.Fingerprint[:12])
-	record.Set("hash", decision.Fingerprint)
+	record.Set("type", policyType)
+	record.Set("version", initialPolicyVersion)
 	record.Set("effectiveDate", nowUTC())
 	record.Set("isActive", true)
 	record.Set("tenantId", tenantID)
