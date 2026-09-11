@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"thom/core/policy"
+	"thom/core/ratelimit"
 )
 
 type Config struct {
@@ -28,10 +29,21 @@ type Config struct {
 	SnapshotAudience string
 	SnapshotTTL      time.Duration
 	SnapshotRequired bool
+
+	// Rate limits are per api key and client address. A zero Limit disables the
+	// rule. CheckRate guards the cross-device check, which answers questions
+	// about an arbitrary externalId and is the easiest endpoint to abuse.
+	CheckRate   ratelimit.Rule
+	WriteRate   ratelimit.Rule
+	DefaultRate ratelimit.Rule
 }
 
 func DefaultConfig() Config {
 	return Config{
+		CheckRate:   ratelimit.Rule{Limit: 30, Window: time.Minute},
+		WriteRate:   ratelimit.Rule{Limit: 60, Window: time.Minute},
+		DefaultRate: ratelimit.Rule{Limit: 300, Window: time.Minute},
+
 		PolicyPacks: []policy.Config{
 			policy.PresetEurope(policy.ModelOptIn),
 			policy.PresetCalifornia(policy.ModelOptOut),

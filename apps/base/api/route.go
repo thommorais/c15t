@@ -2,12 +2,16 @@ package api
 
 import (
 	"errors"
+	"math"
 	"net/http"
+	"strconv"
+	"time"
 
 	"github.com/pocketbase/pocketbase/core"
 
 	"thom/core/apikey"
 	"thom/core/consent"
+	"thom/core/request"
 )
 
 type Ctx struct {
@@ -87,6 +91,15 @@ func handle[B any, R any](h *Handler, need apikey.Scope, fn func(*Ctx, B) (R, er
 			if o := e.Request.Header.Get("Origin"); !tenant.Origins.Allows(o) {
 				return e.ForbiddenError("origin not allowed for this api key", nil)
 			}
+		}
+
+		limiter := h.limiterFor(e.Request.Method, e.Request.URL.Path)
+		bucket := tenant.KeyID + "|" + request.ClientIP(e.Request.Header, h.ipOptions())
+
+		if now := time.Now(); !limiter.Allow(bucket, now) {
+			retry := limiter.RetryAfter(bucket, now)
+			e.Response.Header().Set("Retry-After", strconv.Itoa(int(math.Ceil(retry.Seconds()))))
+			return e.Error(http.StatusTooManyRequests, "rate limit exceeded", nil)
 		}
 
 		var body B

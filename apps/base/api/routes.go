@@ -12,6 +12,7 @@ import (
 	"thom/core/consent"
 	"thom/core/jurisdiction"
 	"thom/core/policy"
+	"thom/core/ratelimit"
 	"thom/core/request"
 	"thom/core/snapshot"
 )
@@ -20,10 +21,32 @@ type Handler struct {
 	app    core.App
 	cfg    Config
 	signer *snapshot.Signer
+
+	checkLimiter *ratelimit.Limiter
+	writeLimiter *ratelimit.Limiter
+	readLimiter  *ratelimit.Limiter
+}
+
+// limiterFor picks the rule guarding an endpoint. The cross-device check is
+// tightest because it answers questions about an arbitrary externalId.
+func (h *Handler) limiterFor(method, path string) *ratelimit.Limiter {
+	if strings.HasSuffix(path, "/consents/check") {
+		return h.checkLimiter
+	}
+	if needsBody(method) {
+		return h.writeLimiter
+	}
+	return h.readLimiter
 }
 
 func Register(app core.App, se *core.ServeEvent, cfg Config) {
-	h := &Handler{app: app, cfg: cfg}
+	h := &Handler{
+		app:          app,
+		cfg:          cfg,
+		checkLimiter: ratelimit.New(cfg.CheckRate),
+		writeLimiter: ratelimit.New(cfg.WriteRate),
+		readLimiter:  ratelimit.New(cfg.DefaultRate),
+	}
 	if cfg.SnapshotSecret != "" {
 		h.signer = snapshot.NewSigner(
 			cfg.SnapshotSecret,

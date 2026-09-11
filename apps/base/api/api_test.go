@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -18,6 +19,7 @@ import (
 	"thom/api"
 	"thom/core/apikey"
 	"thom/core/policy"
+	"thom/core/ratelimit"
 	_ "thom/migrations"
 )
 
@@ -1905,5 +1907,107 @@ func TestOriginBindingAppliesToConsentWrite(t *testing.T) {
 		auth(key, "cf-ipcountry", "DE", "Origin", "https://nina.app"))
 	if rec.Code != http.StatusCreated {
 		t.Errorf("status = %d, want 201 from the configured origin: %s", rec.Code, rec.Body.String())
+	}
+}
+
+func rateLimitedConfig() api.Config {
+	cfg := api.DefaultConfig()
+	cfg.CheckRate = ratelimit.Rule{Limit: 2, Window: time.Minute}
+	cfg.WriteRate = ratelimit.Rule{Limit: 2, Window: time.Minute}
+	cfg.DefaultRate = ratelimit.Rule{Limit: 3, Window: time.Minute}
+	return cfg
+}
+
+func TestRateLimitBlocksAfterTheLimit(t *testing.T) {
+	h := newHarness(t, rateLimitedConfig())
+	key := h.key()
+
+	url := "/api/c15t/consents/check?externalId=x&type=cookie_banner"
+
+	for i := range 2 {
+		if rec := h.do(http.MethodGet, url, "", auth(key)); rec.Code != http.StatusOK {
+			t.Fatalf("request %d status = %d, want 200: %s", i+1, rec.Code, rec.Body.String())
+		}
+	}
+
+	rec := h.do(http.MethodGet, url, "", auth(key))
+	if rec.Code != http.StatusTooManyRequests {
+		t.Fatalf("status = %d, want 429: %s", rec.Code, rec.Body.String())
+	}
+	if rec.Header().Get("Retry-After") == "" {
+		t.Error("429 response carries no Retry-After header")
+	}
+}
+
+func TestRateLimitIsPerEndpointClass(t *testing.T) {
+	h := newHarness(t, rateLimitedConfig())
+	key := h.key()
+
+	check := "/api/c15t/consents/check?externalId=x&type=cookie_banner"
+	for range 2 {
+		h.do(http.MethodGet, check, "", auth(key))
+	}
+	if rec := h.do(http.MethodGet, check, "", auth(key)); rec.Code != http.StatusTooManyRequests {
+		t.Fatalf("check status = %d, want 429", rec.Code)
+	}
+
+	rec := h.do(http.MethodGet, "/api/c15t/init", "", auth(key, "cf-ipcountry", "DE"))
+	if rec.Code != http.StatusOK {
+		t.Errorf("init status = %d, want 200: exhausting the check budget must not block other endpoints", rec.Code)
+	}
+}
+
+func TestRateLimitIsPerKey(t *testing.T) {
+	h := newHarness(t, rateLimitedConfig())
+	first := h.key()
+	second := h.key()
+
+	url := "/api/c15t/consents/check?externalId=x&type=cookie_banner"
+
+	for range 2 {
+		h.do(http.MethodGet, url, "", auth(first))
+	}
+	if rec := h.do(http.MethodGet, url, "", auth(first)); rec.Code != http.StatusTooManyRequests {
+		t.Fatalf("first key status = %d, want 429", rec.Code)
+	}
+
+	if rec := h.do(http.MethodGet, url, "", auth(second)); rec.Code != http.StatusOK {
+		t.Errorf("second key status = %d, want 200: keys must not share a bucket", rec.Code)
+	}
+}
+
+func TestRateLimitDisabledByDefaultRule(t *testing.T) {
+	cfg := api.DefaultConfig()
+	cfg.CheckRate = ratelimit.Rule{}
+
+	h := newHarness(t, cfg)
+	key := h.key()
+
+	url := "/api/c15t/consents/check?externalId=x&type=cookie_banner"
+	for i := range 40 {
+		if rec := h.do(http.MethodGet, url, "", auth(key)); rec.Code != http.StatusOK {
+			t.Fatalf("request %d status = %d, want a zero limit to disable the rule", i+1, rec.Code)
+		}
+	}
+}
+
+func TestRateLimitAppliesToWrites(t *testing.T) {
+	h := newHarness(t, rateLimitedConfig())
+	key := h.key()
+
+	body := func(i int) string {
+		return `{"externalId":"u` + strconv.Itoa(i) + `","domain":"example.com","categories":["necessary"]}`
+	}
+
+	for i := range 2 {
+		rec := h.do(http.MethodPost, "/api/c15t/consent", body(i), auth(key, "cf-ipcountry", "DE"))
+		if rec.Code != http.StatusCreated {
+			t.Fatalf("write %d status = %d: %s", i+1, rec.Code, rec.Body.String())
+		}
+	}
+
+	rec := h.do(http.MethodPost, "/api/c15t/consent", body(99), auth(key, "cf-ipcountry", "DE"))
+	if rec.Code != http.StatusTooManyRequests {
+		t.Errorf("status = %d, want 429", rec.Code)
 	}
 }
