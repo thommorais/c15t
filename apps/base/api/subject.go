@@ -45,14 +45,14 @@ func (h *Handler) getSubject(c *Ctx, _ any) (subjectPayload, error) {
 		return subjectPayload{}, BadRequest("subject id is required")
 	}
 
-	record, err := h.app.FindRecordById("subject", id)
+	record, err := c.DB().FindByID("subject", id)
 	if err != nil || record.GetString("tenantId") != c.TenantID() {
 		return subjectPayload{}, NotFound("subject not found")
 	}
 
 	out := toSubject(record)
 
-	consents, err := h.enrichConsents(c.TenantID(), record.Id)
+	consents, err := h.enrichConsents(c.DB(), record.Id)
 	if err != nil {
 		return subjectPayload{}, err
 	}
@@ -67,14 +67,7 @@ func (h *Handler) listSubjects(c *Ctx, _ any) (map[string]any, error) {
 		return nil, Unprocessable("externalId query parameter is required")
 	}
 
-	records, err := h.app.FindRecordsByFilter(
-		"subject",
-		"externalId = {:ext} && tenantId = {:tenant}",
-		"-createdAt",
-		0,
-		0,
-		dbx.Params{"ext": externalID, "tenant": c.TenantID()},
-	)
+	records, err := c.DB().FindAll("subject", "externalId = {:ext}", "-createdAt", 0, 0, dbx.Params{"ext": externalID})
 	if err != nil {
 		return nil, err
 	}
@@ -83,7 +76,7 @@ func (h *Handler) listSubjects(c *Ctx, _ any) (map[string]any, error) {
 	for _, record := range records {
 		item := toSubject(record)
 
-		consents, err := h.enrichConsents(c.TenantID(), record.Id)
+		consents, err := h.enrichConsents(c.DB(), record.Id)
 		if err != nil {
 			return nil, err
 		}
@@ -114,7 +107,7 @@ func (h *Handler) patchSubject(c *Ctx, body patchSubjectRequest) (subjectPayload
 		provider = "external"
 	}
 
-	record, err := h.app.FindRecordById("subject", id)
+	record, err := c.DB().FindByID("subject", id)
 	if err != nil || record.GetString("tenantId") != c.TenantID() {
 		return subjectPayload{}, NotFound("subject not found")
 	}
@@ -132,17 +125,15 @@ func (h *Handler) patchSubject(c *Ctx, body patchSubjectRequest) (subjectPayload
 			return err
 		}
 
-		collection, err := txApp.FindCollectionByNameOrId("auditLog")
+		entry, err := c.DB().with(txApp).New("auditLog")
 		if err != nil {
 			return err
 		}
 
-		entry := core.NewRecord(collection)
 		entry.Set("entityType", "subject")
 		entry.Set("entityId", record.Id)
 		entry.Set("actionType", "update")
 		entry.Set("subject", record.Id)
-		entry.Set("tenantId", c.TenantID())
 		entry.Set("changes", map[string]any{
 			"before": before,
 			"after": map[string]any{
@@ -162,15 +153,8 @@ func (h *Handler) patchSubject(c *Ctx, body patchSubjectRequest) (subjectPayload
 
 // enrichConsents resolves each consent's policy type and whether that policy is
 // still the active one, which is what tells a caller a re-prompt is due.
-func (h *Handler) enrichConsents(tenantID, subjectID string) ([]enrichedItem, error) {
-	records, err := h.app.FindRecordsByFilter(
-		"consent",
-		"subject = {:subject} && tenantId = {:tenant}",
-		"-givenAt",
-		200,
-		0,
-		dbx.Params{"subject": subjectID, "tenant": tenantID},
-	)
+func (h *Handler) enrichConsents(db *scope, subjectID string) ([]enrichedItem, error) {
+	records, err := db.FindAll("consent", "subject = {:subject}", "-givenAt", 200, 0, dbx.Params{"subject": subjectID})
 	if err != nil {
 		return nil, err
 	}
@@ -189,18 +173,14 @@ func (h *Handler) enrichConsents(tenantID, subjectID string) ([]enrichedItem, er
 
 		policyID := record.GetString("policy")
 		if policyID != "" {
-			if policyRecord, err := h.app.FindRecordById("consentPolicy", policyID); err == nil {
+			if policyRecord, err := db.FindByID("consentPolicy", policyID); err == nil {
 				item.PolicyID = policyID
 				item.PolicyType = policyRecord.GetString("type")
 				item.PolicyVersion = policyRecord.GetString("version")
 
 				latest, cached := latestByType[item.PolicyType]
 				if !cached {
-					if active, err := h.app.FindFirstRecordByFilter(
-						"consentPolicy",
-						"type = {:type} && isActive = true && tenantId = {:tenant}",
-						dbx.Params{"type": item.PolicyType, "tenant": tenantID},
-					); err == nil && active != nil {
+					if active, err := db.FindFirst("consentPolicy", "type = {:type} && isActive = true", dbx.Params{"type": item.PolicyType}); err == nil && active != nil {
 						latest = active.Id
 					}
 					latestByType[item.PolicyType] = latest

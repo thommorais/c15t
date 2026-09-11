@@ -163,12 +163,14 @@ func (h *Handler) recordConsent(c *Ctx, body consentRequest) (Status, error) {
 	)
 
 	err = h.app.RunInTransaction(func(txApp core.App) error {
-		subject, err := h.findOrCreateSubject(txApp, c.TenantID(), body)
+		tx := c.DB().with(txApp)
+
+		subject, err := h.findOrCreateSubject(tx, body)
 		if err != nil {
 			return err
 		}
 
-		domain, err := h.findOrCreateDomain(txApp, c.TenantID(), body.Domain)
+		domain, err := h.findOrCreateDomain(tx, body.Domain)
 		if err != nil {
 			return err
 		}
@@ -194,17 +196,17 @@ func (h *Handler) recordConsent(c *Ctx, body consentRequest) (Status, error) {
 			return err
 		}
 
-		policyRecord, err := h.resolvePolicyRecord(txApp, c.TenantID(), policyType, body)
+		policyRecord, err := h.resolvePolicyRecord(tx, policyType, body)
 		if err != nil {
 			return err
 		}
 
-		rpd, err := h.upsertDecision(txApp, c.TenantID(), loc, code, decision, policyType, policyRecord)
+		rpd, err := h.upsertDecision(tx, loc, code, decision, policyType, policyRecord)
 		if err != nil {
 			return err
 		}
 
-		stored, duplicate, err = h.insertConsent(txApp, record, rpd, policyType)
+		stored, duplicate, err = h.insertConsent(tx, record, rpd, policyType)
 		if err != nil {
 			return err
 		}
@@ -212,7 +214,7 @@ func (h *Handler) recordConsent(c *Ctx, body consentRequest) (Status, error) {
 			return nil
 		}
 
-		return h.appendAudit(txApp, c.TenantID(), stored, record)
+		return h.appendAudit(tx, stored, record)
 	})
 	if err != nil {
 		return Status{}, err
@@ -241,14 +243,7 @@ func (h *Handler) listConsent(c *Ctx, _ any) (map[string]any, error) {
 		return nil, BadRequest("subjectId is required")
 	}
 
-	records, err := h.app.FindRecordsByFilter(
-		"consent",
-		"subject = {:subject} && tenantId = {:tenant}",
-		"-givenAt",
-		100,
-		0,
-		dbx.Params{"subject": subjectID, "tenant": c.TenantID()},
-	)
+	records, err := c.DB().FindAll("consent", "subject = {:subject}", "-givenAt", 100, 0, dbx.Params{"subject": subjectID})
 	if err != nil {
 		return nil, err
 	}
@@ -362,28 +357,14 @@ func (h *Handler) checkConsent(c *Ctx, _ any) (map[string]any, error) {
 		return nil, Unprocessable("type query parameter is required")
 	}
 
-	subjects, err := h.app.FindRecordsByFilter(
-		"subject",
-		"externalId = {:ext} && tenantId = {:tenant}",
-		"",
-		0,
-		0,
-		dbx.Params{"ext": externalID, "tenant": c.TenantID()},
-	)
+	subjects, err := c.DB().FindAll("subject", "externalId = {:ext}", "", 0, 0, dbx.Params{"ext": externalID})
 	if err != nil || len(subjects) == 0 {
 		return map[string]any{"results": results}, nil
 	}
 
 	var consents []*core.Record
 	for _, subject := range subjects {
-		found, err := h.app.FindRecordsByFilter(
-			"consent",
-			"subject = {:subject} && tenantId = {:tenant}",
-			"-givenAt",
-			0,
-			0,
-			dbx.Params{"subject": subject.Id, "tenant": c.TenantID()},
-		)
+		found, err := c.DB().FindAll("consent", "subject = {:subject}", "-givenAt", 0, 0, dbx.Params{"subject": subject.Id})
 		if err != nil {
 			return nil, err
 		}
@@ -392,11 +373,7 @@ func (h *Handler) checkConsent(c *Ctx, _ any) (map[string]any, error) {
 
 	latestByType := map[string]string{}
 	for _, t := range types {
-		latest, err := h.app.FindFirstRecordByFilter(
-			"consentPolicy",
-			"type = {:type} && isActive = true && tenantId = {:tenant}",
-			dbx.Params{"type": t, "tenant": c.TenantID()},
-		)
+		latest, err := c.DB().FindFirst("consentPolicy", "type = {:type} && isActive = true", dbx.Params{"type": t})
 		if err == nil && latest != nil {
 			latestByType[t] = latest.Id
 		}
@@ -408,7 +385,7 @@ func (h *Handler) checkConsent(c *Ctx, _ any) (map[string]any, error) {
 			continue
 		}
 
-		policyRecord, err := h.app.FindRecordById("consentPolicy", policyID)
+		policyRecord, err := c.DB().FindByID("consentPolicy", policyID)
 		if err != nil {
 			continue
 		}

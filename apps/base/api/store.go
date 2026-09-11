@@ -12,67 +12,53 @@ import (
 	"thom/core/policy"
 )
 
-var errInvalidInput = errors.New("invalid input")
+var (
+	errInvalidInput = errors.New("invalid input")
+	errNotOwned     = errors.New("record belongs to another tenant")
+)
 
 const initialPolicyVersion = "1.0.0"
 
-func (h *Handler) findOrCreateSubject(app core.App, tenantID string, body consentRequest) (*core.Record, error) {
+func (h *Handler) findOrCreateSubject(db *scope, body consentRequest) (*core.Record, error) {
 	if body.SubjectID != "" {
-		record, err := app.FindRecordById("subject", body.SubjectID)
+		record, err := db.FindByID("subject", body.SubjectID)
 		if err != nil {
-			return nil, errors.Join(errInvalidInput, errors.New("unknown subjectId"))
-		}
-		if record.GetString("tenantId") != tenantID {
 			return nil, errors.Join(errInvalidInput, errors.New("unknown subjectId"))
 		}
 		return record, nil
 	}
 
-	existing, err := app.FindFirstRecordByFilter(
-		"subject",
-		"externalId = {:ext} && tenantId = {:tenant}",
-		dbx.Params{"ext": body.ExternalID, "tenant": tenantID},
-	)
+	existing, err := db.FindFirst("subject", "externalId = {:ext}", dbx.Params{"ext": body.ExternalID})
 	if err == nil && existing != nil {
 		return existing, nil
 	}
 
-	collection, err := app.FindCollectionByNameOrId("subject")
+	record, err := db.New("subject")
 	if err != nil {
 		return nil, err
 	}
-
-	record := core.NewRecord(collection)
 	record.Set("externalId", body.ExternalID)
-	record.Set("tenantId", tenantID)
 
-	if err := app.Save(record); err != nil {
+	if err := db.Save(record); err != nil {
 		return nil, err
 	}
 
 	return record, nil
 }
 
-func (h *Handler) findOrCreateDomain(app core.App, tenantID, name string) (*core.Record, error) {
-	existing, err := app.FindFirstRecordByFilter(
-		"domain",
-		"name = {:name} && tenantId = {:tenant}",
-		dbx.Params{"name": name, "tenant": tenantID},
-	)
+func (h *Handler) findOrCreateDomain(db *scope, name string) (*core.Record, error) {
+	existing, err := db.FindFirst("domain", "name = {:name}", dbx.Params{"name": name})
 	if err == nil && existing != nil {
 		return existing, nil
 	}
 
-	collection, err := app.FindCollectionByNameOrId("domain")
+	record, err := db.New("domain")
 	if err != nil {
 		return nil, err
 	}
-
-	record := core.NewRecord(collection)
 	record.Set("name", name)
-	record.Set("tenantId", tenantID)
 
-	if err := app.Save(record); err != nil {
+	if err := db.Save(record); err != nil {
 		return nil, err
 	}
 
@@ -80,8 +66,7 @@ func (h *Handler) findOrCreateDomain(app core.App, tenantID, name string) (*core
 }
 
 func (h *Handler) upsertDecision(
-	app core.App,
-	tenantID string,
+	db *scope,
 	loc jurisdiction.Location,
 	code jurisdiction.Code,
 	decision *policy.Decision,
@@ -89,7 +74,7 @@ func (h *Handler) upsertDecision(
 	storedPolicy *core.Record,
 ) (*core.Record, error) {
 	key := consent.DedupeKey(consent.DecisionKey{
-		TenantID:     tenantID,
+		TenantID:     db.tenant,
 		PolicyType:   policyType,
 		Fingerprint:  decision.Fingerprint,
 		MatchedBy:    string(decision.MatchedBy),
@@ -98,21 +83,19 @@ func (h *Handler) upsertDecision(
 		Jurisdiction: string(code),
 	})
 
-	existing, err := app.FindFirstRecordByFilter(
+	if existing, err := db.FindFirst(
 		"runtimePolicyDecision",
 		"dedupeKey = {:key}",
 		dbx.Params{"key": key},
-	)
-	if err == nil && existing != nil {
+	); err == nil && existing != nil {
 		return existing, nil
 	}
 
-	collection, err := app.FindCollectionByNameOrId("runtimePolicyDecision")
+	record, err := db.New("runtimePolicyDecision")
 	if err != nil {
 		return nil, err
 	}
 
-	record := core.NewRecord(collection)
 	record.Set("policy", storedPolicy.Id)
 	record.Set("fingerprint", decision.Fingerprint)
 	record.Set("matchedBy", string(decision.MatchedBy))
@@ -121,7 +104,6 @@ func (h *Handler) upsertDecision(
 	record.Set("jurisdiction", string(code))
 	record.Set("model", string(decision.Policy.Model))
 	record.Set("dedupeKey", key)
-	record.Set("tenantId", tenantID)
 
 	if c := decision.Policy.Consent; c != nil {
 		record.Set("categories", c.Categories)
@@ -144,36 +126,34 @@ func (h *Handler) upsertDecision(
 		}
 	}
 
-	if err := app.Save(record); err != nil {
+	if err := db.Save(record); err != nil {
 		return nil, err
 	}
 
 	return record, nil
 }
 
-func (h *Handler) findOrCreatePolicy(app core.App, tenantID, policyType string) (*core.Record, error) {
-	existing, err := app.FindFirstRecordByFilter(
+func (h *Handler) findOrCreatePolicy(db *scope, policyType string) (*core.Record, error) {
+	existing, err := db.FindFirst(
 		"consentPolicy",
-		"type = {:type} && isActive = true && tenantId = {:tenant}",
-		dbx.Params{"type": policyType, "tenant": tenantID},
+		"type = {:type} && isActive = true",
+		dbx.Params{"type": policyType},
 	)
 	if err == nil && existing != nil {
 		return existing, nil
 	}
 
-	collection, err := app.FindCollectionByNameOrId("consentPolicy")
+	record, err := db.New("consentPolicy")
 	if err != nil {
 		return nil, err
 	}
 
-	record := core.NewRecord(collection)
 	record.Set("type", policyType)
 	record.Set("version", initialPolicyVersion)
 	record.Set("effectiveDate", nowUTC())
 	record.Set("isActive", true)
-	record.Set("tenantId", tenantID)
 
-	if err := app.Save(record); err != nil {
+	if err := db.Save(record); err != nil {
 		return nil, err
 	}
 
@@ -181,20 +161,20 @@ func (h *Handler) findOrCreatePolicy(app core.App, tenantID, policyType string) 
 }
 
 func (h *Handler) insertConsent(
-	app core.App,
+	db *scope,
 	rec consent.Record,
 	decision *core.Record,
 	policyType string,
 ) (*core.Record, bool, error) {
 	key := consent.SubmissionKey(consent.Submission{
-		TenantID:   rec.TenantID,
+		TenantID:   db.tenant,
 		SubjectID:  rec.SubjectID,
 		DomainID:   rec.DomainID,
 		PolicyType: policyType,
 		GivenAt:    rec.GivenAt,
 	})
 
-	if existing, err := app.FindFirstRecordByFilter(
+	if existing, err := db.FindFirst(
 		"consent",
 		"submissionKey = {:key}",
 		dbx.Params{"key": key},
@@ -202,17 +182,16 @@ func (h *Handler) insertConsent(
 		return existing, true, nil
 	}
 
-	purposeIDs, err := h.resolvePurposes(app, rec.TenantID, rec.Categories)
+	purposeIDs, err := h.resolvePurposes(db, rec.Categories)
 	if err != nil {
 		return nil, false, err
 	}
 
-	collection, err := app.FindCollectionByNameOrId("consent")
+	record, err := db.New("consent")
 	if err != nil {
 		return nil, false, err
 	}
 
-	record := core.NewRecord(collection)
 	record.Set("subject", rec.SubjectID)
 	record.Set("domain", rec.DomainID)
 	record.Set("policy", decision.GetString("policy"))
@@ -228,7 +207,6 @@ func (h *Handler) insertConsent(
 	record.Set("givenAt", rec.GivenAt)
 	record.Set("runtimePolicySource", "runtime")
 	record.Set("submissionKey", key)
-	record.Set("tenantId", rec.TenantID)
 
 	if rec.Metadata != nil {
 		record.Set("metadata", rec.Metadata)
@@ -237,9 +215,8 @@ func (h *Handler) insertConsent(
 		record.Set("validUntil", *rec.ValidUntil)
 	}
 
-	if err := app.Save(record); err != nil {
-		// A concurrent request won the unique index; its row is the winner.
-		if existing, findErr := app.FindFirstRecordByFilter(
+	if err := db.Save(record); err != nil {
+		if existing, findErr := db.FindFirst(
 			"consent",
 			"submissionKey = {:key}",
 			dbx.Params{"key": key},
@@ -252,29 +229,23 @@ func (h *Handler) insertConsent(
 	return record, false, nil
 }
 
-func (h *Handler) resolvePurposes(app core.App, tenantID string, categories []string) ([]string, error) {
+func (h *Handler) resolvePurposes(db *scope, categories []string) ([]string, error) {
 	ids := make([]string, 0, len(categories))
 
-	collection, err := app.FindCollectionByNameOrId("consentPurpose")
-	if err != nil {
-		return nil, err
-	}
-
 	for _, code := range categories {
-		existing, err := app.FindFirstRecordByFilter(
-			"consentPurpose",
-			"code = {:code} && tenantId = {:tenant}",
-			dbx.Params{"code": code, "tenant": tenantID},
-		)
+		existing, err := db.FindFirst("consentPurpose", "code = {:code}", dbx.Params{"code": code})
 		if err == nil && existing != nil {
 			ids = append(ids, existing.Id)
 			continue
 		}
 
-		record := core.NewRecord(collection)
+		record, err := db.New("consentPurpose")
+		if err != nil {
+			return nil, err
+		}
 		record.Set("code", code)
-		record.Set("tenantId", tenantID)
-		if err := app.Save(record); err != nil {
+
+		if err := db.Save(record); err != nil {
 			return nil, err
 		}
 		ids = append(ids, record.Id)
@@ -283,27 +254,25 @@ func (h *Handler) resolvePurposes(app core.App, tenantID string, categories []st
 	return ids, nil
 }
 
-func (h *Handler) appendAudit(app core.App, tenantID string, stored *core.Record, rec consent.Record) error {
-	collection, err := app.FindCollectionByNameOrId("auditLog")
+func (h *Handler) appendAudit(db *scope, stored *core.Record, rec consent.Record) error {
+	record, err := db.New("auditLog")
 	if err != nil {
 		return err
 	}
 
-	record := core.NewRecord(collection)
 	record.Set("entityType", "consent")
 	record.Set("entityId", stored.Id)
 	record.Set("actionType", "create")
 	record.Set("subject", rec.SubjectID)
 	record.Set("ipAddress", rec.IPAddress)
 	record.Set("userAgent", rec.UserAgent)
-	record.Set("tenantId", tenantID)
 	record.Set("changes", map[string]any{
 		"categories": rec.Categories,
 		"policyId":   rec.PolicyID,
 		"action":     string(rec.Action),
 	})
 
-	return app.Save(record)
+	return db.Save(record)
 }
 
 func nowUTC() time.Time {

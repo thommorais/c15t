@@ -1612,3 +1612,70 @@ func TestSnapshotPayloadCarriesPolicyDetail(t *testing.T) {
 		t.Errorf("country = %v, want DE", payload["country"])
 	}
 }
+
+func TestScopeHidesForeignRowsFromEveryReadPath(t *testing.T) {
+	cfg := api.DefaultConfig()
+	cfg.TenantID = "acme"
+
+	h := newHarness(t, cfg)
+	key := h.key()
+
+	rec := h.do(http.MethodPost, "/api/c15t/consent",
+		`{"externalId":"user-1","domain":"example.com","categories":["necessary"]}`,
+		auth(key, "cf-ipcountry", "DE"),
+	)
+	if rec.Code != http.StatusCreated {
+		t.Fatalf("status = %d: %s", rec.Code, rec.Body.String())
+	}
+	subjectID, _ := decode(t, rec)["subjectId"].(string)
+
+	// Simulate rows written by another deployment sharing this database.
+	for _, table := range []string{"consent", "subject", "domain", "consentPolicy"} {
+		if _, err := h.app.DB().NewQuery(
+			"UPDATE " + table + " SET tenantId = 'other'",
+		).Execute(); err != nil {
+			t.Fatalf("restamp %s: %v", table, err)
+		}
+	}
+
+	t.Run("list consent", func(t *testing.T) {
+		rec := h.do(http.MethodGet, "/api/c15t/consent/"+subjectID, "", auth(key))
+		consents, _ := decode(t, rec)["consents"].([]any)
+		if len(consents) != 0 {
+			t.Errorf("consents = %d, want 0", len(consents))
+		}
+	})
+
+	t.Run("get subject", func(t *testing.T) {
+		rec := h.do(http.MethodGet, "/api/c15t/subjects/"+subjectID, "", auth(key))
+		if rec.Code != http.StatusNotFound {
+			t.Errorf("status = %d, want 404", rec.Code)
+		}
+	})
+
+	t.Run("list subjects", func(t *testing.T) {
+		rec := h.do(http.MethodGet, "/api/c15t/subjects?externalId=user-1", "", auth(key))
+		subjects, _ := decode(t, rec)["subjects"].([]any)
+		if len(subjects) != 0 {
+			t.Errorf("subjects = %d, want 0", len(subjects))
+		}
+	})
+
+	t.Run("check consent", func(t *testing.T) {
+		rec := h.do(http.MethodGet,
+			"/api/c15t/consents/check?externalId=user-1&type=cookie_banner", "", auth(key))
+		results, _ := decode(t, rec)["results"].(map[string]any)
+		entry, _ := results["cookie_banner"].(map[string]any)
+		if entry["hasConsent"] != false {
+			t.Error("a foreign tenant's consent was reported")
+		}
+	})
+
+	t.Run("patch subject", func(t *testing.T) {
+		rec := h.do(http.MethodPatch, "/api/c15t/subjects/"+subjectID,
+			`{"externalId":"renamed"}`, auth(key))
+		if rec.Code != http.StatusNotFound {
+			t.Errorf("status = %d, want 404", rec.Code)
+		}
+	})
+}

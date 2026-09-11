@@ -24,13 +24,13 @@ func (h *Handler) requireLegalDocumentProof(policyType string, body consentReque
 // resolvePolicyRecord uses an explicitly referenced policy when the caller names
 // one, and otherwise falls back to the active policy for the type.
 func (h *Handler) resolvePolicyRecord(
-	app core.App,
-	tenantID, policyType string,
+	db *scope,
+	policyType string,
 	body consentRequest,
 ) (*core.Record, error) {
 	if body.PolicyID != "" {
-		record, err := app.FindRecordById("consentPolicy", body.PolicyID)
-		if err != nil || record.GetString("tenantId") != tenantID {
+		record, err := db.FindByID("consentPolicy", body.PolicyID)
+		if err != nil || false {
 			return nil, NotFound("policy not found")
 		}
 		if !record.GetBool("isActive") {
@@ -40,11 +40,7 @@ func (h *Handler) resolvePolicyRecord(
 	}
 
 	if body.PolicyHash != "" {
-		record, err := app.FindFirstRecordByFilter(
-			"consentPolicy",
-			"type = {:type} && hash = {:hash} && tenantId = {:tenant}",
-			dbx.Params{"type": policyType, "hash": body.PolicyHash, "tenant": tenantID},
-		)
+		record, err := db.FindFirst("consentPolicy", "type = {:type} && hash = {:hash}", dbx.Params{"type": policyType, "hash": body.PolicyHash})
 		if err != nil || record == nil {
 			return nil, NotFound("policy not found")
 		}
@@ -54,5 +50,5 @@ func (h *Handler) resolvePolicyRecord(
 		return record, nil
 	}
 
-	return h.findOrCreatePolicy(app, tenantID, policyType)
+	return h.findOrCreatePolicy(db, policyType)
 }

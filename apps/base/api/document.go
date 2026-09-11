@@ -41,11 +41,9 @@ func (h *Handler) syncLegalDocument(c *Ctx, body legalDocumentRequest) (map[stri
 	var stored *core.Record
 
 	err := h.app.RunInTransaction(func(txApp core.App) error {
-		existing, err := txApp.FindFirstRecordByFilter(
-			"consentPolicy",
-			"type = {:type} && version = {:version} && tenantId = {:tenant}",
-			dbx.Params{"type": docType, "version": body.Version, "tenant": c.TenantID()},
-		)
+		db := c.DB().with(txApp)
+
+		existing, err := db.FindFirst("consentPolicy", "type = {:type} && version = {:version}", dbx.Params{"type": docType, "version": body.Version})
 
 		if err == nil && existing != nil {
 			// Re-publishing a version must not silently change what it says.
@@ -55,14 +53,10 @@ func (h *Handler) syncLegalDocument(c *Ctx, body legalDocumentRequest) (map[stri
 			stored = existing
 		}
 
-		active, err := txApp.FindFirstRecordByFilter(
-			"consentPolicy",
-			"type = {:type} && isActive = true && tenantId = {:tenant}",
-			dbx.Params{"type": docType, "tenant": c.TenantID()},
-		)
+		active, err := db.FindFirst("consentPolicy", "type = {:type} && isActive = true", dbx.Params{"type": docType})
 		if err == nil && active != nil && (stored == nil || active.Id != stored.Id) {
 			active.Set("isActive", false)
-			if err := txApp.Save(active); err != nil {
+			if err := db.Save(active); err != nil {
 				return err
 			}
 		}
@@ -73,23 +67,21 @@ func (h *Handler) syncLegalDocument(c *Ctx, body legalDocumentRequest) (map[stri
 			if body.Hash != "" {
 				stored.Set("hash", body.Hash)
 			}
-			return txApp.Save(stored)
+			return db.Save(stored)
 		}
 
-		collection, err := txApp.FindCollectionByNameOrId("consentPolicy")
+		stored, err = db.New("consentPolicy")
 		if err != nil {
 			return err
 		}
 
-		stored = core.NewRecord(collection)
 		stored.Set("type", docType)
 		stored.Set("version", body.Version)
 		stored.Set("hash", body.Hash)
 		stored.Set("effectiveDate", *body.EffectiveDate)
 		stored.Set("isActive", true)
-		stored.Set("tenantId", c.TenantID())
 
-		return txApp.Save(stored)
+		return db.Save(stored)
 	})
 	if err != nil {
 		return nil, err
@@ -119,7 +111,7 @@ type clientPayload struct {
 }
 
 func (h *Handler) status(c *Ctx, _ any) (statusPayload, error) {
-	if _, err := h.app.FindFirstRecordByFilter("apiKey", "id != ''", nil); err != nil {
+	if _, err := c.DB().FindFirst("apiKey", "id != ''", nil); err != nil {
 		return statusPayload{}, Unavailable("database health check failed", err)
 	}
 
