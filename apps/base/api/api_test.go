@@ -3,6 +3,7 @@ package api_test
 import (
 	"encoding/base64"
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -2009,5 +2010,85 @@ func TestRateLimitAppliesToWrites(t *testing.T) {
 	rec := h.do(http.MethodPost, "/api/c15t/consent", body(99), auth(key, "cf-ipcountry", "DE"))
 	if rec.Code != http.StatusTooManyRequests {
 		t.Errorf("status = %d, want 429", rec.Code)
+	}
+}
+
+// seedConsents writes n distinct consents for one subject, bypassing the write
+// endpoint so the rate limiter does not interfere.
+func seedConsents(t *testing.T, h *harness, n int) string {
+	t.Helper()
+
+	key := h.key()
+	rec := h.do(http.MethodPost, "/api/c15t/consent",
+		`{"externalId":"bulk","domain":"example.com","categories":["necessary"]}`,
+		auth(key, "cf-ipcountry", "DE"))
+	if rec.Code != http.StatusCreated {
+		t.Fatalf("seed first: status = %d: %s", rec.Code, rec.Body.String())
+	}
+
+	body := decode(t, rec)
+	subjectID, _ := body["subjectId"].(string)
+	consentID, _ := body["id"].(string)
+
+	template, err := h.app.FindRecordById("consent", consentID)
+	if err != nil {
+		t.Fatalf("load template: %v", err)
+	}
+
+	collection, err := h.app.FindCollectionByNameOrId("consent")
+	if err != nil {
+		t.Fatalf("find collection: %v", err)
+	}
+
+	for i := 1; i < n; i++ {
+		clone := core.NewRecord(collection)
+		for _, field := range collection.Fields {
+			name := field.GetName()
+			if name == "id" {
+				continue
+			}
+			clone.Set(name, template.Get(name))
+		}
+		// submissionKey is a fixed width digest, so vary a fixed width suffix in
+		// place rather than appending past its 64 character limit.
+		base := template.GetString("submissionKey")
+		suffix := fmt.Sprintf("%06d", i)
+		clone.Set("submissionKey", base[:len(base)-len(suffix)]+suffix)
+
+		if err := h.app.Save(clone); err != nil {
+			t.Fatalf("seed %d: %v", i, err)
+		}
+	}
+
+	return subjectID
+}
+
+func TestListConsentIsNotSilentlyTruncated(t *testing.T) {
+	h := newHarness(t, api.DefaultConfig())
+	subjectID := seedConsents(t, h, 250)
+
+	rec := h.do(http.MethodGet, "/api/c15t/consent/"+subjectID, "", auth(h.key()))
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d: %s", rec.Code, rec.Body.String())
+	}
+
+	consents, _ := decode(t, rec)["consents"].([]any)
+	if len(consents) != 250 {
+		t.Errorf("consents = %d, want all 250: a subject's history must not be silently cut", len(consents))
+	}
+}
+
+func TestSubjectConsentsAreNotSilentlyTruncated(t *testing.T) {
+	h := newHarness(t, api.DefaultConfig())
+	subjectID := seedConsents(t, h, 250)
+
+	rec := h.do(http.MethodGet, "/api/c15t/subjects/"+subjectID, "", auth(h.key()))
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d: %s", rec.Code, rec.Body.String())
+	}
+
+	consents, _ := decode(t, rec)["consents"].([]any)
+	if len(consents) != 250 {
+		t.Errorf("consents = %d, want all 250", len(consents))
 	}
 }

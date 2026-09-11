@@ -266,7 +266,7 @@ func (h *Handler) listConsent(c *Ctx, _ any) (map[string]any, error) {
 		return nil, BadRequest("subjectId is required")
 	}
 
-	records, err := c.DB().FindAll("consent", "subject = {:subject}", "-givenAt", 100, 0, dbx.Params{"subject": subjectID})
+	records, err := c.DB().FindAll("consent", "subject = {:subject}", "-givenAt", 0, 0, dbx.Params{"subject": subjectID})
 	if err != nil {
 		return nil, err
 	}

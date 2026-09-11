@@ -154,7 +154,7 @@ func (h *Handler) patchSubject(c *Ctx, body patchSubjectRequest) (subjectPayload
 // enrichConsents resolves each consent's policy type and whether that policy is
 // still the active one, which is what tells a caller a re-prompt is due.
 func (h *Handler) enrichConsents(db *scope, subjectID string) ([]enrichedItem, error) {
-	records, err := db.FindAll("consent", "subject = {:subject}", "-givenAt", 200, 0, dbx.Params{"subject": subjectID})
+	records, err := db.FindAll("consent", "subject = {:subject}", "-givenAt", 0, 0, dbx.Params{"subject": subjectID})
 	if err != nil {
 		return nil, err
 	}
