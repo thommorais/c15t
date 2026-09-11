@@ -63,6 +63,24 @@ func (h *harness) publishableKey() string {
 	return h.scopedKey(apikey.ScopePublishable)
 }
 
+func (h *harness) keyWithOrigins(scope apikey.Scope, origins string) string {
+	h.t.Helper()
+
+	id := h.scopedKey(scope)
+
+	record, err := h.app.FindFirstRecordByFilter(
+		"apiKey", "keyHash = {:hash}", dbx.Params{"hash": apikey.Hash(id)})
+	if err != nil {
+		h.t.Fatalf("find key: %v", err)
+	}
+	record.Set("origins", origins)
+	if err := h.app.Save(record); err != nil {
+		h.t.Fatalf("set origins: %v", err)
+	}
+
+	return id
+}
+
 func (h *harness) scopedKey(scope apikey.Scope) string {
 	h.t.Helper()
 
@@ -1806,5 +1824,86 @@ func TestUnscopedKeyIsRejected(t *testing.T) {
 	rec := h.do(http.MethodGet, "/api/c15t/init", "", auth("c15t_test_legacykeynoscope"))
 	if rec.Code != http.StatusUnauthorized {
 		t.Errorf("status = %d, want 401 for a key without a scope marker", rec.Code)
+	}
+}
+
+func TestPublishableKeyIsBoundToOrigins(t *testing.T) {
+	h := newHarness(t, api.DefaultConfig())
+	key := h.keyWithOrigins(apikey.ScopePublishable, "https://nina.app, https://*.nina.dev")
+
+	tests := []struct {
+		name   string
+		origin string
+		want   int
+	}{
+		{name: "configured origin", origin: "https://nina.app", want: http.StatusOK},
+		{name: "wildcard subdomain", origin: "https://staging.nina.dev", want: http.StatusOK},
+		{name: "www of configured origin", origin: "https://www.nina.app", want: http.StatusOK},
+		{name: "unlisted origin", origin: "https://evil.com", want: http.StatusForbidden},
+		{name: "wildcard bare domain", origin: "https://nina.dev", want: http.StatusForbidden},
+		{name: "lookalike domain", origin: "https://evilnina.dev", want: http.StatusForbidden},
+		{name: "wrong scheme", origin: "http://nina.app", want: http.StatusForbidden},
+		{name: "missing origin", origin: "", want: http.StatusForbidden},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			headers := auth(key, "cf-ipcountry", "DE")
+			if tt.origin != "" {
+				headers["Origin"] = tt.origin
+			}
+
+			rec := h.do(http.MethodGet, "/api/c15t/init", "", headers)
+			if rec.Code != tt.want {
+				t.Errorf("status = %d, want %d: %s", rec.Code, tt.want, rec.Body.String())
+			}
+		})
+	}
+}
+
+func TestPublishableKeyWithoutOriginsIsUnrestricted(t *testing.T) {
+	h := newHarness(t, api.DefaultConfig())
+	key := h.publishableKey()
+
+	for _, o := range []string{"https://anywhere.com", ""} {
+		headers := auth(key, "cf-ipcountry", "DE")
+		if o != "" {
+			headers["Origin"] = o
+		}
+
+		rec := h.do(http.MethodGet, "/api/c15t/init", "", headers)
+		if rec.Code != http.StatusOK {
+			t.Errorf("origin %q: status = %d, want 200", o, rec.Code)
+		}
+	}
+}
+
+func TestSecretKeyIgnoresOrigin(t *testing.T) {
+	h := newHarness(t, api.DefaultConfig())
+	key := h.keyWithOrigins(apikey.ScopeSecret, "https://nina.app")
+
+	rec := h.do(http.MethodGet, "/api/c15t/init", "",
+		auth(key, "cf-ipcountry", "DE", "Origin", "https://anywhere.com"))
+	if rec.Code != http.StatusOK {
+		t.Errorf("status = %d, want 200: a server side key carries no meaningful Origin", rec.Code)
+	}
+}
+
+func TestOriginBindingAppliesToConsentWrite(t *testing.T) {
+	h := newHarness(t, api.DefaultConfig())
+	key := h.keyWithOrigins(apikey.ScopePublishable, "https://nina.app")
+
+	body := `{"externalId":"x","domain":"nina.app","categories":["necessary"]}`
+
+	rec := h.do(http.MethodPost, "/api/c15t/consent", body,
+		auth(key, "cf-ipcountry", "DE", "Origin", "https://evil.com"))
+	if rec.Code != http.StatusForbidden {
+		t.Errorf("status = %d, want 403 from an unlisted origin", rec.Code)
+	}
+
+	rec = h.do(http.MethodPost, "/api/c15t/consent", body,
+		auth(key, "cf-ipcountry", "DE", "Origin", "https://nina.app"))
+	if rec.Code != http.StatusCreated {
+		t.Errorf("status = %d, want 201 from the configured origin: %s", rec.Code, rec.Body.String())
 	}
 }

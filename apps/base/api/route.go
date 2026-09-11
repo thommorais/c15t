@@ -81,6 +81,14 @@ func handle[B any, R any](h *Handler, need apikey.Scope, fn func(*Ctx, B) (R, er
 			return e.ForbiddenError("this endpoint requires a secret api key", nil)
 		}
 
+		// A publishable key is copyable, so it is only usable from the sites it
+		// was issued for. Secret keys are server side and carry no Origin.
+		if tenant.Scope == apikey.ScopePublishable {
+			if o := e.Request.Header.Get("Origin"); !tenant.Origins.Allows(o) {
+				return e.ForbiddenError("origin not allowed for this api key", nil)
+			}
+		}
+
 		var body B
 		if needsBody(e.Request.Method) {
 			if err := e.BindBody(&body); err != nil {

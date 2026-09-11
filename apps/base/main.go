@@ -40,7 +40,7 @@ func main() {
 }
 
 func newAPIKeyCmd(app core.App) *cobra.Command {
-	var name, env, scope string
+	var name, env, scope, origins string
 
 	cmd := &cobra.Command{
 		Use:   "apikey:create",
@@ -75,6 +75,7 @@ func newAPIKeyCmd(app core.App) *cobra.Command {
 			record.Set("keyHash", key.Hash)
 			record.Set("env", string(keyEnv))
 			record.Set("scope", string(keyScope))
+			record.Set("origins", origins)
 			record.Set("revoked", false)
 
 			if err := app.Save(record); err != nil {
@@ -89,6 +90,7 @@ func newAPIKeyCmd(app core.App) *cobra.Command {
 	cmd.Flags().StringVar(&name, "name", "", "key label")
 	cmd.Flags().StringVar(&env, "env", "live", "live or test")
 	cmd.Flags().StringVar(&scope, "scope", "secret", "publishable or secret")
+	cmd.Flags().StringVar(&origins, "origins", "", "comma separated origins a publishable key may be used from")
 
 	return cmd
 }

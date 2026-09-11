@@ -26,6 +26,7 @@ func apiKeyCollection() *core.Collection {
 		&core.TextField{Name: "keyHash", Required: true, Max: 64},
 		&core.TextField{Name: "env", Required: true, Max: 8},
 		&core.TextField{Name: "scope", Required: true, Max: 16},
+		&core.TextField{Name: "origins", Max: 2048},
 		&core.BoolField{Name: "revoked"},
 		&core.DateField{Name: "lastUsedAt"},
 		createdField(),
