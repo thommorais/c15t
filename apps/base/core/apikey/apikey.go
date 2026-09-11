@@ -8,6 +8,7 @@ import (
 	"crypto/subtle"
 	"encoding/base64"
 	"encoding/hex"
+	"errors"
 	"strings"
 )
 
@@ -18,22 +19,77 @@ const (
 	EnvTest Env = "test"
 )
 
+// Scope is what a key is allowed to do. Publishable keys ship in browser
+// bundles and are public by definition, so they reach only the endpoints a
+// consent banner needs.
+type Scope string
+
+const (
+	ScopePublishable Scope = "publishable"
+	ScopeSecret      Scope = "secret"
+)
+
+// Allows reports whether a key of this scope may reach an endpoint requiring
+// need. Secret keys satisfy every requirement; publishable keys satisfy only
+// their own.
+func (s Scope) Allows(need Scope) bool {
+	switch s {
+	case ScopeSecret:
+		return need == ScopeSecret || need == ScopePublishable
+	case ScopePublishable:
+		return need == ScopePublishable
+	}
+	return false
+}
+
+func (s Scope) marker() string {
+	switch s {
+	case ScopePublishable:
+		return "pk"
+	case ScopeSecret:
+		return "sk"
+	}
+	return ""
+}
+
 const secretBytes = 24
 
 type Key struct {
 	Secret string
 	Hash   string
+	Scope  Scope
 }
 
-func Generate(env Env) (Key, error) {
+func Generate(env Env, scope Scope) (Key, error) {
+	marker := scope.marker()
+	if marker == "" {
+		return Key{}, errors.New("apikey: unknown scope " + string(scope))
+	}
+
 	buf := make([]byte, secretBytes)
 	if _, err := rand.Read(buf); err != nil {
 		return Key{}, err
 	}
 
-	secret := "c15t_" + string(env) + "_" + base64.RawURLEncoding.EncodeToString(buf)
+	secret := "c15t_" + string(env) + "_" + marker + "_" + base64.RawURLEncoding.EncodeToString(buf)
 
-	return Key{Secret: secret, Hash: Hash(secret)}, nil
+	return Key{Secret: secret, Hash: Hash(secret), Scope: scope}, nil
+}
+
+func ScopeOf(secret string) Scope {
+	for _, env := range []Env{EnvLive, EnvTest} {
+		prefix := "c15t_" + string(env) + "_"
+		if !strings.HasPrefix(secret, prefix) {
+			continue
+		}
+		switch {
+		case strings.HasPrefix(secret, prefix+"pk_"):
+			return ScopePublishable
+		case strings.HasPrefix(secret, prefix+"sk_"):
+			return ScopeSecret
+		}
+	}
+	return ""
 }
 
 func Hash(secret string) string {

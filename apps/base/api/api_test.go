@@ -56,9 +56,17 @@ func newHarness(t *testing.T, cfg api.Config) *harness {
 }
 
 func (h *harness) key() string {
+	return h.scopedKey(apikey.ScopeSecret)
+}
+
+func (h *harness) publishableKey() string {
+	return h.scopedKey(apikey.ScopePublishable)
+}
+
+func (h *harness) scopedKey(scope apikey.Scope) string {
 	h.t.Helper()
 
-	key, err := apikey.Generate(apikey.EnvTest)
+	key, err := apikey.Generate(apikey.EnvTest, scope)
 	if err != nil {
 		h.t.Fatalf("Generate: %v", err)
 	}
@@ -71,6 +79,7 @@ func (h *harness) key() string {
 	record := core.NewRecord(collection)
 	record.Set("keyHash", key.Hash)
 	record.Set("env", string(apikey.EnvTest))
+	record.Set("scope", string(scope))
 	record.Set("revoked", false)
 
 	if err := h.app.Save(record); err != nil {
@@ -1678,4 +1687,124 @@ func TestScopeHidesForeignRowsFromEveryReadPath(t *testing.T) {
 			t.Errorf("status = %d, want 404", rec.Code)
 		}
 	})
+}
+
+func TestPublishableKeyReachesBannerEndpoints(t *testing.T) {
+	h := newHarness(t, api.DefaultConfig())
+	key := h.publishableKey()
+
+	t.Run("init", func(t *testing.T) {
+		rec := h.do(http.MethodGet, "/api/c15t/init", "", auth(key, "cf-ipcountry", "DE"))
+		if rec.Code != http.StatusOK {
+			t.Errorf("status = %d, want 200: %s", rec.Code, rec.Body.String())
+		}
+	})
+
+	t.Run("record consent", func(t *testing.T) {
+		rec := h.do(http.MethodPost, "/api/c15t/consent",
+			`{"externalId":"x","domain":"example.com","categories":["necessary"]}`,
+			auth(key, "cf-ipcountry", "DE"))
+		if rec.Code != http.StatusCreated {
+			t.Errorf("status = %d, want 201: %s", rec.Code, rec.Body.String())
+		}
+	})
+
+	t.Run("check consent", func(t *testing.T) {
+		rec := h.do(http.MethodGet,
+			"/api/c15t/consents/check?externalId=x&type=cookie_banner", "", auth(key))
+		if rec.Code != http.StatusOK {
+			t.Errorf("status = %d, want 200: %s", rec.Code, rec.Body.String())
+		}
+	})
+
+	t.Run("status", func(t *testing.T) {
+		rec := h.do(http.MethodGet, "/api/c15t/status", "", auth(key))
+		if rec.Code != http.StatusOK {
+			t.Errorf("status = %d, want 200: %s", rec.Code, rec.Body.String())
+		}
+	})
+}
+
+func TestPublishableKeyCannotReachPersonalData(t *testing.T) {
+	h := newHarness(t, api.DefaultConfig())
+	secret := h.key()
+	publishable := h.publishableKey()
+
+	rec := h.do(http.MethodPost, "/api/c15t/consent",
+		`{"externalId":"user-1","domain":"example.com","categories":["necessary"]}`,
+		auth(secret, "cf-ipcountry", "DE"))
+	if rec.Code != http.StatusCreated {
+		t.Fatalf("seed: status = %d: %s", rec.Code, rec.Body.String())
+	}
+	subjectID, _ := decode(t, rec)["subjectId"].(string)
+
+	tests := []struct {
+		name   string
+		method string
+		url    string
+		body   string
+	}{
+		{name: "list subjects", method: http.MethodGet, url: "/api/c15t/subjects?externalId=user-1"},
+		{name: "get subject", method: http.MethodGet, url: "/api/c15t/subjects/" + subjectID},
+		{name: "list consent", method: http.MethodGet, url: "/api/c15t/consent/" + subjectID},
+		{
+			name:   "patch subject",
+			method: http.MethodPatch,
+			url:    "/api/c15t/subjects/" + subjectID,
+			body:   `{"externalId":"hijacked"}`,
+		},
+		{
+			name:   "publish legal document",
+			method: http.MethodPut,
+			url:    "/api/c15t/legal-documents/privacy_policy/current",
+			body:   `{"version":"9.9.9","effectiveDate":"2026-01-01T00:00:00Z"}`,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			rec := h.do(tt.method, tt.url, tt.body, auth(publishable))
+			if rec.Code != http.StatusForbidden {
+				t.Errorf("status = %d, want 403: %s", rec.Code, rec.Body.String())
+			}
+			if strings.Contains(rec.Body.String(), "user-1") {
+				t.Errorf("response leaked subject data: %s", rec.Body.String())
+			}
+		})
+	}
+}
+
+func TestSecretKeyReachesEverything(t *testing.T) {
+	h := newHarness(t, api.DefaultConfig())
+	key := h.key()
+
+	rec := h.do(http.MethodPost, "/api/c15t/consent",
+		`{"externalId":"user-1","domain":"example.com","categories":["necessary"]}`,
+		auth(key, "cf-ipcountry", "DE"))
+	if rec.Code != http.StatusCreated {
+		t.Fatalf("status = %d: %s", rec.Code, rec.Body.String())
+	}
+	subjectID, _ := decode(t, rec)["subjectId"].(string)
+
+	for _, url := range []string{
+		"/api/c15t/init",
+		"/api/c15t/subjects?externalId=user-1",
+		"/api/c15t/subjects/" + subjectID,
+		"/api/c15t/consent/" + subjectID,
+	} {
+		t.Run(url, func(t *testing.T) {
+			if rec := h.do(http.MethodGet, url, "", auth(key)); rec.Code != http.StatusOK {
+				t.Errorf("status = %d, want 200: %s", rec.Code, rec.Body.String())
+			}
+		})
+	}
+}
+
+func TestUnscopedKeyIsRejected(t *testing.T) {
+	h := newHarness(t, api.DefaultConfig())
+
+	rec := h.do(http.MethodGet, "/api/c15t/init", "", auth("c15t_test_legacykeynoscope"))
+	if rec.Code != http.StatusUnauthorized {
+		t.Errorf("status = %d, want 401 for a key without a scope marker", rec.Code)
+	}
 }

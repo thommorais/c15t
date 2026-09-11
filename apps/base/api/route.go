@@ -6,6 +6,7 @@ import (
 
 	"github.com/pocketbase/pocketbase/core"
 
+	"thom/core/apikey"
 	"thom/core/consent"
 )
 
@@ -67,11 +68,17 @@ func Unavailable(message string, err error) error {
 
 // handle wraps a handler with authentication, error mapping and JSON encoding.
 // Endpoints that need no request body use `any` for B.
-func handle[B any, R any](h *Handler, fn func(*Ctx, B) (R, error)) func(*core.RequestEvent) error {
+func handle[B any, R any](h *Handler, need apikey.Scope, fn func(*Ctx, B) (R, error)) func(*core.RequestEvent) error {
 	return func(e *core.RequestEvent) error {
 		tenant, err := authenticate(h.app, e.Request)
 		if err != nil {
 			return e.UnauthorizedError("invalid or missing api key", nil)
+		}
+
+		// A publishable key ships in a browser bundle, so it must never reach
+		// an endpoint that reads or rewrites stored personal data.
+		if !tenant.Scope.Allows(need) {
+			return e.ForbiddenError("this endpoint requires a secret api key", nil)
 		}
 
 		var body B

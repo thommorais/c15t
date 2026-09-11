@@ -6,12 +6,12 @@ import (
 )
 
 func TestGenerateFormat(t *testing.T) {
-	key, err := Generate(EnvLive)
+	key, err := Generate(EnvLive, ScopeSecret)
 	if err != nil {
 		t.Fatalf("Generate: %v", err)
 	}
 
-	if !strings.HasPrefix(key.Secret, "c15t_live_") {
+	if !strings.HasPrefix(key.Secret, "c15t_live_sk_") {
 		t.Errorf("secret %q missing live prefix", key.Secret)
 	}
 	if key.Hash == "" {
@@ -26,11 +26,11 @@ func TestGenerateFormat(t *testing.T) {
 }
 
 func TestGenerateTestEnv(t *testing.T) {
-	key, err := Generate(EnvTest)
+	key, err := Generate(EnvTest, ScopeSecret)
 	if err != nil {
 		t.Fatalf("Generate: %v", err)
 	}
-	if !strings.HasPrefix(key.Secret, "c15t_test_") {
+	if !strings.HasPrefix(key.Secret, "c15t_test_sk_") {
 		t.Errorf("secret %q missing test prefix", key.Secret)
 	}
 }
@@ -38,7 +38,7 @@ func TestGenerateTestEnv(t *testing.T) {
 func TestGenerateIsUnique(t *testing.T) {
 	seen := make(map[string]struct{})
 	for range 100 {
-		key, err := Generate(EnvLive)
+		key, err := Generate(EnvLive, ScopeSecret)
 		if err != nil {
 			t.Fatalf("Generate: %v", err)
 		}
@@ -61,7 +61,7 @@ func TestHashIsDeterministic(t *testing.T) {
 }
 
 func TestVerify(t *testing.T) {
-	key, err := Generate(EnvLive)
+	key, err := Generate(EnvLive, ScopeSecret)
 	if err != nil {
 		t.Fatalf("Generate: %v", err)
 	}
@@ -122,5 +122,100 @@ func TestEnvOf(t *testing.T) {
 				t.Errorf("EnvOf(%q) = %q, want %q", tt.secret, got, tt.want)
 			}
 		})
+	}
+}
+
+func TestGenerateCarriesScope(t *testing.T) {
+	tests := []struct {
+		name   string
+		scope  Scope
+		env    Env
+		prefix string
+	}{
+		{name: "publishable live", scope: ScopePublishable, env: EnvLive, prefix: "c15t_live_pk_"},
+		{name: "publishable test", scope: ScopePublishable, env: EnvTest, prefix: "c15t_test_pk_"},
+		{name: "secret live", scope: ScopeSecret, env: EnvLive, prefix: "c15t_live_sk_"},
+		{name: "secret test", scope: ScopeSecret, env: EnvTest, prefix: "c15t_test_sk_"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			key, err := Generate(tt.env, tt.scope)
+			if err != nil {
+				t.Fatalf("Generate: %v", err)
+			}
+			if !strings.HasPrefix(key.Secret, tt.prefix) {
+				t.Errorf("secret %q missing prefix %q", key.Secret, tt.prefix)
+			}
+			if key.Scope != tt.scope {
+				t.Errorf("scope = %q, want %q", key.Scope, tt.scope)
+			}
+		})
+	}
+}
+
+func TestScopeOf(t *testing.T) {
+	tests := []struct {
+		secret string
+		want   Scope
+	}{
+		{secret: "c15t_live_pk_abc", want: ScopePublishable},
+		{secret: "c15t_test_pk_abc", want: ScopePublishable},
+		{secret: "c15t_live_sk_abc", want: ScopeSecret},
+		{secret: "c15t_test_sk_abc", want: ScopeSecret},
+		{secret: "c15t_live_abc", want: ""},
+		{secret: "garbage", want: ""},
+		{secret: "", want: ""},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.secret, func(t *testing.T) {
+			if got := ScopeOf(tt.secret); got != tt.want {
+				t.Errorf("ScopeOf(%q) = %q, want %q", tt.secret, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestScopeAllows(t *testing.T) {
+	tests := []struct {
+		name  string
+		scope Scope
+		need  Scope
+		want  bool
+	}{
+		{name: "secret satisfies secret", scope: ScopeSecret, need: ScopeSecret, want: true},
+		{name: "secret satisfies publishable", scope: ScopeSecret, need: ScopePublishable, want: true},
+		{name: "publishable satisfies publishable", scope: ScopePublishable, need: ScopePublishable, want: true},
+		{name: "publishable does not satisfy secret", scope: ScopePublishable, need: ScopeSecret, want: false},
+		{name: "unknown satisfies nothing", scope: "", need: ScopePublishable, want: false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := tt.scope.Allows(tt.need); got != tt.want {
+				t.Errorf("%q.Allows(%q) = %v, want %v", tt.scope, tt.need, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestEnvOfWithScopedKeys(t *testing.T) {
+	if got := EnvOf("c15t_live_pk_abc"); got != EnvLive {
+		t.Errorf("EnvOf = %q, want live", got)
+	}
+	if got := EnvOf("c15t_test_sk_abc"); got != EnvTest {
+		t.Errorf("EnvOf = %q, want test", got)
+	}
+}
+
+func TestParseBearerAcceptsScopedKeys(t *testing.T) {
+	for _, secret := range []string{"c15t_live_pk_abc", "c15t_test_sk_abc"} {
+		if got := ParseBearer(secret); got != secret {
+			t.Errorf("ParseBearer(%q) = %q", secret, got)
+		}
+		if got := ParseBearer("Bearer " + secret); got != secret {
+			t.Errorf("ParseBearer with scheme = %q", got)
+		}
 	}
 }

@@ -40,7 +40,7 @@ func main() {
 }
 
 func newAPIKeyCmd(app core.App) *cobra.Command {
-	var name, env string
+	var name, env, scope string
 
 	cmd := &cobra.Command{
 		Use:   "apikey:create",
@@ -51,11 +51,16 @@ func newAPIKeyCmd(app core.App) *cobra.Command {
 				return fmt.Errorf("--env must be live or test")
 			}
 
+			keyScope := apikey.Scope(scope)
+			if keyScope != apikey.ScopePublishable && keyScope != apikey.ScopeSecret {
+				return fmt.Errorf("--scope must be publishable or secret")
+			}
+
 			if err := app.Bootstrap(); err != nil {
 				return err
 			}
 
-			key, err := apikey.Generate(keyEnv)
+			key, err := apikey.Generate(keyEnv, keyScope)
 			if err != nil {
 				return err
 			}
@@ -69,6 +74,7 @@ func newAPIKeyCmd(app core.App) *cobra.Command {
 			record.Set("name", name)
 			record.Set("keyHash", key.Hash)
 			record.Set("env", string(keyEnv))
+			record.Set("scope", string(keyScope))
 			record.Set("revoked", false)
 
 			if err := app.Save(record); err != nil {
@@ -82,6 +88,7 @@ func newAPIKeyCmd(app core.App) *cobra.Command {
 
 	cmd.Flags().StringVar(&name, "name", "", "key label")
 	cmd.Flags().StringVar(&env, "env", "live", "live or test")
+	cmd.Flags().StringVar(&scope, "scope", "secret", "publishable or secret")
 
 	return cmd
 }

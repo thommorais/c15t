@@ -8,6 +8,7 @@ import (
 	"github.com/pocketbase/dbx"
 	"github.com/pocketbase/pocketbase/core"
 
+	"thom/core/apikey"
 	"thom/core/consent"
 	"thom/core/jurisdiction"
 	"thom/core/policy"
@@ -33,15 +34,15 @@ func Register(app core.App, se *core.ServeEvent, cfg Config) {
 	}
 
 	g := se.Router.Group("/api/c15t")
-	g.GET("/init", handle(h, h.init))
-	g.POST("/consent", handle(h, h.recordConsent))
-	g.GET("/consent/{subjectId}", handle(h, h.listConsent))
-	g.GET("/consents/check", handle(h, h.checkConsent))
-	g.GET("/status", handle(h, h.status))
-	g.GET("/subjects", handle(h, h.listSubjects))
-	g.GET("/subjects/{id}", handle(h, h.getSubject))
-	g.PATCH("/subjects/{id}", handle(h, h.patchSubject))
-	g.PUT("/legal-documents/{type}/current", handle(h, h.syncLegalDocument))
+	g.GET("/init", handle(h, apikey.ScopePublishable, h.init))
+	g.POST("/consent", handle(h, apikey.ScopePublishable, h.recordConsent))
+	g.GET("/consent/{subjectId}", handle(h, apikey.ScopeSecret, h.listConsent))
+	g.GET("/consents/check", handle(h, apikey.ScopePublishable, h.checkConsent))
+	g.GET("/status", handle(h, apikey.ScopePublishable, h.status))
+	g.GET("/subjects", handle(h, apikey.ScopeSecret, h.listSubjects))
+	g.GET("/subjects/{id}", handle(h, apikey.ScopeSecret, h.getSubject))
+	g.PATCH("/subjects/{id}", handle(h, apikey.ScopeSecret, h.patchSubject))
+	g.PUT("/legal-documents/{type}/current", handle(h, apikey.ScopeSecret, h.syncLegalDocument))
 }
 
 type initResponse struct {

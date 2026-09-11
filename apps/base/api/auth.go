@@ -16,6 +16,7 @@ type Tenant struct {
 	ID     string
 	KeyID  string
 	KeyEnv apikey.Env
+	Scope  apikey.Scope
 }
 
 var errUnauthorized = errors.New("invalid or missing api key")
@@ -25,7 +26,7 @@ func authenticate(app core.App, r *http.Request) (*Tenant, error) {
 	if secret == "" {
 		return nil, errUnauthorized
 	}
-	if apikey.EnvOf(secret) == "" {
+	if apikey.EnvOf(secret) == "" || apikey.ScopeOf(secret) == "" {
 		return nil, errUnauthorized
 	}
 
@@ -46,6 +47,7 @@ func authenticate(app core.App, r *http.Request) (*Tenant, error) {
 		ID:     record.Id,
 		KeyID:  record.Id,
 		KeyEnv: apikey.Env(record.GetString("env")),
+		Scope:  apikey.Scope(record.GetString("scope")),
 	}, nil
 }
 

@@ -55,7 +55,7 @@ func newServer(t *testing.T) (*sdk.Client, *tests.TestApp) {
 func mintKey(t *testing.T, app *tests.TestApp) string {
 	t.Helper()
 
-	key, err := apikey.Generate(apikey.EnvTest)
+	key, err := apikey.Generate(apikey.EnvTest, apikey.ScopeSecret)
 	if err != nil {
 		t.Fatalf("Generate: %v", err)
 	}
@@ -68,6 +68,7 @@ func mintKey(t *testing.T, app *tests.TestApp) string {
 	record := core.NewRecord(collection)
 	record.Set("keyHash", key.Hash)
 	record.Set("env", string(apikey.EnvTest))
+	record.Set("scope", string(apikey.ScopeSecret))
 	record.Set("revoked", false)
 
 	if err := app.Save(record); err != nil {
