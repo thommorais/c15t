@@ -7,6 +7,11 @@ import (
 )
 
 type Config struct {
+	// TenantID scopes every row this instance writes. The deployment model is
+	// one instance per client, so it is set once here rather than derived from
+	// a request. Leave empty for a single-tenant database.
+	TenantID string
+
 	PolicyPacks []policy.Config
 	IABEnabled  bool
 	// GeoDisabled forces an unknown location, which resolves jurisdiction to

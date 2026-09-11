@@ -28,7 +28,9 @@ func main() {
 	app.RootCmd.AddCommand(newAPIKeyCmd(app))
 
 	app.OnServe().BindFunc(func(se *core.ServeEvent) error {
-		api.Register(app, se, api.DefaultConfig())
+		cfg := api.DefaultConfig()
+		cfg.TenantID = os.Getenv("C15T_TENANT_ID")
+		api.Register(app, se, cfg)
 		return se.Next()
 	})
 
@@ -38,16 +40,12 @@ func main() {
 }
 
 func newAPIKeyCmd(app core.App) *cobra.Command {
-	var tenantID, name, env string
+	var name, env string
 
 	cmd := &cobra.Command{
 		Use:   "apikey:create",
-		Short: "Create an API key for a tenant",
+		Short: "Create an API key for this instance",
 		RunE: func(_ *cobra.Command, _ []string) error {
-			if tenantID == "" {
-				return fmt.Errorf("--tenant is required")
-			}
-
 			keyEnv := apikey.Env(env)
 			if keyEnv != apikey.EnvLive && keyEnv != apikey.EnvTest {
 				return fmt.Errorf("--env must be live or test")
@@ -68,7 +66,6 @@ func newAPIKeyCmd(app core.App) *cobra.Command {
 			}
 
 			record := core.NewRecord(collection)
-			record.Set("tenantId", tenantID)
 			record.Set("name", name)
 			record.Set("keyHash", key.Hash)
 			record.Set("env", string(keyEnv))
@@ -83,7 +80,6 @@ func newAPIKeyCmd(app core.App) *cobra.Command {
 		},
 	}
 
-	cmd.Flags().StringVar(&tenantID, "tenant", "", "tenant id")
 	cmd.Flags().StringVar(&name, "name", "", "key label")
 	cmd.Flags().StringVar(&env, "env", "live", "live or test")
 

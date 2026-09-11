@@ -55,7 +55,7 @@ func newHarness(t *testing.T, cfg api.Config) *harness {
 	return &harness{t: t, app: app, mux: mux}
 }
 
-func (h *harness) key(tenantID string) string {
+func (h *harness) key() string {
 	h.t.Helper()
 
 	key, err := apikey.Generate(apikey.EnvTest)
@@ -69,7 +69,6 @@ func (h *harness) key(tenantID string) string {
 	}
 
 	record := core.NewRecord(collection)
-	record.Set("tenantId", tenantID)
 	record.Set("keyHash", key.Hash)
 	record.Set("env", string(apikey.EnvTest))
 	record.Set("revoked", false)
@@ -159,7 +158,7 @@ func TestInitRequiresAuth(t *testing.T) {
 
 func TestInitRejectsRevokedKey(t *testing.T) {
 	h := newHarness(t, api.DefaultConfig())
-	key := h.key("t1")
+	key := h.key()
 
 	record, err := h.app.FindFirstRecordByFilter(
 		"apiKey",
@@ -182,7 +181,7 @@ func TestInitRejectsRevokedKey(t *testing.T) {
 
 func TestInitResolvesPolicy(t *testing.T) {
 	h := newHarness(t, api.DefaultConfig())
-	key := h.key("t1")
+	key := h.key()
 
 	tests := []struct {
 		name             string
@@ -284,7 +283,7 @@ func TestInitGeoDisabledFallsBackToGDPR(t *testing.T) {
 	cfg.GeoDisabled = true
 
 	h := newHarness(t, cfg)
-	key := h.key("t1")
+	key := h.key()
 
 	rec := h.do(http.MethodGet, "/api/c15t/init", "", auth(key, "cf-ipcountry", "US"))
 	if rec.Code != http.StatusOK {
@@ -307,7 +306,7 @@ func TestInitGeoDisabledFallsBackToGDPR(t *testing.T) {
 
 func TestConsentWrite(t *testing.T) {
 	h := newHarness(t, api.DefaultConfig())
-	key := h.key("t1")
+	key := h.key()
 
 	rec := h.do(http.MethodPost, "/api/c15t/consent",
 		`{"externalId":"user-1","domain":"example.com","categories":["necessary","measurement"],"uiSource":"banner","action":"accept_all"}`,
@@ -328,7 +327,7 @@ func TestConsentWrite(t *testing.T) {
 		t.Error("validUntil missing for a policy with expiryDays")
 	}
 
-	stored, err := h.app.FindFirstRecordByFilter("consent", "tenantId = 't1'", nil)
+	stored, err := h.app.FindFirstRecordByFilter("consent", "id != ''", nil)
 	if err != nil {
 		t.Fatalf("find consent: %v", err)
 	}
@@ -356,7 +355,7 @@ func TestConsentWrite(t *testing.T) {
 
 func TestConsentValidation(t *testing.T) {
 	h := newHarness(t, api.DefaultConfig())
-	key := h.key("t1")
+	key := h.key()
 
 	tests := []struct {
 		name string
@@ -407,7 +406,7 @@ func TestConsentValidation(t *testing.T) {
 
 func TestConsentRejectionLeavesNoRows(t *testing.T) {
 	h := newHarness(t, api.DefaultConfig())
-	key := h.key("t1")
+	key := h.key()
 
 	before := map[string]int{
 		"consent":  h.count("consent"),
@@ -436,7 +435,7 @@ func TestConsentStrictScopeRejectsOutOfScope(t *testing.T) {
 	cfg.PolicyPacks = strictPack()
 
 	h := newHarness(t, cfg)
-	key := h.key("t1")
+	key := h.key()
 
 	rec := h.do(http.MethodPost, "/api/c15t/consent",
 		`{"externalId":"x","domain":"example.com","categories":["necessary","marketing"]}`,
@@ -457,7 +456,7 @@ func TestConsentStrictScopeRejectsOutOfScope(t *testing.T) {
 
 func TestConsentDecisionDedupe(t *testing.T) {
 	h := newHarness(t, api.DefaultConfig())
-	key := h.key("t1")
+	key := h.key()
 
 	for _, ext := range []string{"a", "b", "c"} {
 		rec := h.do(http.MethodPost, "/api/c15t/consent",
@@ -525,7 +524,7 @@ func TestConsentGPC(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			h := newHarness(t, api.DefaultConfig())
-			key := h.key("t1")
+			key := h.key()
 
 			headers := auth(key)
 			for k, v := range tt.headers {
@@ -549,7 +548,7 @@ func TestConsentGPC(t *testing.T) {
 
 func TestConsentGPCDropsCategories(t *testing.T) {
 	h := newHarness(t, api.DefaultConfig())
-	key := h.key("t1")
+	key := h.key()
 
 	rec := h.do(http.MethodPost, "/api/c15t/consent",
 		`{"externalId":"x","domain":"example.com","categories":["necessary","marketing","measurement"],"action":"accept_all"}`,
@@ -594,7 +593,7 @@ func TestConsentIPOptions(t *testing.T) {
 			tt.mutate(&cfg)
 
 			h := newHarness(t, cfg)
-			key := h.key("t1")
+			key := h.key()
 
 			rec := h.do(http.MethodPost, "/api/c15t/consent",
 				`{"externalId":"x","domain":"example.com","categories":["necessary"]}`,
@@ -604,7 +603,7 @@ func TestConsentIPOptions(t *testing.T) {
 				t.Fatalf("status = %d: %s", rec.Code, rec.Body.String())
 			}
 
-			stored, err := h.app.FindFirstRecordByFilter("consent", "tenantId = 't1'", nil)
+			stored, err := h.app.FindFirstRecordByFilter("consent", "id != ''", nil)
 			if err != nil {
 				t.Fatalf("find consent: %v", err)
 			}
@@ -617,7 +616,7 @@ func TestConsentIPOptions(t *testing.T) {
 
 func TestConsentReusesSubjectAndDomain(t *testing.T) {
 	h := newHarness(t, api.DefaultConfig())
-	key := h.key("t1")
+	key := h.key()
 
 	for range 3 {
 		rec := h.do(http.MethodPost, "/api/c15t/consent",
@@ -640,66 +639,64 @@ func TestConsentReusesSubjectAndDomain(t *testing.T) {
 	}
 }
 
-func TestTenantIsolation(t *testing.T) {
-	h := newHarness(t, api.DefaultConfig())
-	keyOne := h.key("t1")
-	keyTwo := h.key("t2")
+func TestWritesAreStampedWithConfiguredTenant(t *testing.T) {
+	cfg := api.DefaultConfig()
+	cfg.TenantID = "acme"
+
+	h := newHarness(t, cfg)
+	key := h.key()
 
 	rec := h.do(http.MethodPost, "/api/c15t/consent",
 		`{"externalId":"user-1","domain":"example.com","categories":["necessary"]}`,
-		auth(keyOne, "cf-ipcountry", "DE"),
+		auth(key, "cf-ipcountry", "DE"),
 	)
 	if rec.Code != http.StatusCreated {
 		t.Fatalf("status = %d: %s", rec.Code, rec.Body.String())
 	}
+
+	for _, table := range []string{"consent", "subject", "domain", "consentPurpose", "consentPolicy", "runtimePolicyDecision", "auditLog"} {
+		var n int
+		if err := h.app.DB().NewQuery(
+			"SELECT count(*) FROM " + table + " WHERE tenantId = 'acme'",
+		).Row(&n); err != nil {
+			t.Fatalf("count %s: %v", table, err)
+		}
+		if n == 0 {
+			t.Errorf("%s has no row stamped with the configured tenant", table)
+		}
+	}
+}
+
+func TestReadsAreScopedToConfiguredTenant(t *testing.T) {
+	cfg := api.DefaultConfig()
+	cfg.TenantID = "acme"
+
+	h := newHarness(t, cfg)
+	key := h.key()
+
+	rec := h.do(http.MethodPost, "/api/c15t/consent",
+		`{"externalId":"user-1","domain":"example.com","categories":["necessary"]}`,
+		auth(key, "cf-ipcountry", "DE"),
+	)
 	subjectID, _ := decode(t, rec)["subjectId"].(string)
 
-	t.Run("owner reads its consent", func(t *testing.T) {
-		rec := h.do(http.MethodGet, "/api/c15t/consent/"+subjectID, "", auth(keyOne))
-		if rec.Code != http.StatusOK {
-			t.Fatalf("status = %d: %s", rec.Code, rec.Body.String())
-		}
-		consents, _ := decode(t, rec)["consents"].([]any)
-		if len(consents) != 1 {
-			t.Errorf("consents = %d, want 1", len(consents))
-		}
-	})
+	// A row belonging to another deployment must never be visible, even if it
+	// somehow shares this database.
+	if _, err := h.app.DB().NewQuery(
+		"UPDATE consent SET tenantId = 'other' WHERE subject = {:subject}",
+	).Bind(dbx.Params{"subject": subjectID}).Execute(); err != nil {
+		t.Fatalf("restamp: %v", err)
+	}
 
-	t.Run("other tenant reads nothing", func(t *testing.T) {
-		rec := h.do(http.MethodGet, "/api/c15t/consent/"+subjectID, "", auth(keyTwo))
-		if rec.Code != http.StatusOK {
-			t.Fatalf("status = %d: %s", rec.Code, rec.Body.String())
-		}
-		consents, _ := decode(t, rec)["consents"].([]any)
-		if len(consents) != 0 {
-			t.Errorf("consents = %d, want 0 for a foreign tenant", len(consents))
-		}
-	})
+	rec = h.do(http.MethodGet, "/api/c15t/consent/"+subjectID, "", auth(key))
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d: %s", rec.Code, rec.Body.String())
+	}
 
-	t.Run("other tenant cannot write to a foreign subject", func(t *testing.T) {
-		rec := h.do(http.MethodPost, "/api/c15t/consent",
-			`{"subjectId":"`+subjectID+`","domain":"example.com","categories":["necessary"]}`,
-			auth(keyTwo, "cf-ipcountry", "DE"),
-		)
-		if rec.Code != http.StatusBadRequest {
-			t.Errorf("status = %d, want 400 for a foreign subject id", rec.Code)
-		}
-	})
-
-	t.Run("same external id yields separate subjects per tenant", func(t *testing.T) {
-		rec := h.do(http.MethodPost, "/api/c15t/consent",
-			`{"externalId":"user-1","domain":"example.com","categories":["necessary"]}`,
-			auth(keyTwo, "cf-ipcountry", "DE"),
-		)
-		if rec.Code != http.StatusCreated {
-			t.Fatalf("status = %d: %s", rec.Code, rec.Body.String())
-		}
-
-		other, _ := decode(t, rec)["subjectId"].(string)
-		if other == subjectID {
-			t.Error("tenants share a subject for the same external id")
-		}
-	})
+	consents, _ := decode(t, rec)["consents"].([]any)
+	if len(consents) != 0 {
+		t.Errorf("consents = %d, want 0 for a foreign tenant's row", len(consents))
+	}
 }
 
 func TestListConsentRequiresAuth(t *testing.T) {
@@ -746,7 +743,7 @@ func TestConsentPolicyType(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			h := newHarness(t, api.DefaultConfig())
-			key := h.key("t1")
+			key := h.key()
 
 			body := `{"externalId":"x","domain":"example.com","categories":["necessary"]`
 			if tt.policyType != "" {
@@ -764,7 +761,7 @@ func TestConsentPolicyType(t *testing.T) {
 
 func TestConsentPolicyRowReuse(t *testing.T) {
 	h := newHarness(t, api.DefaultConfig())
-	key := h.key("t1")
+	key := h.key()
 
 	for _, ext := range []string{"a", "b", "c"} {
 		rec := h.do(http.MethodPost, "/api/c15t/consent",
@@ -795,7 +792,7 @@ func TestConsentPolicyRowReuse(t *testing.T) {
 
 func TestConsentPolicyStartsAtVersionOne(t *testing.T) {
 	h := newHarness(t, api.DefaultConfig())
-	key := h.key("t1")
+	key := h.key()
 
 	rec := h.do(http.MethodPost, "/api/c15t/consent",
 		`{"externalId":"x","domain":"example.com","categories":["necessary"]}`,
@@ -805,7 +802,7 @@ func TestConsentPolicyStartsAtVersionOne(t *testing.T) {
 		t.Fatalf("status = %d: %s", rec.Code, rec.Body.String())
 	}
 
-	stored, err := h.app.FindFirstRecordByFilter("consentPolicy", "tenantId = 't1'", nil)
+	stored, err := h.app.FindFirstRecordByFilter("consentPolicy", "id != ''", nil)
 	if err != nil {
 		t.Fatalf("find policy: %v", err)
 	}
@@ -849,7 +846,7 @@ func TestOnlyOneActivePolicyPerType(t *testing.T) {
 
 func TestConsentIsIdempotent(t *testing.T) {
 	h := newHarness(t, api.DefaultConfig())
-	key := h.key("t1")
+	key := h.key()
 
 	body := `{"externalId":"user-1","domain":"example.com","categories":["necessary"],"givenAt":"2026-03-01T12:00:00Z"}`
 
@@ -881,7 +878,7 @@ func TestConsentIsIdempotent(t *testing.T) {
 
 func TestConsentDistinctSubmissionsAreSeparate(t *testing.T) {
 	h := newHarness(t, api.DefaultConfig())
-	key := h.key("t1")
+	key := h.key()
 
 	bodies := []string{
 		`{"externalId":"user-1","domain":"example.com","categories":["necessary"],"givenAt":"2026-03-01T12:00:00Z"}`,
@@ -933,7 +930,7 @@ func TestConsentClientTime(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			h := newHarness(t, api.DefaultConfig())
-			key := h.key("t1")
+			key := h.key()
 			now := time.Now().UTC()
 
 			rec := h.do(http.MethodPost, "/api/c15t/consent",
@@ -944,7 +941,7 @@ func TestConsentClientTime(t *testing.T) {
 				t.Fatalf("status = %d: %s", rec.Code, rec.Body.String())
 			}
 
-			stored, err := h.app.FindFirstRecordByFilter("consent", "tenantId = 't1'", nil)
+			stored, err := h.app.FindFirstRecordByFilter("consent", "id != ''", nil)
 			if err != nil {
 				t.Fatalf("find consent: %v", err)
 			}
@@ -956,7 +953,7 @@ func TestConsentClientTime(t *testing.T) {
 
 func TestConsentOmittedTimeUsesServerClock(t *testing.T) {
 	h := newHarness(t, api.DefaultConfig())
-	key := h.key("t1")
+	key := h.key()
 	before := time.Now().UTC().Add(-time.Second)
 
 	rec := h.do(http.MethodPost, "/api/c15t/consent",
@@ -967,7 +964,7 @@ func TestConsentOmittedTimeUsesServerClock(t *testing.T) {
 		t.Fatalf("status = %d: %s", rec.Code, rec.Body.String())
 	}
 
-	stored, err := h.app.FindFirstRecordByFilter("consent", "tenantId = 't1'", nil)
+	stored, err := h.app.FindFirstRecordByFilter("consent", "id != ''", nil)
 	if err != nil {
 		t.Fatalf("find consent: %v", err)
 	}
@@ -980,7 +977,7 @@ func TestConsentOmittedTimeUsesServerClock(t *testing.T) {
 
 func TestCheckConsentValidation(t *testing.T) {
 	h := newHarness(t, api.DefaultConfig())
-	key := h.key("t1")
+	key := h.key()
 
 	tests := []struct {
 		name string
@@ -1004,7 +1001,7 @@ func TestCheckConsentValidation(t *testing.T) {
 
 func TestCheckConsentUnknownExternalIDIsAllFalse(t *testing.T) {
 	h := newHarness(t, api.DefaultConfig())
-	key := h.key("t1")
+	key := h.key()
 
 	rec := h.do(http.MethodGet,
 		"/api/c15t/consents/check?externalId=nobody&type=cookie_banner,privacy_policy", "", auth(key))
@@ -1030,7 +1027,7 @@ func TestCheckConsentUnknownExternalIDIsAllFalse(t *testing.T) {
 
 func TestCheckConsentReportsExistingConsent(t *testing.T) {
 	h := newHarness(t, api.DefaultConfig())
-	key := h.key("t1")
+	key := h.key()
 
 	rec := h.do(http.MethodPost, "/api/c15t/consent",
 		`{"externalId":"user-1","domain":"example.com","categories":["necessary"]}`,
@@ -1064,7 +1061,7 @@ func TestCheckConsentReportsExistingConsent(t *testing.T) {
 
 func TestCheckConsentLeaksNoIdentifiers(t *testing.T) {
 	h := newHarness(t, api.DefaultConfig())
-	key := h.key("t1")
+	key := h.key()
 
 	rec := h.do(http.MethodPost, "/api/c15t/consent",
 		`{"externalId":"user-1","domain":"example.com","categories":["necessary"]}`,
@@ -1086,32 +1083,6 @@ func TestCheckConsentLeaksNoIdentifiers(t *testing.T) {
 	}
 }
 
-func TestCheckConsentIsTenantScoped(t *testing.T) {
-	h := newHarness(t, api.DefaultConfig())
-	keyOne := h.key("t1")
-	keyTwo := h.key("t2")
-
-	rec := h.do(http.MethodPost, "/api/c15t/consent",
-		`{"externalId":"shared-id","domain":"example.com","categories":["necessary"]}`,
-		auth(keyOne, "cf-ipcountry", "DE"),
-	)
-	if rec.Code != http.StatusCreated {
-		t.Fatalf("status = %d: %s", rec.Code, rec.Body.String())
-	}
-
-	rec = h.do(http.MethodGet,
-		"/api/c15t/consents/check?externalId=shared-id&type=cookie_banner", "", auth(keyTwo))
-	if rec.Code != http.StatusOK {
-		t.Fatalf("status = %d: %s", rec.Code, rec.Body.String())
-	}
-
-	results, _ := decode(t, rec)["results"].(map[string]any)
-	entry, _ := results["cookie_banner"].(map[string]any)
-	if entry["hasConsent"] != false {
-		t.Error("a foreign tenant saw another tenant's consent")
-	}
-}
-
 func TestCheckConsentRequiresAuth(t *testing.T) {
 	h := newHarness(t, api.DefaultConfig())
 
@@ -1130,7 +1101,7 @@ func snapshotConfig(required bool) api.Config {
 
 func TestSnapshotTokenAbsentWithoutSecret(t *testing.T) {
 	h := newHarness(t, api.DefaultConfig())
-	key := h.key("t1")
+	key := h.key()
 
 	rec := h.do(http.MethodGet, "/api/c15t/init", "", auth(key, "cf-ipcountry", "DE"))
 	if rec.Code != http.StatusOK {
@@ -1144,7 +1115,7 @@ func TestSnapshotTokenAbsentWithoutSecret(t *testing.T) {
 
 func TestSnapshotTokenIssuedOnInit(t *testing.T) {
 	h := newHarness(t, snapshotConfig(false))
-	key := h.key("t1")
+	key := h.key()
 
 	rec := h.do(http.MethodGet, "/api/c15t/init", "", auth(key, "cf-ipcountry", "DE"))
 	if rec.Code != http.StatusOK {
@@ -1162,7 +1133,7 @@ func TestSnapshotTokenIssuedOnInit(t *testing.T) {
 
 func TestSnapshotRoundTrip(t *testing.T) {
 	h := newHarness(t, snapshotConfig(true))
-	key := h.key("t1")
+	key := h.key()
 
 	rec := h.do(http.MethodGet, "/api/c15t/init", "", auth(key, "cf-ipcountry", "DE"))
 	token, _ := decode(t, rec)["policySnapshotToken"].(string)
@@ -1192,7 +1163,7 @@ func TestSnapshotRequiredRejectsBadTokens(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			h := newHarness(t, snapshotConfig(true))
-			key := h.key("t1")
+			key := h.key()
 
 			body := `{"externalId":"x","domain":"example.com","categories":["necessary"]`
 			if tt.token != "" {
@@ -1210,7 +1181,7 @@ func TestSnapshotRequiredRejectsBadTokens(t *testing.T) {
 
 func TestSnapshotOptionalFallsBackToCurrentPolicy(t *testing.T) {
 	h := newHarness(t, snapshotConfig(false))
-	key := h.key("t1")
+	key := h.key()
 
 	rec := h.do(http.MethodPost, "/api/c15t/consent",
 		`{"externalId":"x","domain":"example.com","categories":["necessary"],"policySnapshotToken":"garbage"}`,
@@ -1221,26 +1192,9 @@ func TestSnapshotOptionalFallsBackToCurrentPolicy(t *testing.T) {
 	}
 }
 
-func TestSnapshotFromAnotherTenantIsRejected(t *testing.T) {
-	h := newHarness(t, snapshotConfig(true))
-	keyOne := h.key("t1")
-	keyTwo := h.key("t2")
-
-	rec := h.do(http.MethodGet, "/api/c15t/init", "", auth(keyOne, "cf-ipcountry", "DE"))
-	token, _ := decode(t, rec)["policySnapshotToken"].(string)
-
-	rec = h.do(http.MethodPost, "/api/c15t/consent",
-		`{"externalId":"x","domain":"example.com","categories":["necessary"],"policySnapshotToken":"`+token+`"}`,
-		auth(keyTwo, "cf-ipcountry", "DE"),
-	)
-	if rec.Code != http.StatusConflict {
-		t.Errorf("status = %d, want 409 for a foreign tenant's token: %s", rec.Code, rec.Body.String())
-	}
-}
-
 func TestSnapshotForDifferentPolicyIsRejected(t *testing.T) {
 	h := newHarness(t, snapshotConfig(true))
-	key := h.key("t1")
+	key := h.key()
 
 	rec := h.do(http.MethodGet, "/api/c15t/init", "", auth(key, "cf-ipcountry", "DE"))
 	token, _ := decode(t, rec)["policySnapshotToken"].(string)
@@ -1256,7 +1210,7 @@ func TestSnapshotForDifferentPolicyIsRejected(t *testing.T) {
 
 func TestStatus(t *testing.T) {
 	h := newHarness(t, api.DefaultConfig())
-	key := h.key("t1")
+	key := h.key()
 
 	rec := h.do(http.MethodGet, "/api/c15t/status", "",
 		auth(key, "cf-ipcountry", "DE", "X-Forwarded-For", "203.0.113.55"))
@@ -1294,7 +1248,7 @@ func TestStatusRequiresAuth(t *testing.T) {
 
 func TestGetSubject(t *testing.T) {
 	h := newHarness(t, api.DefaultConfig())
-	key := h.key("t1")
+	key := h.key()
 
 	rec := h.do(http.MethodPost, "/api/c15t/consent",
 		`{"externalId":"user-1","domain":"example.com","categories":["necessary"]}`,
@@ -1334,7 +1288,7 @@ func TestGetSubject(t *testing.T) {
 
 func TestGetSubjectNotFound(t *testing.T) {
 	h := newHarness(t, api.DefaultConfig())
-	key := h.key("t1")
+	key := h.key()
 
 	rec := h.do(http.MethodGet, "/api/c15t/subjects/doesnotexist00", "", auth(key))
 	if rec.Code != http.StatusNotFound {
@@ -1342,26 +1296,9 @@ func TestGetSubjectNotFound(t *testing.T) {
 	}
 }
 
-func TestGetSubjectIsTenantScoped(t *testing.T) {
-	h := newHarness(t, api.DefaultConfig())
-	keyOne := h.key("t1")
-	keyTwo := h.key("t2")
-
-	rec := h.do(http.MethodPost, "/api/c15t/consent",
-		`{"externalId":"user-1","domain":"example.com","categories":["necessary"]}`,
-		auth(keyOne, "cf-ipcountry", "DE"),
-	)
-	subjectID, _ := decode(t, rec)["subjectId"].(string)
-
-	rec = h.do(http.MethodGet, "/api/c15t/subjects/"+subjectID, "", auth(keyTwo))
-	if rec.Code != http.StatusNotFound {
-		t.Errorf("status = %d, want 404 for a foreign tenant", rec.Code)
-	}
-}
-
 func TestListSubjects(t *testing.T) {
 	h := newHarness(t, api.DefaultConfig())
-	key := h.key("t1")
+	key := h.key()
 
 	rec := h.do(http.MethodGet, "/api/c15t/subjects", "", auth(key))
 	if rec.Code != http.StatusUnprocessableEntity {
@@ -1394,7 +1331,7 @@ func TestListSubjects(t *testing.T) {
 
 func TestPatchSubject(t *testing.T) {
 	h := newHarness(t, api.DefaultConfig())
-	key := h.key("t1")
+	key := h.key()
 
 	rec := h.do(http.MethodPost, "/api/c15t/consent",
 		`{"externalId":"user-1","domain":"example.com","categories":["necessary"]}`,
@@ -1424,7 +1361,7 @@ func TestPatchSubject(t *testing.T) {
 
 func TestPatchSubjectValidation(t *testing.T) {
 	h := newHarness(t, api.DefaultConfig())
-	key := h.key("t1")
+	key := h.key()
 
 	rec := h.do(http.MethodPatch, "/api/c15t/subjects/doesnotexist00",
 		`{"externalId":"x"}`, auth(key))
@@ -1446,7 +1383,7 @@ func TestPatchSubjectValidation(t *testing.T) {
 
 func TestSyncLegalDocument(t *testing.T) {
 	h := newHarness(t, api.DefaultConfig())
-	key := h.key("t1")
+	key := h.key()
 
 	rec := h.do(http.MethodPut, "/api/c15t/legal-documents/privacy_policy/current",
 		`{"version":"1.0.0","hash":"abc","effectiveDate":"2026-01-01T00:00:00Z"}`, auth(key))
@@ -1472,7 +1409,7 @@ func TestSyncLegalDocument(t *testing.T) {
 	}
 
 	active, err := h.app.FindRecordsByFilter("consentPolicy",
-		"type = 'privacy_policy' && isActive = true && tenantId = 't1'", "", 0, 0, nil)
+		"type = 'privacy_policy' && isActive = true", "", 0, 0, nil)
 	if err != nil {
 		t.Fatalf("find active: %v", err)
 	}
@@ -1486,7 +1423,7 @@ func TestSyncLegalDocument(t *testing.T) {
 
 func TestSyncLegalDocumentValidation(t *testing.T) {
 	h := newHarness(t, api.DefaultConfig())
-	key := h.key("t1")
+	key := h.key()
 
 	tests := []struct {
 		name string
@@ -1526,7 +1463,7 @@ func TestSyncLegalDocumentValidation(t *testing.T) {
 
 func TestSyncLegalDocumentRejectsHashChange(t *testing.T) {
 	h := newHarness(t, api.DefaultConfig())
-	key := h.key("t1")
+	key := h.key()
 
 	body := `{"version":"1.0.0","hash":"abc","effectiveDate":"2026-01-01T00:00:00Z"}`
 	if rec := h.do(http.MethodPut, "/api/c15t/legal-documents/dpa/current", body, auth(key)); rec.Code != http.StatusOK {
@@ -1556,7 +1493,7 @@ func publishDocument(t *testing.T, h *harness, key, docType, version, hash strin
 
 func TestLegalDocumentConsentAcceptsExplicitPolicyID(t *testing.T) {
 	h := newHarness(t, api.DefaultConfig())
-	key := h.key("t1")
+	key := h.key()
 	policyID := publishDocument(t, h, key, "privacy_policy", "1.0.0", "abc")
 
 	rec := h.do(http.MethodPost, "/api/c15t/consent",
@@ -1570,7 +1507,7 @@ func TestLegalDocumentConsentAcceptsExplicitPolicyID(t *testing.T) {
 
 func TestLegalDocumentConsentAcceptsPolicyHash(t *testing.T) {
 	h := newHarness(t, api.DefaultConfig())
-	key := h.key("t1")
+	key := h.key()
 	publishDocument(t, h, key, "privacy_policy", "1.0.0", "abc")
 
 	rec := h.do(http.MethodPost, "/api/c15t/consent",
@@ -1595,7 +1532,7 @@ func TestConsentPolicyReferenceErrors(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			h := newHarness(t, api.DefaultConfig())
-			key := h.key("t1")
+			key := h.key()
 
 			rec := h.do(http.MethodPost, "/api/c15t/consent",
 				`{"externalId":"x","domain":"example.com","categories":["necessary"],"policyType":"privacy_policy",`+tt.ref+`}`,
@@ -1610,7 +1547,7 @@ func TestConsentPolicyReferenceErrors(t *testing.T) {
 
 func TestConsentRejectsInactivePolicy(t *testing.T) {
 	h := newHarness(t, api.DefaultConfig())
-	key := h.key("t1")
+	key := h.key()
 
 	retired := publishDocument(t, h, key, "privacy_policy", "1.0.0", "abc")
 	publishDocument(t, h, key, "privacy_policy", "2.0.0", "def")
@@ -1626,7 +1563,7 @@ func TestConsentRejectsInactivePolicy(t *testing.T) {
 
 func TestLegalDocumentConsentAllowedWithSnapshotSigner(t *testing.T) {
 	h := newHarness(t, snapshotConfig(false))
-	key := h.key("t1")
+	key := h.key()
 
 	rec := h.do(http.MethodPost, "/api/c15t/consent",
 		`{"externalId":"x","domain":"example.com","categories":["necessary"],"policyType":"privacy_policy"}`,
@@ -1639,7 +1576,7 @@ func TestLegalDocumentConsentAllowedWithSnapshotSigner(t *testing.T) {
 
 func TestSnapshotPayloadCarriesPolicyDetail(t *testing.T) {
 	h := newHarness(t, snapshotConfig(false))
-	key := h.key("t1")
+	key := h.key()
 
 	rec := h.do(http.MethodGet, "/api/c15t/init", "", auth(key, "cf-ipcountry", "DE"))
 	token, _ := decode(t, rec)["policySnapshotToken"].(string)

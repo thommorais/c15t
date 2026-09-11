@@ -66,7 +66,6 @@ func mintKey(t *testing.T, app *tests.TestApp) string {
 	}
 
 	record := core.NewRecord(collection)
-	record.Set("tenantId", "t1")
 	record.Set("keyHash", key.Hash)
 	record.Set("env", string(apikey.EnvTest))
 	record.Set("revoked", false)

@@ -87,7 +87,7 @@ func (h *Handler) init(c *Ctx, _ any) (initResponse, error) {
 			Jurisdiction: string(code),
 		}
 
-		token, err := h.signSnapshot(c.Tenant.TenantID, loc, code, decision)
+		token, err := h.signSnapshot(c.TenantID(), loc, code, decision)
 		if err != nil {
 			return initResponse{}, err
 		}
@@ -147,7 +147,7 @@ func (h *Handler) recordConsent(c *Ctx, body consentRequest) (Status, error) {
 		return Status{}, BadRequest("no policy applies to this request")
 	}
 
-	if err := h.verifySnapshot(body.SnapshotToken, c.Tenant.TenantID, decision); err != nil {
+	if err := h.verifySnapshot(body.SnapshotToken, c.TenantID(), decision); err != nil {
 		return Status{}, err
 	}
 
@@ -163,12 +163,12 @@ func (h *Handler) recordConsent(c *Ctx, body consentRequest) (Status, error) {
 	)
 
 	err = h.app.RunInTransaction(func(txApp core.App) error {
-		subject, err := h.findOrCreateSubject(txApp, c.Tenant.TenantID, body)
+		subject, err := h.findOrCreateSubject(txApp, c.TenantID(), body)
 		if err != nil {
 			return err
 		}
 
-		domain, err := h.findOrCreateDomain(txApp, c.Tenant.TenantID, body.Domain)
+		domain, err := h.findOrCreateDomain(txApp, c.TenantID(), body.Domain)
 		if err != nil {
 			return err
 		}
@@ -176,7 +176,7 @@ func (h *Handler) recordConsent(c *Ctx, body consentRequest) (Status, error) {
 		record, err := consent.Build(consent.Input{
 			SubjectID:    subject.Id,
 			DomainID:     domain.Id,
-			TenantID:     c.Tenant.TenantID,
+			TenantID:     c.TenantID(),
 			Categories:   body.Categories,
 			Policy:       decision.Policy,
 			Jurisdiction: code,
@@ -194,12 +194,12 @@ func (h *Handler) recordConsent(c *Ctx, body consentRequest) (Status, error) {
 			return err
 		}
 
-		policyRecord, err := h.resolvePolicyRecord(txApp, c.Tenant.TenantID, policyType, body)
+		policyRecord, err := h.resolvePolicyRecord(txApp, c.TenantID(), policyType, body)
 		if err != nil {
 			return err
 		}
 
-		rpd, err := h.upsertDecision(txApp, c.Tenant.TenantID, loc, code, decision, policyType, policyRecord)
+		rpd, err := h.upsertDecision(txApp, c.TenantID(), loc, code, decision, policyType, policyRecord)
 		if err != nil {
 			return err
 		}
@@ -212,7 +212,7 @@ func (h *Handler) recordConsent(c *Ctx, body consentRequest) (Status, error) {
 			return nil
 		}
 
-		return h.appendAudit(txApp, c.Tenant.TenantID, stored, record)
+		return h.appendAudit(txApp, c.TenantID(), stored, record)
 	})
 	if err != nil {
 		return Status{}, err
@@ -247,7 +247,7 @@ func (h *Handler) listConsent(c *Ctx, _ any) (map[string]any, error) {
 		"-givenAt",
 		100,
 		0,
-		dbx.Params{"subject": subjectID, "tenant": c.Tenant.TenantID},
+		dbx.Params{"subject": subjectID, "tenant": c.TenantID()},
 	)
 	if err != nil {
 		return nil, err
@@ -368,7 +368,7 @@ func (h *Handler) checkConsent(c *Ctx, _ any) (map[string]any, error) {
 		"",
 		0,
 		0,
-		dbx.Params{"ext": externalID, "tenant": c.Tenant.TenantID},
+		dbx.Params{"ext": externalID, "tenant": c.TenantID()},
 	)
 	if err != nil || len(subjects) == 0 {
 		return map[string]any{"results": results}, nil
@@ -382,7 +382,7 @@ func (h *Handler) checkConsent(c *Ctx, _ any) (map[string]any, error) {
 			"-givenAt",
 			0,
 			0,
-			dbx.Params{"subject": subject.Id, "tenant": c.Tenant.TenantID},
+			dbx.Params{"subject": subject.Id, "tenant": c.TenantID()},
 		)
 		if err != nil {
 			return nil, err
@@ -395,7 +395,7 @@ func (h *Handler) checkConsent(c *Ctx, _ any) (map[string]any, error) {
 		latest, err := h.app.FindFirstRecordByFilter(
 			"consentPolicy",
 			"type = {:type} && isActive = true && tenantId = {:tenant}",
-			dbx.Params{"type": t, "tenant": c.Tenant.TenantID},
+			dbx.Params{"type": t, "tenant": c.TenantID()},
 		)
 		if err == nil && latest != nil {
 			latestByType[t] = latest.Id

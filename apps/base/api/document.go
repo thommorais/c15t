@@ -44,7 +44,7 @@ func (h *Handler) syncLegalDocument(c *Ctx, body legalDocumentRequest) (map[stri
 		existing, err := txApp.FindFirstRecordByFilter(
 			"consentPolicy",
 			"type = {:type} && version = {:version} && tenantId = {:tenant}",
-			dbx.Params{"type": docType, "version": body.Version, "tenant": c.Tenant.TenantID},
+			dbx.Params{"type": docType, "version": body.Version, "tenant": c.TenantID()},
 		)
 
 		if err == nil && existing != nil {
@@ -58,7 +58,7 @@ func (h *Handler) syncLegalDocument(c *Ctx, body legalDocumentRequest) (map[stri
 		active, err := txApp.FindFirstRecordByFilter(
 			"consentPolicy",
 			"type = {:type} && isActive = true && tenantId = {:tenant}",
-			dbx.Params{"type": docType, "tenant": c.Tenant.TenantID},
+			dbx.Params{"type": docType, "tenant": c.TenantID()},
 		)
 		if err == nil && active != nil && (stored == nil || active.Id != stored.Id) {
 			active.Set("isActive", false)
@@ -87,7 +87,7 @@ func (h *Handler) syncLegalDocument(c *Ctx, body legalDocumentRequest) (map[stri
 		stored.Set("hash", body.Hash)
 		stored.Set("effectiveDate", *body.EffectiveDate)
 		stored.Set("isActive", true)
-		stored.Set("tenantId", c.Tenant.TenantID)
+		stored.Set("tenantId", c.TenantID())
 
 		return txApp.Save(stored)
 	})

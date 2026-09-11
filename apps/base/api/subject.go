@@ -46,13 +46,13 @@ func (h *Handler) getSubject(c *Ctx, _ any) (subjectPayload, error) {
 	}
 
 	record, err := h.app.FindRecordById("subject", id)
-	if err != nil || record.GetString("tenantId") != c.Tenant.TenantID {
+	if err != nil || record.GetString("tenantId") != c.TenantID() {
 		return subjectPayload{}, NotFound("subject not found")
 	}
 
 	out := toSubject(record)
 
-	consents, err := h.enrichConsents(c.Tenant.TenantID, record.Id)
+	consents, err := h.enrichConsents(c.TenantID(), record.Id)
 	if err != nil {
 		return subjectPayload{}, err
 	}
@@ -73,7 +73,7 @@ func (h *Handler) listSubjects(c *Ctx, _ any) (map[string]any, error) {
 		"-createdAt",
 		0,
 		0,
-		dbx.Params{"ext": externalID, "tenant": c.Tenant.TenantID},
+		dbx.Params{"ext": externalID, "tenant": c.TenantID()},
 	)
 	if err != nil {
 		return nil, err
@@ -83,7 +83,7 @@ func (h *Handler) listSubjects(c *Ctx, _ any) (map[string]any, error) {
 	for _, record := range records {
 		item := toSubject(record)
 
-		consents, err := h.enrichConsents(c.Tenant.TenantID, record.Id)
+		consents, err := h.enrichConsents(c.TenantID(), record.Id)
 		if err != nil {
 			return nil, err
 		}
@@ -115,7 +115,7 @@ func (h *Handler) patchSubject(c *Ctx, body patchSubjectRequest) (subjectPayload
 	}
 
 	record, err := h.app.FindRecordById("subject", id)
-	if err != nil || record.GetString("tenantId") != c.Tenant.TenantID {
+	if err != nil || record.GetString("tenantId") != c.TenantID() {
 		return subjectPayload{}, NotFound("subject not found")
 	}
 
@@ -142,7 +142,7 @@ func (h *Handler) patchSubject(c *Ctx, body patchSubjectRequest) (subjectPayload
 		entry.Set("entityId", record.Id)
 		entry.Set("actionType", "update")
 		entry.Set("subject", record.Id)
-		entry.Set("tenantId", c.Tenant.TenantID)
+		entry.Set("tenantId", c.TenantID())
 		entry.Set("changes", map[string]any{
 			"before": before,
 			"after": map[string]any{

@@ -22,7 +22,6 @@ func init() {
 func apiKeyCollection() *core.Collection {
 	c := core.NewBaseCollection("apiKey", idAPIKey)
 	c.Fields.Add(
-		&core.TextField{Name: "tenantId", Required: true, Max: 255},
 		&core.TextField{Name: "name", Max: 255},
 		&core.TextField{Name: "keyHash", Required: true, Max: 64},
 		&core.TextField{Name: "env", Required: true, Max: 8},
@@ -33,7 +32,7 @@ func apiKeyCollection() *core.Collection {
 	)
 	c.Indexes = []string{
 		`CREATE UNIQUE INDEX idx_apikey_hash ON apiKey (keyHash)`,
-		`CREATE INDEX idx_apikey_tenant ON apiKey (tenantId, revoked)`,
+		`CREATE INDEX idx_apikey_revoked ON apiKey (revoked)`,
 	}
 
 	return c

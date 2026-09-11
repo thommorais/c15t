@@ -13,10 +13,9 @@ import (
 )
 
 type Tenant struct {
-	ID       string
-	KeyID    string
-	KeyEnv   apikey.Env
-	TenantID string
+	ID     string
+	KeyID  string
+	KeyEnv apikey.Env
 }
 
 var errUnauthorized = errors.New("invalid or missing api key")
@@ -44,10 +43,9 @@ func authenticate(app core.App, r *http.Request) (*Tenant, error) {
 	}
 
 	return &Tenant{
-		ID:       record.Id,
-		KeyID:    record.Id,
-		KeyEnv:   apikey.Env(record.GetString("env")),
-		TenantID: record.GetString("tenantId"),
+		ID:     record.Id,
+		KeyID:  record.Id,
+		KeyEnv: apikey.Env(record.GetString("env")),
 	}, nil
 }
 

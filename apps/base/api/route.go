@@ -17,6 +17,9 @@ type Ctx struct {
 
 func (c *Ctx) App() core.App { return c.Handler.app }
 
+// TenantID is instance configuration, not request state.
+func (c *Ctx) TenantID() string { return c.Handler.cfg.TenantID }
+
 func (c *Ctx) Query(name string) string {
 	return c.Event.Request.URL.Query().Get(name)
 }
