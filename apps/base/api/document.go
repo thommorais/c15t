@@ -40,8 +40,7 @@ func (h *Handler) syncLegalDocument(c *Ctx, body legalDocumentRequest) (map[stri
 
 	var stored *core.Record
 
-	err := h.app.RunInTransaction(func(txApp core.App) error {
-		db := c.DB().with(txApp)
+	err := c.DB().Tx(func(db *scope) error {
 
 		existing, err := db.FindFirst("consentPolicy", "type = {:type} && version = {:version}", dbx.Params{"type": docType, "version": body.Version})
 

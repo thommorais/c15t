@@ -117,15 +117,15 @@ func (h *Handler) patchSubject(c *Ctx, body patchSubjectRequest) (subjectPayload
 		"identityProvider": record.GetString("identityProvider"),
 	}
 
-	err = h.app.RunInTransaction(func(txApp core.App) error {
+	err = c.DB().Tx(func(tx *scope) error {
 		record.Set("externalId", body.ExternalID)
 		record.Set("identityProvider", provider)
 
-		if err := txApp.Save(record); err != nil {
+		if err := tx.Save(record); err != nil {
 			return err
 		}
 
-		entry, err := c.DB().with(txApp).New("auditLog")
+		entry, err := tx.New("auditLog")
 		if err != nil {
 			return err
 		}
@@ -142,7 +142,7 @@ func (h *Handler) patchSubject(c *Ctx, body patchSubjectRequest) (subjectPayload
 			},
 		})
 
-		return txApp.Save(entry)
+		return tx.Save(entry)
 	})
 	if err != nil {
 		return subjectPayload{}, err

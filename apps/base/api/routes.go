@@ -162,8 +162,7 @@ func (h *Handler) recordConsent(c *Ctx, body consentRequest) (Status, error) {
 		duplicate bool
 	)
 
-	err = h.app.RunInTransaction(func(txApp core.App) error {
-		tx := c.DB().with(txApp)
+	err = c.DB().Tx(func(tx *scope) error {
 
 		subject, err := h.findOrCreateSubject(tx, body)
 		if err != nil {
