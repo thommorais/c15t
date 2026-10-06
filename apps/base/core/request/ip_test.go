@@ -21,10 +21,16 @@ func TestMaskIP(t *testing.T) {
 	}{
 		{name: "ipv4 zeroes last octet", ip: "192.168.1.100", want: "192.168.1.0"},
 		{name: "ipv4 already zero", ip: "10.0.0.0", want: "10.0.0.0"},
+		{name: "ipv4 loopback", ip: "127.0.0.1", want: "127.0.0.0"},
+		{name: "ipv4 public", ip: "8.8.8.8", want: "8.8.8.0"},
+		{name: "ipv4 all ones", ip: "255.255.255.255", want: "255.255.255.0"},
 		{name: "ipv6 keeps first 48 bits", ip: "2001:db8:85a3::1", want: "2001:db8:85a3::"},
 		{name: "ipv6 full form", ip: "2001:0db8:85a3:0000:0000:8a2e:0370:7334", want: "2001:db8:85a3::"},
 		{name: "ipv6 loopback", ip: "::1", want: "::"},
+		{name: "ipv6 unspecified", ip: "::", want: "::"},
+		{name: "ipv6 compressed with leading zero groups", ip: "::ffff:0:0:1", want: "::"},
 		{name: "ipv4 mapped ipv6", ip: "::ffff:192.168.1.100", want: "::ffff:192.168.1.0"},
+		{name: "ipv4 mapped ipv6 loopback", ip: "::ffff:127.0.0.1", want: "::ffff:127.0.0.0"},
 		{name: "empty stays empty", ip: "", want: ""},
 		{name: "garbage passes through", ip: "not-an-ip", want: "not-an-ip"},
 	}
