@@ -14,11 +14,17 @@ func TestCheck(t *testing.T) {
 		{name: "california lowercase", country: "us", region: "ca", want: CCPA},
 		{name: "other us state is none", country: "US", region: "NY", want: None},
 		{name: "us without region is none", country: "US", want: None},
+		{name: "new york prefixed region is none", country: "US", region: "US-NY", want: None},
+		{name: "texas prefixed region is none", country: "US", region: "US-TX", want: None},
+		{name: "washington prefixed region is none", country: "US", region: "US-WA", want: None},
 
 		{name: "quebec is law25", country: "CA", region: "QC", want: QCLaw25},
 		{name: "quebec prefixed region", country: "CA", region: "CA-QC", want: QCLaw25},
 		{name: "canada outside quebec is pipeda", country: "CA", region: "ON", want: PIPEDA},
 		{name: "canada without region is pipeda", country: "CA", want: PIPEDA},
+		{name: "ontario prefixed region is pipeda", country: "CA", region: "CA-ON", want: PIPEDA},
+		{name: "british columbia prefixed region is pipeda", country: "CA", region: "CA-BC", want: PIPEDA},
+		{name: "alberta prefixed region is pipeda", country: "CA", region: "CA-AB", want: PIPEDA},
 
 		{name: "uk is uk gdpr", country: "GB", want: UKGDPR},
 		{name: "germany is gdpr", country: "DE", want: GDPR},
@@ -43,6 +49,22 @@ func TestCheck(t *testing.T) {
 				t.Errorf("Check(%q, %q) = %q, want %q", tt.country, tt.region, got, tt.want)
 			}
 		})
+	}
+}
+
+func TestCheckEveryEUMemberIsGDPR(t *testing.T) {
+	members := []string{
+		"AT", "BE", "BG", "HR", "CY", "CZ", "DK", "EE", "FI", "FR", "DE", "GR", "HU", "IE",
+		"IT", "LV", "LT", "LU", "MT", "NL", "PL", "PT", "RO", "SK", "SI", "ES", "SE",
+	}
+	if len(members) != 27 {
+		t.Fatalf("the list holds %d members, the EU has 27", len(members))
+	}
+
+	for _, country := range members {
+		if got := Check(country, ""); got != GDPR {
+			t.Errorf("Check(%q) = %q, want GDPR", country, got)
+		}
 	}
 }
 
