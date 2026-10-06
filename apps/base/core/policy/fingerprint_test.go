@@ -36,8 +36,8 @@ func TestSHA256Hex(t *testing.T) {
 	}
 }
 
-func TestStableStringify(t *testing.T) {
-	policy := Resolved{
+func sampleRuntimePolicy() Resolved {
+	return Resolved{
 		ID:    "policy_runtime_us_ca",
 		Model: ModelOptIn,
 		Consent: &ResolvedConsent{
@@ -57,6 +57,10 @@ func TestStableStringify(t *testing.T) {
 			},
 		},
 	}
+}
+
+func TestStableStringify(t *testing.T) {
+	policy := sampleRuntimePolicy()
 
 	want := `{"consent":{"categories":["necessary","measurement"],"expiryDays":365,"scopeMode":"strict"},"id":"policy_runtime_us_ca","model":"opt-in","ui":{"banner":{"allowedActions":["accept","reject"],"direction":"row","layout":[["accept","reject"]],"primaryActions":["accept"],"scrollLock":true,"uiProfile":"balanced"},"mode":"banner"}}`
 
@@ -66,6 +70,18 @@ func TestStableStringify(t *testing.T) {
 	}
 	if got != want {
 		t.Errorf("stableStringify mismatch\n got: %s\nwant: %s", got, want)
+	}
+}
+
+func TestFingerprintMatchesTheReferenceGolden(t *testing.T) {
+	const want = "bea550f2f6980f42116a90db2160985178f75ef96d08331a1147530524abbbc2"
+
+	got, err := Fingerprint(sampleRuntimePolicy())
+	if err != nil {
+		t.Fatalf("Fingerprint: %v", err)
+	}
+	if got != want {
+		t.Errorf("Fingerprint = %s, want %s", got, want)
 	}
 }
 
