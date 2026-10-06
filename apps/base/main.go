@@ -28,8 +28,10 @@ func main() {
 	app.RootCmd.AddCommand(newAPIKeyCmd(app))
 
 	app.OnServe().BindFunc(func(se *core.ServeEvent) error {
-		cfg := api.DefaultConfig()
-		cfg.TenantID = os.Getenv("C15T_TENANT_ID")
+		cfg, err := api.ConfigFromEnv(os.Getenv)
+		if err != nil {
+			return err
+		}
 		api.Register(app, se, cfg)
 		return se.Next()
 	})
