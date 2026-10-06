@@ -44,10 +44,11 @@ type Status struct {
 	Body any
 }
 
-// Fail carries an HTTP status alongside the error so handlers can choose one
-// without reaching for the framework's error helpers.
+// Fail carries an HTTP status and a stable error code so handlers can choose
+// both without reaching for the framework's error helpers.
 type Fail struct {
-	Code    int
+	Status  int
+	Code    string
 	Message string
 	Err     error
 }
@@ -55,24 +56,24 @@ type Fail struct {
 func (f *Fail) Error() string { return f.Message }
 func (f *Fail) Unwrap() error { return f.Err }
 
-func BadRequest(message string) error {
-	return &Fail{Code: http.StatusBadRequest, Message: message}
+func BadRequest(code, message string) error {
+	return &Fail{Status: http.StatusBadRequest, Code: code, Message: message}
 }
 
-func Unprocessable(message string) error {
-	return &Fail{Code: http.StatusUnprocessableEntity, Message: message}
+func Unprocessable(code, message string) error {
+	return &Fail{Status: http.StatusUnprocessableEntity, Code: code, Message: message}
 }
 
-func Conflict(message string) error {
-	return &Fail{Code: http.StatusConflict, Message: message}
+func Conflict(code, message string) error {
+	return &Fail{Status: http.StatusConflict, Code: code, Message: message}
 }
 
-func NotFound(message string) error {
-	return &Fail{Code: http.StatusNotFound, Message: message}
+func NotFound(code, message string) error {
+	return &Fail{Status: http.StatusNotFound, Code: code, Message: message}
 }
 
-func Unavailable(message string, err error) error {
-	return &Fail{Code: http.StatusServiceUnavailable, Message: message, Err: err}
+func Unavailable(code, message string, err error) error {
+	return &Fail{Status: http.StatusServiceUnavailable, Code: code, Message: message, Err: err}
 }
 
 // handle wraps a handler with authentication, error mapping and JSON encoding.
@@ -81,20 +82,20 @@ func handle[B any, R any](h *Handler, need apikey.Scope, fn func(*Ctx, B) (R, er
 	return func(e *core.RequestEvent) error {
 		tenant, err := authenticate(h.app, e.Request)
 		if err != nil {
-			return e.UnauthorizedError("invalid or missing api key", nil)
+			return writeError(e, http.StatusUnauthorized, codeUnauthorized, msgUnauthorized)
 		}
 
 		// A publishable key ships in a browser bundle, so it must never reach
 		// an endpoint that reads or rewrites stored personal data.
 		if !tenant.Scope.Allows(need) {
-			return e.ForbiddenError("this endpoint requires a secret api key", nil)
+			return writeError(e, http.StatusForbidden, codeForbidden, "This endpoint requires a secret API key")
 		}
 
 		// A publishable key is copyable, so it is only usable from the sites it
 		// was issued for. Secret keys are server side and carry no Origin.
 		if tenant.Scope == apikey.ScopePublishable {
 			if o := e.Request.Header.Get("Origin"); !tenant.Origins.Allows(o) {
-				return e.ForbiddenError("origin not allowed for this api key", nil)
+				return writeError(e, http.StatusForbidden, codeForbidden, "Origin not allowed for this API key")
 			}
 		}
 
@@ -104,13 +105,14 @@ func handle[B any, R any](h *Handler, need apikey.Scope, fn func(*Ctx, B) (R, er
 		if now := time.Now(); !limiter.Allow(bucket, now) {
 			retry := limiter.RetryAfter(bucket, now)
 			e.Response.Header().Set("Retry-After", strconv.Itoa(int(math.Ceil(retry.Seconds()))))
-			return e.Error(http.StatusTooManyRequests, "rate limit exceeded", nil)
+			return writeError(e, http.StatusTooManyRequests, codeRateLimited, "Rate limit exceeded")
 		}
 
 		var body B
 		if needsBody(e.Request.Method) {
 			if err := e.BindBody(&body); err != nil {
-				return e.BadRequestError("malformed request body", err)
+				e.App.Logger().Debug("malformed request body", "error", err)
+				return writeError(e, http.StatusBadRequest, codeInputValidationFailed, "Malformed request body")
 			}
 		}
 
@@ -157,19 +159,63 @@ func rateAddress(r *http.Request) string {
 	return hex.EncodeToString(mac.Sum(nil)[:16])
 }
 
+// requireQuery separates a parameter that is absent from one that is present
+// and empty, as the reference does: the first fails schema validation (400),
+// the second reaches the handler, which answers 422 with the parameter's code.
+func requireQuery(c *Ctx, name, code string) error {
+	query := c.Event.Request.URL.Query()
+	if !query.Has(name) {
+		return BadRequest(codeInputValidationFailed, name+" query parameter is required")
+	}
+	if query.Get(name) == "" {
+		return Unprocessable(code, name+" query parameter is required")
+	}
+	return nil
+}
+
+func notFound(e *core.RequestEvent) error {
+	return writeError(e, http.StatusNotFound, codeNotFound, "Not Found")
+}
+
 func needsBody(method string) bool {
 	return method == http.MethodPost || method == http.MethodPut || method == http.MethodPatch
+}
+
+type errorEnvelope struct {
+	Code    string         `json:"code"`
+	Message string         `json:"message"`
+	Status  int            `json:"status"`
+	Defined bool           `json:"defined"`
+	Data    map[string]any `json:"data"`
+}
+
+func writeError(e *core.RequestEvent, status int, code, message string) error {
+	return e.JSON(status, errorEnvelope{
+		Code:    code,
+		Message: message,
+		Status:  status,
+		Defined: true,
+		Data:    map[string]any{},
+	})
 }
 
 func respondError(e *core.RequestEvent, err error) error {
 	var fail *Fail
 	if errors.As(err, &fail) {
-		return e.Error(fail.Code, fail.Message, nil)
+		if fail.Status >= http.StatusInternalServerError {
+			e.App.Logger().Error(fail.Message, "error", fail.Err)
+		}
+		return writeError(e, fail.Status, fail.Code, fail.Message)
+	}
+
+	if consent.IsOutOfScope(err) {
+		return writeError(e, http.StatusBadRequest, codePurposeNotAllowed, msgPurposeNotAllowed)
 	}
 
 	if consent.IsInvalid(err) || errors.Is(err, errInvalidInput) {
-		return e.BadRequestError(err.Error(), nil)
+		return writeError(e, http.StatusBadRequest, codeInputValidationFailed, err.Error())
 	}
 
-	return e.InternalServerError("request failed", err)
+	e.App.Logger().Error("request failed", "error", err)
+	return writeError(e, http.StatusInternalServerError, codeInternalServerError, msgInternalServerError)
 }

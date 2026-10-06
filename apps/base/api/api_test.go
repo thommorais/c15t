@@ -1012,18 +1012,21 @@ func TestCheckConsentValidation(t *testing.T) {
 	tests := []struct {
 		name string
 		url  string
+		want int
 	}{
-		{name: "missing both", url: "/api/c15t/consents/check"},
-		{name: "missing type", url: "/api/c15t/consents/check?externalId=x"},
-		{name: "missing external id", url: "/api/c15t/consents/check?type=cookie_banner"},
-		{name: "blank type list", url: "/api/c15t/consents/check?externalId=x&type=,,"},
+		{name: "missing both", url: "/api/c15t/consents/check", want: http.StatusBadRequest},
+		{name: "missing type", url: "/api/c15t/consents/check?externalId=x", want: http.StatusBadRequest},
+		{name: "missing external id", url: "/api/c15t/consents/check?type=cookie_banner", want: http.StatusBadRequest},
+		{name: "empty type", url: "/api/c15t/consents/check?externalId=x&type=", want: http.StatusUnprocessableEntity},
+		{name: "empty external id", url: "/api/c15t/consents/check?externalId=&type=cookie_banner", want: http.StatusUnprocessableEntity},
+		{name: "blank type list", url: "/api/c15t/consents/check?externalId=x&type=,,", want: http.StatusUnprocessableEntity},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			rec := h.do(http.MethodGet, tt.url, "", auth(key))
-			if rec.Code != http.StatusUnprocessableEntity {
-				t.Errorf("status = %d, want 422: %s", rec.Code, rec.Body.String())
+			if rec.Code != tt.want {
+				t.Errorf("status = %d, want %d: %s", rec.Code, tt.want, rec.Body.String())
 			}
 		})
 	}
@@ -1331,8 +1334,13 @@ func TestListSubjects(t *testing.T) {
 	key := h.key()
 
 	rec := h.do(http.MethodGet, "/api/c15t/subjects", "", auth(key))
+	if rec.Code != http.StatusBadRequest {
+		t.Errorf("status = %d, want 400 without externalId", rec.Code)
+	}
+
+	rec = h.do(http.MethodGet, "/api/c15t/subjects?externalId=", "", auth(key))
 	if rec.Code != http.StatusUnprocessableEntity {
-		t.Errorf("status = %d, want 422 without externalId", rec.Code)
+		t.Errorf("status = %d, want 422 for an empty externalId", rec.Code)
 	}
 
 	if rec := h.do(http.MethodPost, "/api/c15t/consent",
@@ -1464,19 +1472,37 @@ func TestSyncLegalDocumentValidation(t *testing.T) {
 		{
 			name: "unknown type",
 			path: "/api/c15t/legal-documents/shrug/current",
-			body: `{"version":"1.0.0","effectiveDate":"2026-01-01T00:00:00Z"}`,
-			want: http.StatusUnprocessableEntity,
+			body: `{"version":"1.0.0","hash":"abc","effectiveDate":"2026-01-01T00:00:00Z"}`,
+			want: http.StatusBadRequest,
 		},
 		{
 			name: "missing version",
 			path: "/api/c15t/legal-documents/privacy_policy/current",
-			body: `{"effectiveDate":"2026-01-01T00:00:00Z"}`,
-			want: http.StatusUnprocessableEntity,
+			body: `{"hash":"abc","effectiveDate":"2026-01-01T00:00:00Z"}`,
+			want: http.StatusBadRequest,
+		},
+		{
+			name: "missing hash",
+			path: "/api/c15t/legal-documents/privacy_policy/current",
+			body: `{"version":"1.0.0","effectiveDate":"2026-01-01T00:00:00Z"}`,
+			want: http.StatusBadRequest,
 		},
 		{
 			name: "missing effective date",
 			path: "/api/c15t/legal-documents/privacy_policy/current",
-			body: `{"version":"1.0.0"}`,
+			body: `{"version":"1.0.0","hash":"abc"}`,
+			want: http.StatusBadRequest,
+		},
+		{
+			name: "unparseable effective date",
+			path: "/api/c15t/legal-documents/privacy_policy/current",
+			body: `{"version":"1.0.0","hash":"abc","effectiveDate":"yesterday"}`,
+			want: http.StatusUnprocessableEntity,
+		},
+		{
+			name: "blank version",
+			path: "/api/c15t/legal-documents/privacy_policy/current",
+			body: `{"version":"","hash":"abc","effectiveDate":"2026-01-01T00:00:00Z"}`,
 			want: http.StatusUnprocessableEntity,
 		},
 	}

@@ -18,7 +18,7 @@ func (h *Handler) requireLegalDocumentProof(policyType string, body consentReque
 		return nil
 	}
 
-	return Conflict("legal document consent requires policyId or policyHash when snapshot verification is disabled")
+	return Conflict(codeProofRequired, "Legal document consent requires policyId or policyHash when snapshot verification is disabled")
 }
 
 // resolvePolicyRecord uses an explicitly referenced policy when the caller names
@@ -31,10 +31,10 @@ func (h *Handler) resolvePolicyRecord(
 	if body.PolicyID != "" {
 		record, err := db.FindByID("consentPolicy", body.PolicyID)
 		if err != nil || false {
-			return nil, NotFound("policy not found")
+			return nil, NotFound(codePolicyNotFound, "Policy not found")
 		}
 		if !record.GetBool("isActive") {
-			return nil, BadRequest("policy is inactive")
+			return nil, BadRequest(codePolicyInactive, "Policy is inactive")
 		}
 		return record, nil
 	}
@@ -42,10 +42,10 @@ func (h *Handler) resolvePolicyRecord(
 	if body.PolicyHash != "" {
 		record, err := db.FindFirst("consentPolicy", "type = {:type} && hash = {:hash}", dbx.Params{"type": policyType, "hash": body.PolicyHash})
 		if err != nil || record == nil {
-			return nil, NotFound("policy not found")
+			return nil, NotFound(codePolicyNotFound, "Policy not found")
 		}
 		if !record.GetBool("isActive") {
-			return nil, BadRequest("policy is inactive")
+			return nil, BadRequest(codePolicyInactive, "Policy is inactive")
 		}
 		return record, nil
 	}

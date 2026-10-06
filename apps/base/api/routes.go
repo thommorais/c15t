@@ -66,6 +66,7 @@ func Register(app core.App, se *core.ServeEvent, cfg Config) {
 	g.GET("/subjects/{id}", handle(h, apikey.ScopeSecret, h.getSubject))
 	g.PATCH("/subjects/{id}", handle(h, apikey.ScopeSecret, h.patchSubject))
 	g.PUT("/legal-documents/{type}/current", handle(h, apikey.ScopeSecret, h.syncLegalDocument))
+	g.Any("/{path...}", notFound)
 }
 
 type initResponse struct {
@@ -149,10 +150,10 @@ type consentResponse struct {
 
 func (h *Handler) recordConsent(c *Ctx, body consentRequest) (Status, error) {
 	if body.Domain == "" {
-		return Status{}, BadRequest("domain is required")
+		return Status{}, BadRequest(codeInputValidationFailed, "domain is required")
 	}
 	if body.SubjectID == "" && body.ExternalID == "" {
-		return Status{}, BadRequest("subjectId or externalId is required")
+		return Status{}, BadRequest(codeInputValidationFailed, "subjectId or externalId is required")
 	}
 
 	policyType := body.PolicyType
@@ -160,7 +161,7 @@ func (h *Handler) recordConsent(c *Ctx, body consentRequest) (Status, error) {
 		policyType = consent.DefaultPolicyType
 	}
 	if !consent.ValidPolicyType(policyType) {
-		return Status{}, BadRequest("unknown policyType " + policyType)
+		return Status{}, BadRequest(codeInputValidationFailed, "unknown policyType "+policyType)
 	}
 
 	loc, code, decision, err := h.resolve(c.Event.Request)
@@ -168,7 +169,7 @@ func (h *Handler) recordConsent(c *Ctx, body consentRequest) (Status, error) {
 		return Status{}, err
 	}
 	if decision == nil {
-		return Status{}, BadRequest("no policy applies to this request")
+		return Status{}, BadRequest(codePolicyResolution, "No policy applies to this request")
 	}
 
 	if err := h.verifySnapshot(body.SnapshotToken, c.TenantID(), decision); err != nil {
@@ -263,7 +264,7 @@ func (h *Handler) recordConsent(c *Ctx, body consentRequest) (Status, error) {
 func (h *Handler) listConsent(c *Ctx, _ any) (map[string]any, error) {
 	subjectID := c.Path("subjectId")
 	if subjectID == "" {
-		return nil, BadRequest("subjectId is required")
+		return nil, BadRequest(codeSubjectIDRequired, "Subject ID is required")
 	}
 
 	records, err := c.DB().FindAll("consent", "subject = {:subject}", "-givenAt", 0, 0, dbx.Params{"subject": subjectID})
@@ -352,15 +353,14 @@ type checkResult struct {
 // before a banner is shown. It returns booleans only: no subject ids, no
 // consent detail, so it stays safe to call from an unauthenticated surface.
 func (h *Handler) checkConsent(c *Ctx, _ any) (map[string]any, error) {
+	if err := requireQuery(c, "externalId", codeExternalIDRequired); err != nil {
+		return nil, err
+	}
+	if err := requireQuery(c, "type", codeTypeRequired); err != nil {
+		return nil, err
+	}
 	externalID := c.Query("externalId")
-	if externalID == "" {
-		return nil, Unprocessable("externalId query parameter is required")
-	}
-
 	rawTypes := c.Query("type")
-	if rawTypes == "" {
-		return nil, Unprocessable("type query parameter is required")
-	}
 
 	results := map[string]checkResult{}
 	var types []string
@@ -377,7 +377,7 @@ func (h *Handler) checkConsent(c *Ctx, _ any) (map[string]any, error) {
 	}
 
 	if len(types) == 0 {
-		return nil, Unprocessable("type query parameter is required")
+		return nil, Unprocessable(codeTypeRequired, "type query parameter is required")
 	}
 
 	subjects, err := c.DB().FindAll("subject", "externalId = {:ext}", "", 0, 0, dbx.Params{"ext": externalID})

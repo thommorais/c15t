@@ -10,9 +10,9 @@ import (
 )
 
 type legalDocumentRequest struct {
-	Version       string     `json:"version"`
-	Hash          string     `json:"hash"`
-	EffectiveDate *time.Time `json:"effectiveDate"`
+	Version       *string `json:"version"`
+	Hash          *string `json:"hash"`
+	EffectiveDate *string `json:"effectiveDate"`
 }
 
 type legalDocumentPayload struct {
@@ -29,25 +29,30 @@ type legalDocumentPayload struct {
 func (h *Handler) syncLegalDocument(c *Ctx, body legalDocumentRequest) (map[string]any, error) {
 	docType := c.Path("type")
 	if !consent.ValidPolicyType(docType) {
-		return nil, Unprocessable("unknown legal document type " + docType)
+		return nil, BadRequest(codeInputValidationFailed, "unknown legal document type "+docType)
 	}
-	if body.Version == "" {
-		return nil, Unprocessable("version is required")
+	if body.Version == nil || body.Hash == nil || body.EffectiveDate == nil {
+		return nil, BadRequest(codeInputValidationFailed, "version, hash and effectiveDate are required")
 	}
-	if body.EffectiveDate == nil {
-		return nil, Unprocessable("effectiveDate must be a valid ISO-8601 string")
+	if *body.Version == "" {
+		return nil, Unprocessable(codeInputValidationFailed, "version is required")
 	}
+	effectiveDate, err := time.Parse(time.RFC3339, *body.EffectiveDate)
+	if err != nil {
+		return nil, Unprocessable(codeInputValidationFailed, "effectiveDate must be a valid ISO-8601 string")
+	}
+	version, hash := *body.Version, *body.Hash
 
 	var stored *core.Record
 
-	err := c.DB().Tx(func(db *scope) error {
+	err = c.DB().Tx(func(db *scope) error {
 
-		existing, err := db.FindFirst("consentPolicy", "type = {:type} && version = {:version}", dbx.Params{"type": docType, "version": body.Version})
+		existing, err := db.FindFirst("consentPolicy", "type = {:type} && version = {:version}", dbx.Params{"type": docType, "version": version})
 
 		if err == nil && existing != nil {
 			// Re-publishing a version must not silently change what it says.
-			if hash := existing.GetString("hash"); hash != "" && body.Hash != "" && hash != body.Hash {
-				return Conflict("version " + body.Version + " was already released with a different hash")
+			if released := existing.GetString("hash"); released != "" && hash != "" && released != hash {
+				return Conflict(codeReleaseConflict, "Version "+version+" was already released with a different hash")
 			}
 			stored = existing
 		}
@@ -62,9 +67,9 @@ func (h *Handler) syncLegalDocument(c *Ctx, body legalDocumentRequest) (map[stri
 
 		if stored != nil {
 			stored.Set("isActive", true)
-			stored.Set("effectiveDate", *body.EffectiveDate)
-			if body.Hash != "" {
-				stored.Set("hash", body.Hash)
+			stored.Set("effectiveDate", effectiveDate)
+			if hash != "" {
+				stored.Set("hash", hash)
 			}
 			return db.Save(stored)
 		}
@@ -75,9 +80,9 @@ func (h *Handler) syncLegalDocument(c *Ctx, body legalDocumentRequest) (map[stri
 		}
 
 		stored.Set("type", docType)
-		stored.Set("version", body.Version)
-		stored.Set("hash", body.Hash)
-		stored.Set("effectiveDate", *body.EffectiveDate)
+		stored.Set("version", version)
+		stored.Set("hash", hash)
+		stored.Set("effectiveDate", effectiveDate)
 		stored.Set("isActive", true)
 
 		return db.Save(stored)
@@ -111,7 +116,7 @@ type clientPayload struct {
 
 func (h *Handler) status(c *Ctx, _ any) (statusPayload, error) {
 	if _, err := c.DB().FindFirst("apiKey", "id != ''", nil); err != nil {
-		return statusPayload{}, Unavailable("database health check failed", err)
+		return statusPayload{}, Unavailable(codeServiceUnavailable, "Database health check failed", err)
 	}
 
 	loc := h.locationOf(c.Event.Request)

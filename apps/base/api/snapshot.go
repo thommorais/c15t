@@ -81,12 +81,24 @@ func (h *Handler) verifySnapshot(token, tenantID string, decision *policy.Decisi
 		if !h.cfg.SnapshotRequired {
 			return nil
 		}
-		return Conflict(err.Error())
+		return snapshotFailure(err)
 	}
 
 	if payload.Fingerprint != decision.Fingerprint {
-		return Conflict("policy snapshot token no longer matches the active policy")
+		return Conflict(codeSnapshotInvalid, "Policy snapshot token is invalid")
 	}
 
 	return nil
+}
+
+func snapshotFailure(err error) error {
+	reason, _ := snapshot.ReasonOf(err)
+	switch reason {
+	case snapshot.ReasonMissing:
+		return Conflict(codeSnapshotRequired, "Policy snapshot token is required")
+	case snapshot.ReasonExpired:
+		return Conflict(codeSnapshotExpired, "Policy snapshot token has expired")
+	default:
+		return Conflict(codeSnapshotInvalid, "Policy snapshot token is invalid")
+	}
 }

@@ -42,12 +42,12 @@ func toSubject(r *core.Record) subjectPayload {
 func (h *Handler) getSubject(c *Ctx, _ any) (subjectPayload, error) {
 	id := c.Path("id")
 	if id == "" {
-		return subjectPayload{}, BadRequest("subject id is required")
+		return subjectPayload{}, BadRequest(codeSubjectIDRequired, "Subject ID is required")
 	}
 
 	record, err := c.DB().FindByID("subject", id)
 	if err != nil || record.GetString("tenantId") != c.TenantID() {
-		return subjectPayload{}, NotFound("subject not found")
+		return subjectPayload{}, NotFound(codeSubjectNotFound, "Subject not found")
 	}
 
 	out := toSubject(record)
@@ -62,10 +62,10 @@ func (h *Handler) getSubject(c *Ctx, _ any) (subjectPayload, error) {
 }
 
 func (h *Handler) listSubjects(c *Ctx, _ any) (map[string]any, error) {
-	externalID := c.Query("externalId")
-	if externalID == "" {
-		return nil, Unprocessable("externalId query parameter is required")
+	if err := requireQuery(c, "externalId", codeExternalIDRequired); err != nil {
+		return nil, err
 	}
+	externalID := c.Query("externalId")
 
 	records, err := c.DB().FindAll("subject", "externalId = {:ext}", "-createdAt", 0, 0, dbx.Params{"ext": externalID})
 	if err != nil {
@@ -96,10 +96,10 @@ type patchSubjectRequest struct {
 func (h *Handler) patchSubject(c *Ctx, body patchSubjectRequest) (subjectPayload, error) {
 	id := c.Path("id")
 	if id == "" {
-		return subjectPayload{}, BadRequest("subject id is required")
+		return subjectPayload{}, BadRequest(codeSubjectIDRequired, "Subject ID is required")
 	}
 	if body.ExternalID == "" {
-		return subjectPayload{}, BadRequest("externalId is required")
+		return subjectPayload{}, BadRequest(codeInputValidationFailed, "externalId is required")
 	}
 
 	provider := body.IdentityProvider
@@ -109,7 +109,7 @@ func (h *Handler) patchSubject(c *Ctx, body patchSubjectRequest) (subjectPayload
 
 	record, err := c.DB().FindByID("subject", id)
 	if err != nil || record.GetString("tenantId") != c.TenantID() {
-		return subjectPayload{}, NotFound("subject not found")
+		return subjectPayload{}, NotFound(codeSubjectNotFound, "Subject not found")
 	}
 
 	before := map[string]any{
