@@ -32,7 +32,13 @@ func TestMaskIP(t *testing.T) {
 		{name: "ipv4 mapped ipv6", ip: "::ffff:192.168.1.100", want: "::ffff:192.168.1.0"},
 		{name: "ipv4 mapped ipv6 loopback", ip: "::ffff:127.0.0.1", want: "::ffff:127.0.0.0"},
 		{name: "empty stays empty", ip: "", want: ""},
-		{name: "garbage passes through", ip: "not-an-ip", want: "not-an-ip"},
+		{name: "garbage is dropped, never stored raw", ip: "not-an-ip", want: ""},
+		{name: "ipv4 with port", ip: "192.168.1.100:8080", want: "192.168.1.0"},
+		{name: "bracketed ipv6 with port", ip: "[2001:db8::1]:443", want: "2001:db8::"},
+		{name: "bracketed ipv6 without port", ip: "[2001:db8::1]", want: "2001:db8::"},
+		{name: "ipv6 with zone", ip: "fe80::1%eth0", want: "fe80::"},
+		{name: "surrounding spaces", ip: "  203.0.113.7 ", want: "203.0.113.0"},
+		{name: "unknown placeholder", ip: "unknown", want: ""},
 	}
 
 	for _, tt := range tests {
@@ -101,6 +107,38 @@ func TestClientIP(t *testing.T) {
 		{
 			name:    "no headers returns empty",
 			headers: headers(),
+			want:    "",
+		},
+		{
+			name:    "ipv4 with port is masked",
+			headers: headers("x-forwarded-for", "192.168.1.100:8080"),
+			want:    "192.168.1.0",
+		},
+		{
+			name:    "bracketed ipv6 with port is masked",
+			headers: headers("x-forwarded-for", "[2001:db8::1]:443"),
+			want:    "2001:db8::",
+		},
+		{
+			name:    "a value that is not an address falls through to the next header",
+			headers: headers("x-forwarded-for", "unknown", "x-real-ip", "198.51.100.7"),
+			want:    "198.51.100.0",
+		},
+		{
+			name:    "only junk yields nothing",
+			headers: headers("x-forwarded-for", "unknown"),
+			want:    "",
+		},
+		{
+			name:    "masking disabled still strips the port",
+			headers: headers("x-forwarded-for", "192.168.1.100:8080"),
+			opts:    IPOptions{DisableMasking: true},
+			want:    "192.168.1.100",
+		},
+		{
+			name:    "masking disabled still drops junk",
+			headers: headers("x-forwarded-for", "unknown"),
+			opts:    IPOptions{DisableMasking: true},
 			want:    "",
 		},
 		{

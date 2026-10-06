@@ -47,38 +47,58 @@ func ClientIP(h headerGetter, opts IPOptions) string {
 		}
 
 		// A forwarding chain lists the original client first.
-		ip := strings.TrimSpace(strings.Split(value, ",")[0])
-		if ip == "" {
+		first := strings.TrimSpace(strings.Split(value, ",")[0])
+		addr, ok := parseAddr(first)
+		if !ok {
 			continue
 		}
 
 		if opts.DisableMasking {
-			return ip
+			return addr.WithZone("").String()
 		}
-		return MaskIP(ip)
+		return maskAddr(addr)
 	}
 
 	return ""
 }
 
 // MaskIP drops the identifying low bits of an address: IPv4 to /24 and IPv6 to
-// /48. Unparseable input is returned unchanged.
+// /48. Input that is not an address yields "" so a value that was never masked
+// is never stored.
 func MaskIP(ip string) string {
-	if ip == "" {
+	addr, ok := parseAddr(ip)
+	if !ok {
 		return ""
 	}
+	return maskAddr(addr)
+}
 
-	addr, err := netip.ParseAddr(ip)
-	if err != nil {
-		return ip
+// parseAddr accepts the shapes proxies send: a bare address, host:port and
+// [v6]:port, with surrounding spaces.
+func parseAddr(raw string) (netip.Addr, bool) {
+	raw = strings.TrimSpace(raw)
+	if raw == "" {
+		return netip.Addr{}, false
 	}
+
+	if ap, err := netip.ParseAddrPort(raw); err == nil {
+		return ap.Addr(), true
+	}
+
+	raw = strings.TrimSuffix(strings.TrimPrefix(raw, "["), "]")
+	addr, err := netip.ParseAddr(raw)
+	return addr, err == nil
+}
+
+func maskAddr(addr netip.Addr) string {
+	addr = addr.WithZone("")
 
 	// An IPv4-mapped address is masked as IPv4 so the embedded octets are
 	// truncated rather than the surrounding IPv6 prefix.
 	if addr.Is4In6() {
 		masked, ok := maskPrefix(addr.Unmap(), 24)
 		if !ok {
-			return ip
+			return ""
 		}
 		return "::ffff:" + masked.String()
 	}
@@ -90,7 +110,7 @@ func MaskIP(ip string) string {
 
 	masked, ok := maskPrefix(addr, bits)
 	if !ok {
-		return ip
+		return ""
 	}
 	return masked.String()
 }
