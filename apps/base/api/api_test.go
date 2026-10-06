@@ -2013,6 +2013,56 @@ func TestRateLimitAppliesToWrites(t *testing.T) {
 	}
 }
 
+func exhaustCheck(h *harness, key, ip string) {
+	url := "/api/c15t/consents/check?externalId=x&type=cookie_banner"
+	for range 2 {
+		h.do(http.MethodGet, url, "", auth(key, "x-forwarded-for", ip))
+	}
+}
+
+func TestRateLimitSeparatesClientsWhenIPTrackingIsOff(t *testing.T) {
+	cfg := rateLimitedConfig()
+	cfg.TrackIPDisabled = true
+
+	h := newHarness(t, cfg)
+	key := h.key()
+	url := "/api/c15t/consents/check?externalId=x&type=cookie_banner"
+
+	exhaustCheck(h, key, "203.0.113.7")
+
+	if rec := h.do(http.MethodGet, url, "", auth(key, "x-forwarded-for", "198.51.100.9")); rec.Code != http.StatusOK {
+		t.Fatalf("other client status = %d, want 200: callers of one key share a bucket", rec.Code)
+	}
+	if rec := h.do(http.MethodGet, url, "", auth(key, "x-forwarded-for", "203.0.113.7")); rec.Code != http.StatusTooManyRequests {
+		t.Fatalf("same client status = %d, want 429", rec.Code)
+	}
+}
+
+func TestRateLimitSeparatesNeighboursWhenIPIsMasked(t *testing.T) {
+	h := newHarness(t, rateLimitedConfig())
+	key := h.key()
+	url := "/api/c15t/consents/check?externalId=x&type=cookie_banner"
+
+	exhaustCheck(h, key, "203.0.113.7")
+
+	if rec := h.do(http.MethodGet, url, "", auth(key, "x-forwarded-for", "203.0.113.8")); rec.Code != http.StatusOK {
+		t.Fatalf("neighbour status = %d, want 200: a /24 shares one bucket", rec.Code)
+	}
+}
+
+func TestRateLimitFallsBackToThePeerAddress(t *testing.T) {
+	h := newHarness(t, rateLimitedConfig())
+	key := h.key()
+	url := "/api/c15t/consents/check?externalId=x&type=cookie_banner"
+
+	for range 2 {
+		h.do(http.MethodGet, url, "", auth(key))
+	}
+	if rec := h.do(http.MethodGet, url, "", auth(key)); rec.Code != http.StatusTooManyRequests {
+		t.Fatalf("status = %d, want 429", rec.Code)
+	}
+}
+
 // seedConsents writes n distinct consents for one subject, bypassing the write
 // endpoint so the rate limiter does not interfere.
 func seedConsents(t *testing.T, h *harness, n int) string {

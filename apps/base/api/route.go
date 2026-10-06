@@ -1,8 +1,13 @@
 package api
 
 import (
+	"crypto/hmac"
+	"crypto/rand"
+	"crypto/sha256"
+	"encoding/hex"
 	"errors"
 	"math"
+	"net"
 	"net/http"
 	"strconv"
 	"time"
@@ -94,7 +99,7 @@ func handle[B any, R any](h *Handler, need apikey.Scope, fn func(*Ctx, B) (R, er
 		}
 
 		limiter := h.limiterFor(e.Request.Method, e.Request.URL.Path)
-		bucket := tenant.KeyID + "|" + request.ClientIP(e.Request.Header, h.ipOptions())
+		bucket := tenant.KeyID + "|" + rateAddress(e.Request)
 
 		if now := time.Now(); !limiter.Allow(bucket, now) {
 			retry := limiter.RetryAfter(bucket, now)
@@ -122,6 +127,34 @@ func handle[B any, R any](h *Handler, need apikey.Scope, fn func(*Ctx, B) (R, er
 
 		return e.JSON(http.StatusOK, result)
 	}
+}
+
+var rateSalt = func() []byte {
+	salt := make([]byte, 32)
+	if _, err := rand.Read(salt); err != nil {
+		panic(err)
+	}
+	return salt
+}()
+
+// rateAddress identifies a caller to the limiter without keeping the address.
+// The IP tracking and masking options govern what is stored, and a masked or
+// empty address would put unrelated callers of one key in a single bucket. The
+// address is therefore read raw but only its keyed hash is held, under a salt
+// that exists only in this process, so the limiter never holds an address and
+// the bucket names cannot be reversed after a restart.
+func rateAddress(r *http.Request) string {
+	addr := request.ClientIP(r.Header, request.IPOptions{DisableMasking: true})
+	if addr == "" {
+		addr = r.RemoteAddr
+		if host, _, err := net.SplitHostPort(addr); err == nil {
+			addr = host
+		}
+	}
+
+	mac := hmac.New(sha256.New, rateSalt)
+	mac.Write([]byte(addr))
+	return hex.EncodeToString(mac.Sum(nil)[:16])
 }
 
 func needsBody(method string) bool {
