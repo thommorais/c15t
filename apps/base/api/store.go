@@ -165,6 +165,7 @@ func (h *Handler) insertConsent(
 	rec consent.Record,
 	decision *core.Record,
 	policyType string,
+	source string,
 ) (*core.Record, bool, error) {
 	key := consent.SubmissionKey(consent.Submission{
 		TenantID:   db.tenant,
@@ -205,7 +206,7 @@ func (h *Handler) insertConsent(
 	record.Set("consentAction", string(rec.Action))
 	record.Set("tcString", rec.TCString)
 	record.Set("givenAt", rec.GivenAt)
-	record.Set("runtimePolicySource", "runtime")
+	record.Set("runtimePolicySource", source)
 	record.Set("submissionKey", key)
 
 	if rec.Metadata != nil {

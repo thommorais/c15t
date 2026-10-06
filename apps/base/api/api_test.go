@@ -644,6 +644,113 @@ func TestConsentIPOptions(t *testing.T) {
 	}
 }
 
+func proofPack(proof *policy.ProofConfig) []policy.Config {
+	model := policy.ModelOptIn
+	language := "de"
+	scrollLock := true
+	mode := policy.UIModeBanner
+
+	return []policy.Config{
+		{
+			ID:    "shown_de",
+			Match: policy.MatchCountries([]string{"DE"}),
+			I18n:  &policy.I18n{Language: &language},
+			Consent: &policy.ConsentConfig{
+				Model:                 &model,
+				PreselectedCategories: []string{"necessary"},
+			},
+			UI: &policy.UIConfig{
+				Mode:   &mode,
+				Banner: &policy.UISurfaceConfig{ScrollLock: &scrollLock},
+			},
+			Proof: proof,
+		},
+		policy.PresetWorldNoBanner(),
+	}
+}
+
+func TestConsentHonoursThePolicyProofConfig(t *testing.T) {
+	no, yes := false, true
+
+	tests := []struct {
+		name      string
+		proof     *policy.ProofConfig
+		wantIP    string
+		wantAgent string
+	}{
+		{name: "stores both by default", proof: nil, wantIP: "203.0.113.0", wantAgent: "probe/1"},
+		{name: "storeIp false drops the address", proof: &policy.ProofConfig{StoreIP: &no}, wantIP: "", wantAgent: "probe/1"},
+		{name: "storeUserAgent false drops the agent", proof: &policy.ProofConfig{StoreUserAgent: &no}, wantIP: "203.0.113.0", wantAgent: ""},
+		{name: "explicit true stores both", proof: &policy.ProofConfig{StoreIP: &yes, StoreUserAgent: &yes}, wantIP: "203.0.113.0", wantAgent: "probe/1"},
+		{name: "both false stores neither", proof: &policy.ProofConfig{StoreIP: &no, StoreUserAgent: &no}, wantIP: "", wantAgent: ""},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cfg := api.DefaultConfig()
+			cfg.PolicyPacks = proofPack(tt.proof)
+
+			h := newHarness(t, cfg)
+			rec := h.do(http.MethodPost, "/api/c15t/consent",
+				`{"givenAt":"2026-03-01T12:00:00Z","externalId":"x","domain":"example.com","categories":["necessary"]}`,
+				auth(h.key(), "cf-ipcountry", "DE", "X-Forwarded-For", "203.0.113.55", "User-Agent", "probe/1"))
+			if rec.Code != http.StatusCreated {
+				t.Fatalf("status = %d: %s", rec.Code, rec.Body.String())
+			}
+
+			for _, collection := range []string{"consent", "auditLog"} {
+				stored, err := h.app.FindFirstRecordByFilter(collection, "id != ''", nil)
+				if err != nil {
+					t.Fatalf("find %s: %v", collection, err)
+				}
+				if got := stored.GetString("ipAddress"); got != tt.wantIP {
+					t.Errorf("%s ipAddress = %q, want %q", collection, got, tt.wantIP)
+				}
+				if got := stored.GetString("userAgent"); got != tt.wantAgent {
+					t.Errorf("%s userAgent = %q, want %q", collection, got, tt.wantAgent)
+				}
+			}
+		})
+	}
+}
+
+func TestConsentStoresTheNoticeAsShown(t *testing.T) {
+	cfg := api.DefaultConfig()
+	cfg.PolicyPacks = proofPack(nil)
+
+	h := newHarness(t, cfg)
+	rec := h.do(http.MethodPost, "/api/c15t/consent",
+		`{"givenAt":"2026-03-01T12:00:00Z","externalId":"x","domain":"example.com","categories":["necessary"]}`,
+		auth(h.key(), "cf-ipcountry", "DE"))
+	if rec.Code != http.StatusCreated {
+		t.Fatalf("status = %d: %s", rec.Code, rec.Body.String())
+	}
+
+	stored, err := h.app.FindFirstRecordByFilter("runtimePolicyDecision", "id != ''", nil)
+	if err != nil {
+		t.Fatalf("find decision: %v", err)
+	}
+
+	if got := stored.GetString("language"); got != "de" {
+		t.Errorf("language = %q, want de", got)
+	}
+
+	var i18n map[string]any
+	if err := stored.UnmarshalJSONField("policyI18n", &i18n); err != nil || i18n["language"] != "de" {
+		t.Errorf("policyI18n = %v (%v), want language de", i18n, err)
+	}
+
+	var preselected []string
+	if err := stored.UnmarshalJSONField("preselectedCategories", &preselected); err != nil || len(preselected) != 1 || preselected[0] != "necessary" {
+		t.Errorf("preselectedCategories = %v (%v), want [necessary]", preselected, err)
+	}
+
+	var banner map[string]any
+	if err := stored.UnmarshalJSONField("bannerUi", &banner); err != nil || banner["scrollLock"] != true {
+		t.Errorf("bannerUi = %v (%v), want scrollLock true", banner, err)
+	}
+}
+
 func TestConsentReusesSubjectAndDomain(t *testing.T) {
 	h := newHarness(t, api.DefaultConfig())
 	key := h.key()
@@ -1314,19 +1421,116 @@ func TestSnapshotOptionalFallsBackToCurrentPolicy(t *testing.T) {
 	}
 }
 
-func TestSnapshotForDifferentPolicyIsRejected(t *testing.T) {
+func TestSnapshotIsRecordedAsShown(t *testing.T) {
 	h := newHarness(t, snapshotConfig(true))
 	key := h.key()
 
-	rec := h.do(http.MethodGet, "/api/c15t/init", "", auth(key, "cf-ipcountry", "DE"))
-	token, _ := decode(t, rec)["policySnapshotToken"].(string)
+	init := h.do(http.MethodGet, "/api/c15t/init", "", auth(key, "cf-ipcountry", "DE"))
+	initBody := decode(t, init)
+	token, _ := initBody["policySnapshotToken"].(string)
+	shown, _ := initBody["policyDecision"].(map[string]any)
 
-	rec = h.do(http.MethodPost, "/api/c15t/consent",
+	rec := h.do(http.MethodPost, "/api/c15t/consent",
 		`{"givenAt":"2026-03-01T12:00:00Z","externalId":"x","domain":"example.com","categories":["necessary"],"policySnapshotToken":"`+token+`"}`,
 		auth(key, "x-vercel-ip-country", "US", "x-vercel-ip-country-region", "CA"),
 	)
-	if rec.Code != http.StatusConflict {
-		t.Errorf("status = %d, want 409 when the resolved policy differs: %s", rec.Code, rec.Body.String())
+	if rec.Code != http.StatusCreated {
+		t.Fatalf("status = %d, want 201: a valid token records what the user was shown: %s", rec.Code, rec.Body.String())
+	}
+
+	stored, err := h.app.FindFirstRecordByFilter("consent", "id != ''", nil)
+	if err != nil {
+		t.Fatalf("find consent: %v", err)
+	}
+	if got := stored.GetString("jurisdiction"); got != "GDPR" {
+		t.Errorf("jurisdiction = %q, want the token's GDPR, not the request's", got)
+	}
+	if got := stored.GetString("runtimePolicySource"); got != "snapshot_token" {
+		t.Errorf("runtimePolicySource = %q, want snapshot_token", got)
+	}
+
+	if got := h.count("runtimePolicyDecision"); got != 1 {
+		t.Fatalf("decision rows = %d, want 1", got)
+	}
+	decision, err := h.app.FindFirstRecordByFilter("runtimePolicyDecision", "id != ''", nil)
+	if err != nil {
+		t.Fatalf("find decision: %v", err)
+	}
+	if got := decision.GetString("fingerprint"); got != shown["fingerprint"] {
+		t.Errorf("decision fingerprint = %q, want the token's %v", got, shown["fingerprint"])
+	}
+	if got := decision.GetString("countryCode"); got != "DE" {
+		t.Errorf("decision countryCode = %q, want the token's DE", got)
+	}
+}
+
+func TestSnapshotScopeWinsOverTheCurrentPolicy(t *testing.T) {
+	strict := policy.ScopeStrict
+	model := policy.ModelOptIn
+
+	cfg := snapshotConfig(false)
+	cfg.PolicyPacks = []policy.Config{
+		{
+			ID:    "wide_de",
+			Match: policy.MatchCountries([]string{"DE"}),
+			Consent: &policy.ConsentConfig{
+				Model:      &model,
+				ScopeMode:  &strict,
+				Categories: []string{"necessary", "marketing"},
+			},
+		},
+		{
+			ID:    "narrow_fr",
+			Match: policy.MatchCountries([]string{"FR"}),
+			Consent: &policy.ConsentConfig{
+				Model:      &model,
+				ScopeMode:  &strict,
+				Categories: []string{"necessary"},
+			},
+		},
+		policy.PresetWorldNoBanner(),
+	}
+
+	h := newHarness(t, cfg)
+	key := h.key()
+
+	init := h.do(http.MethodGet, "/api/c15t/init", "", auth(key, "cf-ipcountry", "DE"))
+	token, _ := decode(t, init)["policySnapshotToken"].(string)
+	if token == "" {
+		t.Fatal("init issued no token")
+	}
+
+	body := func(extra string) string {
+		return `{"givenAt":"2026-03-01T12:00:00Z","externalId":"x","domain":"example.com","categories":["necessary","marketing"]` + extra + `}`
+	}
+
+	rec := h.do(http.MethodPost, "/api/c15t/consent", body(""), auth(key, "cf-ipcountry", "FR"))
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("without a token: status = %d, want 400 under the narrower current policy: %s", rec.Code, rec.Body.String())
+	}
+
+	rec = h.do(http.MethodPost, "/api/c15t/consent", body(`,"policySnapshotToken":"`+token+`"`), auth(key, "cf-ipcountry", "FR"))
+	if rec.Code != http.StatusCreated {
+		t.Errorf("with the token: status = %d, want 201 under the scope the user saw: %s", rec.Code, rec.Body.String())
+	}
+}
+
+func TestWriteTimeResolutionIsMarkedAsSuch(t *testing.T) {
+	h := newHarness(t, snapshotConfig(false))
+
+	rec := h.do(http.MethodPost, "/api/c15t/consent",
+		`{"givenAt":"2026-03-01T12:00:00Z","externalId":"x","domain":"example.com","categories":["necessary"]}`,
+		auth(h.key(), "cf-ipcountry", "DE"))
+	if rec.Code != http.StatusCreated {
+		t.Fatalf("status = %d: %s", rec.Code, rec.Body.String())
+	}
+
+	stored, err := h.app.FindFirstRecordByFilter("consent", "id != ''", nil)
+	if err != nil {
+		t.Fatalf("find consent: %v", err)
+	}
+	if got := stored.GetString("runtimePolicySource"); got != "write_time_fallback" {
+		t.Errorf("runtimePolicySource = %q, want write_time_fallback", got)
 	}
 }
 

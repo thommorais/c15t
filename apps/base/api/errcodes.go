@@ -24,6 +24,11 @@ const (
 )
 
 const (
+	sourceSnapshot  = "snapshot_token"
+	sourceWriteTime = "write_time_fallback"
+)
+
+const (
 	msgUnauthorized        = "API key required. Use Authorization: Bearer <api_key>"
 	msgInternalServerError = "Internal server error"
 	msgPurposeNotAllowed   = "Preferences include categories not allowed by policy"

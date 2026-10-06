@@ -249,19 +249,6 @@ func TestErrorEnvelope(t *testing.T) {
 			status: http.StatusConflict, code: "POLICY_SNAPSHOT_INVALID",
 		},
 		{
-			name: "snapshot for another policy",
-			cfg:  func() api.Config { return snapshotConfig(true) },
-			run: func(h *harness) *httptest.ResponseRecorder {
-				key := h.key()
-				init := h.do(http.MethodGet, "/api/c15t/init", "", auth(key, "cf-ipcountry", "DE"))
-				token, _ := decode(t, init)["policySnapshotToken"].(string)
-				return h.do(http.MethodPost, consentURL,
-					`{"givenAt":"2026-03-01T12:00:00Z","externalId":"x","domain":"example.com","categories":["necessary"],"policySnapshotToken":"`+token+`"}`,
-					auth(key, "x-vercel-ip-country", "US", "x-vercel-ip-country-region", "CA"))
-			},
-			status: http.StatusConflict, code: "POLICY_SNAPSHOT_INVALID",
-		},
-		{
 			name: "released version changes content",
 			run: func(h *harness) *httptest.ResponseRecorder {
 				key := h.key()

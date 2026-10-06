@@ -1,6 +1,7 @@
 package api
 
 import (
+	"encoding/json"
 	"time"
 
 	"thom/core/jurisdiction"
@@ -64,31 +65,101 @@ func (h *Handler) signSnapshot(
 	return h.signer.Sign(p, time.Now().UTC())
 }
 
-// verifySnapshot rejects a write whose token does not match the policy resolved
-// for this request, so a client cannot consent against a policy that has since
-// changed. Without a configured secret the check is skipped entirely.
-func (h *Handler) verifySnapshot(token, tenantID string, decision *policy.Decision) error {
+// verifySnapshot returns the verified payload, or nil when the write should
+// fall back to resolving the policy now. A token records what the user was
+// shown, so a valid one is used even when the policy has since changed.
+func (h *Handler) verifySnapshot(token, tenantID string) (*snapshot.Payload, error) {
 	if h.signer == nil {
-		return nil
+		return nil, nil
 	}
 
 	if token == "" && !h.cfg.SnapshotRequired {
-		return nil
+		return nil, nil
 	}
 
 	payload, err := h.signer.Verify(token, tenantID, time.Now().UTC())
 	if err != nil {
 		if !h.cfg.SnapshotRequired {
-			return nil
+			return nil, nil
 		}
-		return snapshotFailure(err)
+		return nil, snapshotFailure(err)
 	}
 
-	if payload.Fingerprint != decision.Fingerprint {
-		return Conflict(codeSnapshotInvalid, "Policy snapshot token is invalid")
+	return payload, nil
+}
+
+// decisionFromSnapshot rebuilds the decision the user was shown from a verified
+// token, so the write is judged and stored against it rather than against the
+// policy resolved at write time.
+func decisionFromSnapshot(p *snapshot.Payload) (jurisdiction.Location, jurisdiction.Code, *policy.Decision, error) {
+	code := jurisdiction.Code(p.Jurisdiction)
+	if !code.Valid() {
+		return jurisdiction.Location{}, "", nil, Conflict(codeSnapshotInvalid, "Policy snapshot token is invalid")
 	}
 
-	return nil
+	resolved := policy.Resolved{ID: p.PolicyID, Model: policy.Model(p.Model)}
+
+	if p.ScopeMode != "" || p.ExpiryDays != nil || p.Categories != nil || p.PreselectedCategories != nil || p.GPC != nil {
+		resolved.Consent = &policy.ResolvedConsent{
+			ExpiryDays:            p.ExpiryDays,
+			ScopeMode:             policy.ScopeMode(p.ScopeMode),
+			Categories:            p.Categories,
+			PreselectedCategories: p.PreselectedCategories,
+			GPC:                   p.GPC,
+		}
+	}
+
+	var err error
+	if resolved.I18n, err = reshape[policy.I18n](p.PolicyI18n); err != nil {
+		return jurisdiction.Location{}, "", nil, snapshotFailure(err)
+	}
+	if resolved.Proof, err = reshape[policy.ProofConfig](p.ProofConfig); err != nil {
+		return jurisdiction.Location{}, "", nil, snapshotFailure(err)
+	}
+
+	banner, err := reshape[policy.ResolvedUISurface](p.BannerUI)
+	if err != nil {
+		return jurisdiction.Location{}, "", nil, snapshotFailure(err)
+	}
+	dialog, err := reshape[policy.ResolvedUISurface](p.DialogUI)
+	if err != nil {
+		return jurisdiction.Location{}, "", nil, snapshotFailure(err)
+	}
+	if p.UIMode != "" || banner != nil || dialog != nil {
+		ui := &policy.ResolvedUI{Banner: banner, Dialog: dialog}
+		if p.UIMode != "" {
+			mode := policy.UIMode(p.UIMode)
+			ui.Mode = &mode
+		}
+		resolved.UI = ui
+	}
+
+	loc := jurisdiction.Location{CountryCode: p.Country, RegionCode: p.Region}
+	decision := &policy.Decision{
+		Policy:      resolved,
+		MatchedBy:   policy.MatchedBy(p.MatchedBy),
+		Fingerprint: p.Fingerprint,
+	}
+
+	return loc, code, decision, nil
+}
+
+// reshape converts a decoded token field back into its policy type.
+func reshape[T any](v any) (*T, error) {
+	if v == nil {
+		return nil, nil
+	}
+
+	raw, err := json.Marshal(v)
+	if err != nil {
+		return nil, err
+	}
+
+	var out T
+	if err := json.Unmarshal(raw, &out); err != nil {
+		return nil, err
+	}
+	return &out, nil
 }
 
 func snapshotFailure(err error) error {

@@ -167,16 +167,28 @@ func (h *Handler) recordConsent(c *Ctx, body consentRequest) (Status, error) {
 		return Status{}, BadRequest(codeInputValidationFailed, "unknown policyType "+policyType)
 	}
 
-	loc, code, decision, err := h.resolve(c.Event.Request)
+	shown, err := h.verifySnapshot(body.SnapshotToken, c.TenantID())
+	if err != nil {
+		return Status{}, err
+	}
+
+	var (
+		loc      jurisdiction.Location
+		code     jurisdiction.Code
+		decision *policy.Decision
+		source   = sourceWriteTime
+	)
+	if shown != nil {
+		source = sourceSnapshot
+		loc, code, decision, err = decisionFromSnapshot(shown)
+	} else {
+		loc, code, decision, err = h.resolve(c.Event.Request)
+	}
 	if err != nil {
 		return Status{}, err
 	}
 	if decision == nil {
 		return Status{}, BadRequest(codePolicyResolution, "No policy applies to this request")
-	}
-
-	if err := h.verifySnapshot(body.SnapshotToken, c.TenantID(), decision); err != nil {
-		return Status{}, err
 	}
 
 	if err := h.requireLegalDocumentProof(policyType, body); err != nil {
@@ -211,8 +223,8 @@ func (h *Handler) recordConsent(c *Ctx, body consentRequest) (Status, error) {
 			Categories:   body.Categories,
 			Policy:       decision.Policy,
 			Jurisdiction: code,
-			IPAddress:    request.ClientIP(c.Event.Request.Header, h.ipOptions()),
-			UserAgent:    c.Event.Request.UserAgent(),
+			IPAddress:    storedIf(decision.Policy.Proof.StoresIP(), request.ClientIP(c.Event.Request.Header, h.ipOptions())),
+			UserAgent:    storedIf(decision.Policy.Proof.StoresUserAgent(), c.Event.Request.UserAgent()),
 			Language:     acceptLanguage(c.Event.Request),
 			UISource:     consent.UISource(body.UISource),
 			Action:       consent.Action(body.Action),
@@ -236,7 +248,7 @@ func (h *Handler) recordConsent(c *Ctx, body consentRequest) (Status, error) {
 			return err
 		}
 
-		stored, duplicate, err = h.insertConsent(tx, record, rpd, policyType)
+		stored, duplicate, err = h.insertConsent(tx, record, rpd, policyType, source)
 		if err != nil {
 			return err
 		}
@@ -313,6 +325,13 @@ func (h *Handler) locationOf(r *http.Request) jurisdiction.Location {
 
 func requestIP(c *Ctx, h *Handler) string {
 	return request.ClientIP(c.Event.Request.Header, h.ipOptions())
+}
+
+func storedIf(allowed bool, value string) string {
+	if !allowed {
+		return ""
+	}
+	return value
 }
 
 func (h *Handler) resolve(r *http.Request) (jurisdiction.Location, jurisdiction.Code, *policy.Decision, error) {

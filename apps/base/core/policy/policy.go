@@ -114,6 +114,16 @@ type ProofConfig struct {
 	StoreLanguage  *bool `json:"storeLanguage,omitempty"`
 }
 
+// StoresIP and StoresUserAgent default to true when the policy says nothing, so
+// a policy has to opt out of keeping evidence.
+func (p *ProofConfig) StoresIP() bool {
+	return p == nil || p.StoreIP == nil || *p.StoreIP
+}
+
+func (p *ProofConfig) StoresUserAgent() bool {
+	return p == nil || p.StoreUserAgent == nil || *p.StoreUserAgent
+}
+
 type Config struct {
 	ID      string         `json:"id"`
 	Match   Match          `json:"match"`
