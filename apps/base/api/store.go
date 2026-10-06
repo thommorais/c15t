@@ -171,7 +171,7 @@ func (h *Handler) insertConsent(
 		SubjectID:  rec.SubjectID,
 		DomainID:   rec.DomainID,
 		PolicyType: policyType,
-		GivenAt:    rec.GivenAt,
+		GivenAt:    rec.ClaimedAt,
 	})
 
 	if existing, err := db.FindFirst(

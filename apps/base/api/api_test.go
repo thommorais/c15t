@@ -339,7 +339,7 @@ func TestConsentWrite(t *testing.T) {
 	key := h.key()
 
 	rec := h.do(http.MethodPost, "/api/c15t/consent",
-		`{"externalId":"user-1","domain":"example.com","categories":["necessary","measurement"],"uiSource":"banner","action":"accept_all"}`,
+		`{"givenAt":"2026-03-01T12:00:00Z","externalId":"user-1","domain":"example.com","categories":["necessary","measurement"],"uiSource":"banner","action":"accept_all"}`,
 		auth(key, "cf-ipcountry", "DE", "X-Forwarded-For", "203.0.113.55", "User-Agent", "harness/1.0"),
 	)
 	if rec.Code != http.StatusCreated {
@@ -404,12 +404,12 @@ func TestConsentValidation(t *testing.T) {
 		},
 		{
 			name: "unknown ui source",
-			body: `{"externalId":"x","domain":"example.com","categories":["necessary"],"uiSource":"telepathy"}`,
+			body: `{"givenAt":"2026-03-01T12:00:00Z","externalId":"x","domain":"example.com","categories":["necessary"],"uiSource":"telepathy"}`,
 			want: http.StatusBadRequest,
 		},
 		{
 			name: "unknown action",
-			body: `{"externalId":"x","domain":"example.com","categories":["necessary"],"action":"shrug"}`,
+			body: `{"givenAt":"2026-03-01T12:00:00Z","externalId":"x","domain":"example.com","categories":["necessary"],"action":"shrug"}`,
 			want: http.StatusBadRequest,
 		},
 		{
@@ -446,7 +446,7 @@ func TestConsentRejectionLeavesNoRows(t *testing.T) {
 	}
 
 	rec := h.do(http.MethodPost, "/api/c15t/consent",
-		`{"externalId":"rollback","domain":"rollback.com","categories":["necessary"],"action":"bogus"}`,
+		`{"givenAt":"2026-03-01T12:00:00Z","externalId":"rollback","domain":"rollback.com","categories":["necessary"],"action":"bogus"}`,
 		auth(key, "cf-ipcountry", "DE"),
 	)
 	if rec.Code != http.StatusBadRequest {
@@ -468,7 +468,7 @@ func TestConsentStrictScopeRejectsOutOfScope(t *testing.T) {
 	key := h.key()
 
 	rec := h.do(http.MethodPost, "/api/c15t/consent",
-		`{"externalId":"x","domain":"example.com","categories":["necessary","marketing"]}`,
+		`{"givenAt":"2026-03-01T12:00:00Z","externalId":"x","domain":"example.com","categories":["necessary","marketing"]}`,
 		auth(key, "cf-ipcountry", "DE"),
 	)
 	if rec.Code != http.StatusBadRequest {
@@ -476,7 +476,7 @@ func TestConsentStrictScopeRejectsOutOfScope(t *testing.T) {
 	}
 
 	rec = h.do(http.MethodPost, "/api/c15t/consent",
-		`{"externalId":"x","domain":"example.com","categories":["necessary"]}`,
+		`{"givenAt":"2026-03-01T12:00:00Z","externalId":"x","domain":"example.com","categories":["necessary"]}`,
 		auth(key, "cf-ipcountry", "DE"),
 	)
 	if rec.Code != http.StatusCreated {
@@ -490,7 +490,7 @@ func TestConsentDecisionDedupe(t *testing.T) {
 
 	for _, ext := range []string{"a", "b", "c"} {
 		rec := h.do(http.MethodPost, "/api/c15t/consent",
-			`{"externalId":"`+ext+`","domain":"example.com","categories":["necessary"]}`,
+			`{"givenAt":"2026-03-01T12:00:00Z","externalId":"`+ext+`","domain":"example.com","categories":["necessary"]}`,
 			auth(key, "cf-ipcountry", "DE"),
 		)
 		if rec.Code != http.StatusCreated {
@@ -506,7 +506,7 @@ func TestConsentDecisionDedupe(t *testing.T) {
 	}
 
 	rec := h.do(http.MethodPost, "/api/c15t/consent",
-		`{"externalId":"d","domain":"example.com","categories":["necessary"]}`,
+		`{"givenAt":"2026-03-01T12:00:00Z","externalId":"d","domain":"example.com","categories":["necessary"]}`,
 		auth(key, "x-vercel-ip-country", "US", "x-vercel-ip-country-region", "CA"),
 	)
 	if rec.Code != http.StatusCreated {
@@ -562,7 +562,7 @@ func TestConsentGPC(t *testing.T) {
 			}
 
 			rec := h.do(http.MethodPost, "/api/c15t/consent",
-				`{"externalId":"x","domain":"example.com","categories":["necessary","marketing","measurement"],"action":"`+tt.action+`"}`,
+				`{"givenAt":"2026-03-01T12:00:00Z","externalId":"x","domain":"example.com","categories":["necessary","marketing","measurement"],"action":"`+tt.action+`"}`,
 				headers,
 			)
 			if rec.Code != http.StatusCreated {
@@ -581,7 +581,7 @@ func TestConsentGPCDropsCategories(t *testing.T) {
 	key := h.key()
 
 	rec := h.do(http.MethodPost, "/api/c15t/consent",
-		`{"externalId":"x","domain":"example.com","categories":["necessary","marketing","measurement"],"action":"accept_all"}`,
+		`{"givenAt":"2026-03-01T12:00:00Z","externalId":"x","domain":"example.com","categories":["necessary","marketing","measurement"],"action":"accept_all"}`,
 		auth(key, "x-vercel-ip-country", "US", "x-vercel-ip-country-region", "CA", "Sec-GPC", "1"),
 	)
 	if rec.Code != http.StatusCreated {
@@ -626,7 +626,7 @@ func TestConsentIPOptions(t *testing.T) {
 			key := h.key()
 
 			rec := h.do(http.MethodPost, "/api/c15t/consent",
-				`{"externalId":"x","domain":"example.com","categories":["necessary"]}`,
+				`{"givenAt":"2026-03-01T12:00:00Z","externalId":"x","domain":"example.com","categories":["necessary"]}`,
 				auth(key, "cf-ipcountry", "DE", "X-Forwarded-For", "203.0.113.55"),
 			)
 			if rec.Code != http.StatusCreated {
@@ -648,9 +648,10 @@ func TestConsentReusesSubjectAndDomain(t *testing.T) {
 	h := newHarness(t, api.DefaultConfig())
 	key := h.key()
 
-	for range 3 {
+	for i := range 3 {
+		givenAt := time.Date(2026, 3, 1, 12, i, 0, 0, time.UTC).Format(time.RFC3339)
 		rec := h.do(http.MethodPost, "/api/c15t/consent",
-			`{"externalId":"same-user","domain":"example.com","categories":["necessary"]}`,
+			`{"givenAt":"`+givenAt+`","externalId":"same-user","domain":"example.com","categories":["necessary"]}`,
 			auth(key, "cf-ipcountry", "DE"),
 		)
 		if rec.Code != http.StatusCreated {
@@ -677,7 +678,7 @@ func TestWritesAreStampedWithConfiguredTenant(t *testing.T) {
 	key := h.key()
 
 	rec := h.do(http.MethodPost, "/api/c15t/consent",
-		`{"externalId":"user-1","domain":"example.com","categories":["necessary"]}`,
+		`{"givenAt":"2026-03-01T12:00:00Z","externalId":"user-1","domain":"example.com","categories":["necessary"]}`,
 		auth(key, "cf-ipcountry", "DE"),
 	)
 	if rec.Code != http.StatusCreated {
@@ -705,7 +706,7 @@ func TestReadsAreScopedToConfiguredTenant(t *testing.T) {
 	key := h.key()
 
 	rec := h.do(http.MethodPost, "/api/c15t/consent",
-		`{"externalId":"user-1","domain":"example.com","categories":["necessary"]}`,
+		`{"givenAt":"2026-03-01T12:00:00Z","externalId":"user-1","domain":"example.com","categories":["necessary"]}`,
 		auth(key, "cf-ipcountry", "DE"),
 	)
 	subjectID, _ := decode(t, rec)["subjectId"].(string)
@@ -775,7 +776,7 @@ func TestConsentPolicyType(t *testing.T) {
 			h := newHarness(t, api.DefaultConfig())
 			key := h.key()
 
-			body := `{"externalId":"x","domain":"example.com","categories":["necessary"]`
+			body := `{"givenAt":"2026-03-01T12:00:00Z","externalId":"x","domain":"example.com","categories":["necessary"]`
 			if tt.policyType != "" {
 				body += `,"policyType":"` + tt.policyType + `"`
 			}
@@ -795,7 +796,7 @@ func TestConsentPolicyRowReuse(t *testing.T) {
 
 	for _, ext := range []string{"a", "b", "c"} {
 		rec := h.do(http.MethodPost, "/api/c15t/consent",
-			`{"externalId":"`+ext+`","domain":"example.com","categories":["necessary"]}`,
+			`{"givenAt":"2026-03-01T12:00:00Z","externalId":"`+ext+`","domain":"example.com","categories":["necessary"]}`,
 			auth(key, "cf-ipcountry", "DE"),
 		)
 		if rec.Code != http.StatusCreated {
@@ -808,7 +809,7 @@ func TestConsentPolicyRowReuse(t *testing.T) {
 	}
 
 	rec := h.do(http.MethodPost, "/api/c15t/consent",
-		`{"externalId":"d","domain":"example.com","categories":["necessary"],"policyType":"age_verification"}`,
+		`{"givenAt":"2026-03-01T12:00:00Z","externalId":"d","domain":"example.com","categories":["necessary"],"policyType":"age_verification"}`,
 		auth(key, "cf-ipcountry", "DE"),
 	)
 	if rec.Code != http.StatusCreated {
@@ -825,7 +826,7 @@ func TestConsentPolicyStartsAtVersionOne(t *testing.T) {
 	key := h.key()
 
 	rec := h.do(http.MethodPost, "/api/c15t/consent",
-		`{"externalId":"x","domain":"example.com","categories":["necessary"]}`,
+		`{"givenAt":"2026-03-01T12:00:00Z","externalId":"x","domain":"example.com","categories":["necessary"]}`,
 		auth(key, "cf-ipcountry", "DE"),
 	)
 	if rec.Code != http.StatusCreated {
@@ -906,6 +907,118 @@ func TestConsentIsIdempotent(t *testing.T) {
 	}
 }
 
+func TestClampedSubmissionRetryIsIdempotent(t *testing.T) {
+	h := newHarness(t, api.DefaultConfig())
+	key := h.key()
+
+	const claimed = "2099-01-01T00:00:00Z"
+	body := `{"externalId":"user-1","domain":"example.com","categories":["necessary"],"givenAt":"` + claimed + `"}`
+
+	first := h.do(http.MethodPost, "/api/c15t/consent", body, auth(key, "cf-ipcountry", "DE"))
+	if first.Code != http.StatusCreated {
+		t.Fatalf("first status = %d: %s", first.Code, first.Body.String())
+	}
+
+	second := h.do(http.MethodPost, "/api/c15t/consent", body, auth(key, "cf-ipcountry", "DE"))
+	if second.Code != http.StatusOK {
+		t.Fatalf("retry status = %d, want 200: a clamped retry wrote a new row: %s", second.Code, second.Body.String())
+	}
+	if decode(t, second)["duplicate"] != true {
+		t.Error("retry was not flagged as a duplicate")
+	}
+	if got := h.count("consent"); got != 1 {
+		t.Errorf("consent rows = %d, want 1", got)
+	}
+
+	stored, err := h.app.FindFirstRecordByFilter("consent", "id != ''", nil)
+	if err != nil {
+		t.Fatalf("find consent: %v", err)
+	}
+
+	var metadata map[string]any
+	if err := stored.UnmarshalJSONField("metadata", &metadata); err != nil {
+		t.Fatalf("metadata: %v", err)
+	}
+	if metadata["clientGivenAt"] != claimed {
+		t.Errorf("clientGivenAt = %v, want the client's claim %s", metadata["clientGivenAt"], claimed)
+	}
+}
+
+func TestUnclampedConsentCarriesNoClientClaim(t *testing.T) {
+	h := newHarness(t, api.DefaultConfig())
+	key := h.key()
+
+	rec := h.do(http.MethodPost, "/api/c15t/consent",
+		`{"externalId":"user-1","domain":"example.com","categories":["necessary"],"givenAt":"2026-01-01T00:00:00Z"}`,
+		auth(key, "cf-ipcountry", "DE"))
+	if rec.Code != http.StatusCreated {
+		t.Fatalf("status = %d: %s", rec.Code, rec.Body.String())
+	}
+
+	stored, err := h.app.FindFirstRecordByFilter("consent", "id != ''", nil)
+	if err != nil {
+		t.Fatalf("find consent: %v", err)
+	}
+	if strings.Contains(stored.GetString("metadata"), "clientGivenAt") {
+		t.Errorf("metadata = %s, want no clientGivenAt for an accepted timestamp", stored.GetString("metadata"))
+	}
+}
+
+func TestConsentRequiresAClientTimestamp(t *testing.T) {
+	for name, body := range map[string]string{
+		"absent": `{"externalId":"x","domain":"example.com","categories":["necessary"]}`,
+		"null":   `{"externalId":"x","domain":"example.com","categories":["necessary"],"givenAt":null}`,
+	} {
+		t.Run(name, func(t *testing.T) {
+			h := newHarness(t, api.DefaultConfig())
+			rec := h.do(http.MethodPost, "/api/c15t/consent", body, auth(h.key(), "cf-ipcountry", "DE"))
+			wantEnvelope(t, rec, http.StatusBadRequest, "INPUT_VALIDATION_FAILED")
+			if got := h.count("consent"); got != 0 {
+				t.Errorf("consent rows = %d, want 0", got)
+			}
+		})
+	}
+}
+
+func TestForgedClientClaimIsNotStored(t *testing.T) {
+	h := newHarness(t, api.DefaultConfig())
+
+	rec := h.do(http.MethodPost, "/api/c15t/consent",
+		`{"externalId":"x","domain":"example.com","categories":["necessary"],"givenAt":"2026-01-01T00:00:00Z","metadata":{"clientGivenAt":"1999-01-01T00:00:00Z","source":"banner"}}`,
+		auth(h.key(), "cf-ipcountry", "DE"))
+	if rec.Code != http.StatusCreated {
+		t.Fatalf("status = %d: %s", rec.Code, rec.Body.String())
+	}
+
+	stored, err := h.app.FindFirstRecordByFilter("consent", "id != ''", nil)
+	if err != nil {
+		t.Fatalf("find consent: %v", err)
+	}
+	if strings.Contains(stored.GetString("metadata"), "clientGivenAt") {
+		t.Errorf("metadata = %s, want the forged clientGivenAt removed", stored.GetString("metadata"))
+	}
+	if !strings.Contains(stored.GetString("metadata"), "banner") {
+		t.Errorf("metadata = %s, want the other keys kept", stored.GetString("metadata"))
+	}
+}
+
+func TestConsentRejectsUnrepresentableTimestamps(t *testing.T) {
+	for _, givenAt := range []string{"275760-09-14T00:00:00Z", "not-a-date", "-271821-04-20T00:00:00Z"} {
+		t.Run(givenAt, func(t *testing.T) {
+			h := newHarness(t, api.DefaultConfig())
+			rec := h.do(http.MethodPost, "/api/c15t/consent",
+				`{"externalId":"x","domain":"example.com","categories":["necessary"],"givenAt":"`+givenAt+`"}`,
+				auth(h.key(), "cf-ipcountry", "DE"))
+			if rec.Code != http.StatusBadRequest {
+				t.Errorf("status = %d, want 400: %s", rec.Code, rec.Body.String())
+			}
+			if got := h.count("consent"); got != 0 {
+				t.Errorf("consent rows = %d, want 0", got)
+			}
+		})
+	}
+}
+
 func TestConsentDistinctSubmissionsAreSeparate(t *testing.T) {
 	h := newHarness(t, api.DefaultConfig())
 	key := h.key()
@@ -981,30 +1094,6 @@ func TestConsentClientTime(t *testing.T) {
 	}
 }
 
-func TestConsentOmittedTimeUsesServerClock(t *testing.T) {
-	h := newHarness(t, api.DefaultConfig())
-	key := h.key()
-	before := time.Now().UTC().Add(-time.Second)
-
-	rec := h.do(http.MethodPost, "/api/c15t/consent",
-		`{"externalId":"x","domain":"example.com","categories":["necessary"]}`,
-		auth(key, "cf-ipcountry", "DE"),
-	)
-	if rec.Code != http.StatusCreated {
-		t.Fatalf("status = %d: %s", rec.Code, rec.Body.String())
-	}
-
-	stored, err := h.app.FindFirstRecordByFilter("consent", "id != ''", nil)
-	if err != nil {
-		t.Fatalf("find consent: %v", err)
-	}
-
-	got := stored.GetDateTime("givenAt").Time().UTC()
-	if got.Before(before) || got.After(time.Now().UTC().Add(time.Second)) {
-		t.Errorf("givenAt = %v, want approximately now", got)
-	}
-}
-
 func TestCheckConsentValidation(t *testing.T) {
 	h := newHarness(t, api.DefaultConfig())
 	key := h.key()
@@ -1063,7 +1152,7 @@ func TestCheckConsentReportsExistingConsent(t *testing.T) {
 	key := h.key()
 
 	rec := h.do(http.MethodPost, "/api/c15t/consent",
-		`{"externalId":"user-1","domain":"example.com","categories":["necessary"]}`,
+		`{"givenAt":"2026-03-01T12:00:00Z","externalId":"user-1","domain":"example.com","categories":["necessary"]}`,
 		auth(key, "cf-ipcountry", "DE"),
 	)
 	if rec.Code != http.StatusCreated {
@@ -1097,7 +1186,7 @@ func TestCheckConsentLeaksNoIdentifiers(t *testing.T) {
 	key := h.key()
 
 	rec := h.do(http.MethodPost, "/api/c15t/consent",
-		`{"externalId":"user-1","domain":"example.com","categories":["necessary"]}`,
+		`{"givenAt":"2026-03-01T12:00:00Z","externalId":"user-1","domain":"example.com","categories":["necessary"]}`,
 		auth(key, "cf-ipcountry", "DE"),
 	)
 	if rec.Code != http.StatusCreated {
@@ -1175,7 +1264,7 @@ func TestSnapshotRoundTrip(t *testing.T) {
 	}
 
 	rec = h.do(http.MethodPost, "/api/c15t/consent",
-		`{"externalId":"x","domain":"example.com","categories":["necessary"],"policySnapshotToken":"`+token+`"}`,
+		`{"givenAt":"2026-03-01T12:00:00Z","externalId":"x","domain":"example.com","categories":["necessary"],"policySnapshotToken":"`+token+`"}`,
 		auth(key, "cf-ipcountry", "DE"),
 	)
 	if rec.Code != http.StatusCreated {
@@ -1198,7 +1287,7 @@ func TestSnapshotRequiredRejectsBadTokens(t *testing.T) {
 			h := newHarness(t, snapshotConfig(true))
 			key := h.key()
 
-			body := `{"externalId":"x","domain":"example.com","categories":["necessary"]`
+			body := `{"givenAt":"2026-03-01T12:00:00Z","externalId":"x","domain":"example.com","categories":["necessary"]`
 			if tt.token != "" {
 				body += `,"policySnapshotToken":"` + tt.token + `"`
 			}
@@ -1217,7 +1306,7 @@ func TestSnapshotOptionalFallsBackToCurrentPolicy(t *testing.T) {
 	key := h.key()
 
 	rec := h.do(http.MethodPost, "/api/c15t/consent",
-		`{"externalId":"x","domain":"example.com","categories":["necessary"],"policySnapshotToken":"garbage"}`,
+		`{"givenAt":"2026-03-01T12:00:00Z","externalId":"x","domain":"example.com","categories":["necessary"],"policySnapshotToken":"garbage"}`,
 		auth(key, "cf-ipcountry", "DE"),
 	)
 	if rec.Code != http.StatusCreated {
@@ -1233,7 +1322,7 @@ func TestSnapshotForDifferentPolicyIsRejected(t *testing.T) {
 	token, _ := decode(t, rec)["policySnapshotToken"].(string)
 
 	rec = h.do(http.MethodPost, "/api/c15t/consent",
-		`{"externalId":"x","domain":"example.com","categories":["necessary"],"policySnapshotToken":"`+token+`"}`,
+		`{"givenAt":"2026-03-01T12:00:00Z","externalId":"x","domain":"example.com","categories":["necessary"],"policySnapshotToken":"`+token+`"}`,
 		auth(key, "x-vercel-ip-country", "US", "x-vercel-ip-country-region", "CA"),
 	)
 	if rec.Code != http.StatusConflict {
@@ -1284,7 +1373,7 @@ func TestGetSubject(t *testing.T) {
 	key := h.key()
 
 	rec := h.do(http.MethodPost, "/api/c15t/consent",
-		`{"externalId":"user-1","domain":"example.com","categories":["necessary"]}`,
+		`{"givenAt":"2026-03-01T12:00:00Z","externalId":"user-1","domain":"example.com","categories":["necessary"]}`,
 		auth(key, "cf-ipcountry", "DE"),
 	)
 	if rec.Code != http.StatusCreated {
@@ -1344,7 +1433,7 @@ func TestListSubjects(t *testing.T) {
 	}
 
 	if rec := h.do(http.MethodPost, "/api/c15t/consent",
-		`{"externalId":"user-1","domain":"example.com","categories":["necessary"]}`,
+		`{"givenAt":"2026-03-01T12:00:00Z","externalId":"user-1","domain":"example.com","categories":["necessary"]}`,
 		auth(key, "cf-ipcountry", "DE"),
 	); rec.Code != http.StatusCreated {
 		t.Fatalf("status = %d: %s", rec.Code, rec.Body.String())
@@ -1372,7 +1461,7 @@ func TestPatchSubject(t *testing.T) {
 	key := h.key()
 
 	rec := h.do(http.MethodPost, "/api/c15t/consent",
-		`{"externalId":"user-1","domain":"example.com","categories":["necessary"]}`,
+		`{"givenAt":"2026-03-01T12:00:00Z","externalId":"user-1","domain":"example.com","categories":["necessary"]}`,
 		auth(key, "cf-ipcountry", "DE"),
 	)
 	subjectID, _ := decode(t, rec)["subjectId"].(string)
@@ -1408,7 +1497,7 @@ func TestPatchSubjectValidation(t *testing.T) {
 	}
 
 	rec = h.do(http.MethodPost, "/api/c15t/consent",
-		`{"externalId":"user-1","domain":"example.com","categories":["necessary"]}`,
+		`{"givenAt":"2026-03-01T12:00:00Z","externalId":"user-1","domain":"example.com","categories":["necessary"]}`,
 		auth(key, "cf-ipcountry", "DE"),
 	)
 	subjectID, _ := decode(t, rec)["subjectId"].(string)
@@ -1553,7 +1642,7 @@ func TestLegalDocumentConsentAcceptsExplicitPolicyID(t *testing.T) {
 	policyID := publishDocument(t, h, key, "privacy_policy", "1.0.0", "abc")
 
 	rec := h.do(http.MethodPost, "/api/c15t/consent",
-		`{"externalId":"x","domain":"example.com","categories":["necessary"],"policyType":"privacy_policy","policyId":"`+policyID+`"}`,
+		`{"givenAt":"2026-03-01T12:00:00Z","externalId":"x","domain":"example.com","categories":["necessary"],"policyType":"privacy_policy","policyId":"`+policyID+`"}`,
 		auth(key, "cf-ipcountry", "DE"),
 	)
 	if rec.Code != http.StatusCreated {
@@ -1567,7 +1656,7 @@ func TestLegalDocumentConsentAcceptsPolicyHash(t *testing.T) {
 	publishDocument(t, h, key, "privacy_policy", "1.0.0", "abc")
 
 	rec := h.do(http.MethodPost, "/api/c15t/consent",
-		`{"externalId":"x","domain":"example.com","categories":["necessary"],"policyType":"privacy_policy","policyHash":"abc"}`,
+		`{"givenAt":"2026-03-01T12:00:00Z","externalId":"x","domain":"example.com","categories":["necessary"],"policyType":"privacy_policy","policyHash":"abc"}`,
 		auth(key, "cf-ipcountry", "DE"),
 	)
 	if rec.Code != http.StatusCreated {
@@ -1591,7 +1680,7 @@ func TestConsentPolicyReferenceErrors(t *testing.T) {
 			key := h.key()
 
 			rec := h.do(http.MethodPost, "/api/c15t/consent",
-				`{"externalId":"x","domain":"example.com","categories":["necessary"],"policyType":"privacy_policy",`+tt.ref+`}`,
+				`{"givenAt":"2026-03-01T12:00:00Z","externalId":"x","domain":"example.com","categories":["necessary"],"policyType":"privacy_policy",`+tt.ref+`}`,
 				auth(key, "cf-ipcountry", "DE"),
 			)
 			if rec.Code != tt.want {
@@ -1609,7 +1698,7 @@ func TestConsentRejectsInactivePolicy(t *testing.T) {
 	publishDocument(t, h, key, "privacy_policy", "2.0.0", "def")
 
 	rec := h.do(http.MethodPost, "/api/c15t/consent",
-		`{"externalId":"x","domain":"example.com","categories":["necessary"],"policyType":"privacy_policy","policyId":"`+retired+`"}`,
+		`{"givenAt":"2026-03-01T12:00:00Z","externalId":"x","domain":"example.com","categories":["necessary"],"policyType":"privacy_policy","policyId":"`+retired+`"}`,
 		auth(key, "cf-ipcountry", "DE"),
 	)
 	if rec.Code != http.StatusBadRequest {
@@ -1622,7 +1711,7 @@ func TestLegalDocumentConsentAllowedWithSnapshotSigner(t *testing.T) {
 	key := h.key()
 
 	rec := h.do(http.MethodPost, "/api/c15t/consent",
-		`{"externalId":"x","domain":"example.com","categories":["necessary"],"policyType":"privacy_policy"}`,
+		`{"givenAt":"2026-03-01T12:00:00Z","externalId":"x","domain":"example.com","categories":["necessary"],"policyType":"privacy_policy"}`,
 		auth(key, "cf-ipcountry", "DE"),
 	)
 	if rec.Code != http.StatusCreated {
@@ -1677,7 +1766,7 @@ func TestScopeHidesForeignRowsFromEveryReadPath(t *testing.T) {
 	key := h.key()
 
 	rec := h.do(http.MethodPost, "/api/c15t/consent",
-		`{"externalId":"user-1","domain":"example.com","categories":["necessary"]}`,
+		`{"givenAt":"2026-03-01T12:00:00Z","externalId":"user-1","domain":"example.com","categories":["necessary"]}`,
 		auth(key, "cf-ipcountry", "DE"),
 	)
 	if rec.Code != http.StatusCreated {
@@ -1749,7 +1838,7 @@ func TestPublishableKeyReachesBannerEndpoints(t *testing.T) {
 
 	t.Run("record consent", func(t *testing.T) {
 		rec := h.do(http.MethodPost, "/api/c15t/consent",
-			`{"externalId":"x","domain":"example.com","categories":["necessary"]}`,
+			`{"givenAt":"2026-03-01T12:00:00Z","externalId":"x","domain":"example.com","categories":["necessary"]}`,
 			auth(key, "cf-ipcountry", "DE"))
 		if rec.Code != http.StatusCreated {
 			t.Errorf("status = %d, want 201: %s", rec.Code, rec.Body.String())
@@ -1778,7 +1867,7 @@ func TestPublishableKeyCannotReachPersonalData(t *testing.T) {
 	publishable := h.publishableKey()
 
 	rec := h.do(http.MethodPost, "/api/c15t/consent",
-		`{"externalId":"user-1","domain":"example.com","categories":["necessary"]}`,
+		`{"givenAt":"2026-03-01T12:00:00Z","externalId":"user-1","domain":"example.com","categories":["necessary"]}`,
 		auth(secret, "cf-ipcountry", "DE"))
 	if rec.Code != http.StatusCreated {
 		t.Fatalf("seed: status = %d: %s", rec.Code, rec.Body.String())
@@ -1826,7 +1915,7 @@ func TestSecretKeyReachesEverything(t *testing.T) {
 	key := h.key()
 
 	rec := h.do(http.MethodPost, "/api/c15t/consent",
-		`{"externalId":"user-1","domain":"example.com","categories":["necessary"]}`,
+		`{"givenAt":"2026-03-01T12:00:00Z","externalId":"user-1","domain":"example.com","categories":["necessary"]}`,
 		auth(key, "cf-ipcountry", "DE"))
 	if rec.Code != http.StatusCreated {
 		t.Fatalf("status = %d: %s", rec.Code, rec.Body.String())
@@ -1922,7 +2011,7 @@ func TestOriginBindingAppliesToConsentWrite(t *testing.T) {
 	h := newHarness(t, api.DefaultConfig())
 	key := h.keyWithOrigins(apikey.ScopePublishable, "https://nina.app")
 
-	body := `{"externalId":"x","domain":"nina.app","categories":["necessary"]}`
+	body := `{"givenAt":"2026-03-01T12:00:00Z","externalId":"x","domain":"nina.app","categories":["necessary"]}`
 
 	rec := h.do(http.MethodPost, "/api/c15t/consent", body,
 		auth(key, "cf-ipcountry", "DE", "Origin", "https://evil.com"))
@@ -2023,7 +2112,7 @@ func TestRateLimitAppliesToWrites(t *testing.T) {
 	key := h.key()
 
 	body := func(i int) string {
-		return `{"externalId":"u` + strconv.Itoa(i) + `","domain":"example.com","categories":["necessary"]}`
+		return `{"givenAt":"2026-03-01T12:00:00Z","externalId":"u` + strconv.Itoa(i) + `","domain":"example.com","categories":["necessary"]}`
 	}
 
 	for i := range 2 {
@@ -2096,7 +2185,7 @@ func seedConsents(t *testing.T, h *harness, n int) string {
 
 	key := h.key()
 	rec := h.do(http.MethodPost, "/api/c15t/consent",
-		`{"externalId":"bulk","domain":"example.com","categories":["necessary"]}`,
+		`{"givenAt":"2026-03-01T12:00:00Z","externalId":"bulk","domain":"example.com","categories":["necessary"]}`,
 		auth(key, "cf-ipcountry", "DE"))
 	if rec.Code != http.StatusCreated {
 		t.Fatalf("seed first: status = %d: %s", rec.Code, rec.Body.String())

@@ -493,3 +493,107 @@ func TestClampGivenAt(t *testing.T) {
 		})
 	}
 }
+
+func TestBuildKeepsTheClientClaimWhenItDiffersFromTheRecordedTime(t *testing.T) {
+	claimed := fixedNow.Add(2 * time.Hour)
+	in := Input{
+		SubjectID: "s1",
+		DomainID:  "d1",
+		Policy:    optInPolicy(nil, policy.ScopePermissive, nil),
+		Metadata:  map[string]any{"source": "banner-v2"},
+		Now:       fixedNow,
+		ClaimedAt: claimed,
+	}
+
+	got, err := Build(in)
+	if err != nil {
+		t.Fatalf("Build: %v", err)
+	}
+
+	if got.GivenAt != fixedNow {
+		t.Errorf("givenAt = %v, want the recorded %v", got.GivenAt, fixedNow)
+	}
+	if got.ClaimedAt != claimed {
+		t.Errorf("claimedAt = %v, want %v", got.ClaimedAt, claimed)
+	}
+	if got.Metadata["clientGivenAt"] != claimed.Format(time.RFC3339Nano) {
+		t.Errorf("clientGivenAt = %v, want %s", got.Metadata["clientGivenAt"], claimed.Format(time.RFC3339Nano))
+	}
+	if got.Metadata["source"] != "banner-v2" {
+		t.Errorf("caller metadata lost: %v", got.Metadata)
+	}
+	if _, touched := in.Metadata["clientGivenAt"]; touched {
+		t.Error("the caller's metadata map was modified")
+	}
+}
+
+func TestBuildAddsNoClaimWhenTheTimesMatch(t *testing.T) {
+	for name, claimed := range map[string]time.Time{"equal": fixedNow, "absent": {}} {
+		t.Run(name, func(t *testing.T) {
+			got, err := Build(Input{
+				SubjectID: "s1",
+				DomainID:  "d1",
+				Policy:    optInPolicy(nil, policy.ScopePermissive, nil),
+				Now:       fixedNow,
+				ClaimedAt: claimed,
+			})
+			if err != nil {
+				t.Fatalf("Build: %v", err)
+			}
+
+			if _, present := got.Metadata["clientGivenAt"]; present {
+				t.Errorf("metadata = %v, want no clientGivenAt", got.Metadata)
+			}
+			if got.ClaimedAt != fixedNow {
+				t.Errorf("claimedAt = %v, want it to default to the recorded %v", got.ClaimedAt, fixedNow)
+			}
+		})
+	}
+}
+
+func TestBuildOwnsTheClientClaimKey(t *testing.T) {
+	forged := map[string]any{"clientGivenAt": "1999-01-01T00:00:00Z", "source": "banner"}
+
+	t.Run("a forged claim is dropped when the time was accepted", func(t *testing.T) {
+		got, err := Build(Input{
+			SubjectID: "s1",
+			DomainID:  "d1",
+			Policy:    optInPolicy(nil, policy.ScopePermissive, nil),
+			Metadata:  forged,
+			Now:       fixedNow,
+			ClaimedAt: fixedNow,
+		})
+		if err != nil {
+			t.Fatalf("Build: %v", err)
+		}
+
+		if _, present := got.Metadata["clientGivenAt"]; present {
+			t.Errorf("metadata = %v, want the client-supplied clientGivenAt removed", got.Metadata)
+		}
+		if got.Metadata["source"] != "banner" {
+			t.Errorf("other metadata lost: %v", got.Metadata)
+		}
+		if forged["clientGivenAt"] != "1999-01-01T00:00:00Z" {
+			t.Error("the caller's metadata map was modified")
+		}
+	})
+
+	t.Run("the server value wins when the time was clamped", func(t *testing.T) {
+		claimed := fixedNow.Add(time.Hour)
+		got, err := Build(Input{
+			SubjectID: "s1",
+			DomainID:  "d1",
+			Policy:    optInPolicy(nil, policy.ScopePermissive, nil),
+			Metadata:  forged,
+			Now:       fixedNow,
+			ClaimedAt: claimed,
+		})
+		if err != nil {
+			t.Fatalf("Build: %v", err)
+		}
+
+		if got.Metadata["clientGivenAt"] != claimed.Format(time.RFC3339Nano) {
+			t.Errorf("clientGivenAt = %v, want %s", got.Metadata["clientGivenAt"], claimed.Format(time.RFC3339Nano))
+		}
+	})
+}

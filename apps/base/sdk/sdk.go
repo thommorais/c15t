@@ -142,6 +142,11 @@ func (c *Client) RecordConsent(ctx context.Context, req ConsentRequest, geo GeoH
 		return nil, errors.New("sdk: subjectId or externalId is required")
 	}
 
+	if req.GivenAt == nil {
+		now := time.Now().UTC()
+		req.GivenAt = &now
+	}
+
 	var out ConsentRecord
 	if err := c.do(ctx, http.MethodPost, "/api/c15t/consent", req, geo, &out); err != nil {
 		return nil, err

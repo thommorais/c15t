@@ -155,6 +155,9 @@ func (h *Handler) recordConsent(c *Ctx, body consentRequest) (Status, error) {
 	if body.SubjectID == "" && body.ExternalID == "" {
 		return Status{}, BadRequest(codeInputValidationFailed, "subjectId or externalId is required")
 	}
+	if body.GivenAt == nil {
+		return Status{}, BadRequest(codeInputValidationFailed, "givenAt is required")
+	}
 
 	policyType := body.PolicyType
 	if policyType == "" {
@@ -181,6 +184,8 @@ func (h *Handler) recordConsent(c *Ctx, body consentRequest) (Status, error) {
 	}
 
 	givenAt := consent.ClampGivenAt(body.GivenAt, time.Now().UTC())
+
+	claimedAt := *body.GivenAt
 
 	var (
 		stored    *core.Record
@@ -215,6 +220,7 @@ func (h *Handler) recordConsent(c *Ctx, body consentRequest) (Status, error) {
 			Metadata:     body.Metadata,
 			GPCSignal:    hasGPCSignal(c.Event.Request),
 			Now:          givenAt,
+			ClaimedAt:    claimedAt,
 		})
 		if err != nil {
 			return err

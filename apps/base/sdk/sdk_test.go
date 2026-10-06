@@ -2,6 +2,7 @@ package sdk_test
 
 import (
 	"context"
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -521,5 +522,40 @@ func TestRecordConsentIsIdempotent(t *testing.T) {
 	}
 	if !second.Duplicate {
 		t.Error("repeat was not flagged as a duplicate")
+	}
+}
+
+func TestRecordConsentStampsATimestampWhenNoneIsGiven(t *testing.T) {
+	var bodies []map[string]any
+
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var body map[string]any
+		_ = json.NewDecoder(r.Body).Decode(&body)
+		bodies = append(bodies, body)
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"id":"c1","subjectId":"s1","policyId":"p","givenAt":"2026-03-01T12:00:00Z"}`))
+	}))
+	t.Cleanup(srv.Close)
+
+	client, err := sdk.New(srv.URL, "key")
+	if err != nil {
+		t.Fatalf("New: %v", err)
+	}
+
+	before := time.Now().Add(-time.Second)
+	_, err = client.RecordConsent(context.Background(), sdk.ConsentRequest{
+		ExternalID: "u", Domain: "example.com", Categories: []string{"necessary"},
+	}, sdk.GeoHints{})
+	if err != nil {
+		t.Fatalf("RecordConsent: %v", err)
+	}
+
+	raw, _ := bodies[0]["givenAt"].(string)
+	sent, err := time.Parse(time.RFC3339Nano, raw)
+	if err != nil {
+		t.Fatalf("givenAt = %q, want a timestamp: %v", raw, err)
+	}
+	if sent.Before(before) || sent.After(time.Now().Add(time.Second)) {
+		t.Errorf("givenAt = %v, want about now", sent)
 	}
 }

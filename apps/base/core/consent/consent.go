@@ -58,6 +58,10 @@ func IsInvalid(err error) bool {
 	return errors.Is(err, ErrInvalid) || errors.Is(err, ErrOutOfScope)
 }
 
+// ClientClaimKey is the metadata key under which a rejected client timestamp
+// is kept.
+const ClientClaimKey = "clientGivenAt"
+
 type Input struct {
 	SubjectID    string
 	DomainID     string
@@ -74,6 +78,10 @@ type Input struct {
 	Metadata     map[string]any
 	GPCSignal    bool
 	Now          time.Time
+	// ClaimedAt is the time the client reported, which identifies the
+	// submission. It differs from Now only when the client's clock was
+	// rejected, and is then kept on the record.
+	ClaimedAt time.Time
 }
 
 type Record struct {
@@ -92,6 +100,7 @@ type Record struct {
 	TCString          string
 	Metadata          map[string]any
 	GivenAt           time.Time
+	ClaimedAt         time.Time
 	ValidUntil        *time.Time
 }
 
@@ -126,6 +135,27 @@ func Build(in Input) (Record, error) {
 		now = time.Now().UTC()
 	}
 
+	claimed := in.ClaimedAt
+	if claimed.IsZero() {
+		claimed = now
+	}
+
+	// The key is the server's evidence of a rejected client clock, so a value
+	// the client sends under it is never kept.
+	metadata := in.Metadata
+	_, forged := metadata[ClientClaimKey]
+	if forged || !claimed.Equal(now) {
+		metadata = make(map[string]any, len(in.Metadata)+1)
+		for k, v := range in.Metadata {
+			if k != ClientClaimKey {
+				metadata[k] = v
+			}
+		}
+		if !claimed.Equal(now) {
+			metadata[ClientClaimKey] = claimed.UTC().Format(time.RFC3339Nano)
+		}
+	}
+
 	return Record{
 		SubjectID:         in.SubjectID,
 		DomainID:          in.DomainID,
@@ -140,8 +170,9 @@ func Build(in Input) (Record, error) {
 		UISource:          in.UISource,
 		Action:            action,
 		TCString:          in.TCString,
-		Metadata:          in.Metadata,
+		Metadata:          metadata,
 		GivenAt:           now,
+		ClaimedAt:         claimed,
 		ValidUntil:        validUntil(now, in.Policy),
 	}, nil
 }

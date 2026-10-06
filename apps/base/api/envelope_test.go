@@ -179,7 +179,7 @@ func TestErrorEnvelope(t *testing.T) {
 				init := h.do(http.MethodGet, "/api/c15t/init", "", auth(key, "cf-ipcountry", "DE"))
 				token, _ := decode(t, init)["policySnapshotToken"].(string)
 				return h.do(http.MethodPost, consentURL,
-					`{"externalId":"x","domain":"example.com","categories":["necessary"],"policySnapshotToken":"`+token+`"}`,
+					`{"givenAt":"2026-03-01T12:00:00Z","externalId":"x","domain":"example.com","categories":["necessary"],"policySnapshotToken":"`+token+`"}`,
 					auth(key, "cf-ipcountry", "DE"))
 			},
 			status: http.StatusConflict, code: "POLICY_SNAPSHOT_EXPIRED",
@@ -193,7 +193,7 @@ func TestErrorEnvelope(t *testing.T) {
 			},
 			run: func(h *harness) *httptest.ResponseRecorder {
 				return h.do(http.MethodPost, consentURL,
-					`{"externalId":"x","domain":"example.com","categories":["necessary","marketing"]}`,
+					`{"givenAt":"2026-03-01T12:00:00Z","externalId":"x","domain":"example.com","categories":["necessary","marketing"]}`,
 					auth(h.key(), "cf-ipcountry", "DE"))
 			},
 			status: http.StatusBadRequest, code: "PURPOSE_NOT_ALLOWED",
@@ -202,7 +202,7 @@ func TestErrorEnvelope(t *testing.T) {
 			name: "unknown policy",
 			run: func(h *harness) *httptest.ResponseRecorder {
 				return h.do(http.MethodPost, consentURL,
-					`{"externalId":"x","domain":"example.com","categories":["necessary"],"policyType":"privacy_policy","policyId":"doesnotexist00"}`,
+					`{"givenAt":"2026-03-01T12:00:00Z","externalId":"x","domain":"example.com","categories":["necessary"],"policyType":"privacy_policy","policyId":"doesnotexist00"}`,
 					auth(h.key(), "cf-ipcountry", "DE"))
 			},
 			status: http.StatusNotFound, code: "POLICY_NOT_FOUND",
@@ -214,7 +214,7 @@ func TestErrorEnvelope(t *testing.T) {
 				retired := publishDocument(t, h, key, "privacy_policy", "1.0.0", "abc")
 				publishDocument(t, h, key, "privacy_policy", "2.0.0", "def")
 				return h.do(http.MethodPost, consentURL,
-					`{"externalId":"x","domain":"example.com","categories":["necessary"],"policyType":"privacy_policy","policyId":"`+retired+`"}`,
+					`{"givenAt":"2026-03-01T12:00:00Z","externalId":"x","domain":"example.com","categories":["necessary"],"policyType":"privacy_policy","policyId":"`+retired+`"}`,
 					auth(key, "cf-ipcountry", "DE"))
 			},
 			status: http.StatusBadRequest, code: "POLICY_INACTIVE",
@@ -223,7 +223,7 @@ func TestErrorEnvelope(t *testing.T) {
 			name: "legal document consent without proof",
 			run: func(h *harness) *httptest.ResponseRecorder {
 				return h.do(http.MethodPost, consentURL,
-					`{"externalId":"x","domain":"example.com","categories":["necessary"],"policyType":"privacy_policy"}`,
+					`{"givenAt":"2026-03-01T12:00:00Z","externalId":"x","domain":"example.com","categories":["necessary"],"policyType":"privacy_policy"}`,
 					auth(h.key(), "cf-ipcountry", "DE"))
 			},
 			status: http.StatusConflict, code: "LEGAL_DOCUMENT_PROOF_REQUIRED",
@@ -233,7 +233,7 @@ func TestErrorEnvelope(t *testing.T) {
 			cfg:  func() api.Config { return snapshotConfig(true) },
 			run: func(h *harness) *httptest.ResponseRecorder {
 				return h.do(http.MethodPost, consentURL,
-					`{"externalId":"x","domain":"example.com","categories":["necessary"]}`,
+					`{"givenAt":"2026-03-01T12:00:00Z","externalId":"x","domain":"example.com","categories":["necessary"]}`,
 					auth(h.key(), "cf-ipcountry", "DE"))
 			},
 			status: http.StatusConflict, code: "POLICY_SNAPSHOT_REQUIRED",
@@ -243,7 +243,7 @@ func TestErrorEnvelope(t *testing.T) {
 			cfg:  func() api.Config { return snapshotConfig(true) },
 			run: func(h *harness) *httptest.ResponseRecorder {
 				return h.do(http.MethodPost, consentURL,
-					`{"externalId":"x","domain":"example.com","categories":["necessary"],"policySnapshotToken":"not-a-jwt"}`,
+					`{"givenAt":"2026-03-01T12:00:00Z","externalId":"x","domain":"example.com","categories":["necessary"],"policySnapshotToken":"not-a-jwt"}`,
 					auth(h.key(), "cf-ipcountry", "DE"))
 			},
 			status: http.StatusConflict, code: "POLICY_SNAPSHOT_INVALID",
@@ -256,7 +256,7 @@ func TestErrorEnvelope(t *testing.T) {
 				init := h.do(http.MethodGet, "/api/c15t/init", "", auth(key, "cf-ipcountry", "DE"))
 				token, _ := decode(t, init)["policySnapshotToken"].(string)
 				return h.do(http.MethodPost, consentURL,
-					`{"externalId":"x","domain":"example.com","categories":["necessary"],"policySnapshotToken":"`+token+`"}`,
+					`{"givenAt":"2026-03-01T12:00:00Z","externalId":"x","domain":"example.com","categories":["necessary"],"policySnapshotToken":"`+token+`"}`,
 					auth(key, "x-vercel-ip-country", "US", "x-vercel-ip-country-region", "CA"))
 			},
 			status: http.StatusConflict, code: "POLICY_SNAPSHOT_INVALID",
