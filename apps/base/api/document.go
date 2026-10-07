@@ -28,8 +28,8 @@ type legalDocumentPayload struct {
 // for its type, retiring the previous version.
 func (h *Handler) syncLegalDocument(c *Ctx, body legalDocumentRequest) (map[string]any, error) {
 	docType := c.Path("type")
-	if !consent.ValidPolicyType(docType) {
-		return nil, BadRequest(codeInputValidationFailed, "unknown legal document type "+docType)
+	if !consent.IsLegalDocumentType(docType) {
+		return nil, BadRequest(codeInputValidationFailed, "not a legal document type: "+docType)
 	}
 	if body.Version == nil || body.Hash == nil || body.EffectiveDate == nil {
 		return nil, BadRequest(codeInputValidationFailed, "version, hash and effectiveDate are required")
@@ -46,46 +46,32 @@ func (h *Handler) syncLegalDocument(c *Ctx, body legalDocumentRequest) (map[stri
 	var stored *core.Record
 
 	err = c.DB().Tx(func(db *scope) error {
-
-		existing, err := db.FindFirst("consentPolicy", "type = {:type} && version = {:version}", dbx.Params{"type": docType, "version": version})
-
-		if err == nil && existing != nil {
-			// Re-publishing a version must not silently change what it says.
-			if released := existing.GetString("hash"); released != "" && hash != "" && released != hash {
-				return Conflict(codeReleaseConflict, "Version "+version+" was already released with a different hash")
-			}
-			stored = existing
-		}
-
-		active, err := db.FindFirst("consentPolicy", "type = {:type} && isActive = true", dbx.Params{"type": docType})
-		if err == nil && active != nil && (stored == nil || active.Id != stored.Id) {
-			active.Set("isActive", false)
-			if err := db.Save(active); err != nil {
-				return err
-			}
-		}
-
-		if stored != nil {
-			stored.Set("isActive", true)
-			stored.Set("effectiveDate", effectiveDate)
-			if hash != "" {
-				stored.Set("hash", hash)
-			}
-			return db.Save(stored)
-		}
-
-		stored, err = db.New("consentPolicy")
+		release, err := h.findOrCreateLegalDocumentPolicy(db, docType, version, hash, effectiveDate)
 		if err != nil {
 			return err
 		}
 
-		stored.Set("type", docType)
-		stored.Set("version", version)
-		stored.Set("hash", hash)
-		stored.Set("effectiveDate", effectiveDate)
-		stored.Set("isActive", true)
+		others, err := db.FindAll("consentPolicy", "type = {:type} && isActive = true && id != {:id}", "", 0, 0,
+			dbx.Params{"type": docType, "id": release.Id})
+		if err != nil {
+			return err
+		}
+		for _, other := range others {
+			other.Set("isActive", false)
+			if err := db.Save(other); err != nil {
+				return err
+			}
+		}
 
-		return db.Save(stored)
+		if !release.GetBool("isActive") {
+			release.Set("isActive", true)
+			if err := db.Save(release); err != nil {
+				return err
+			}
+		}
+
+		stored = release
+		return nil
 	})
 	if err != nil {
 		return nil, err

@@ -2285,6 +2285,96 @@ func TestSyncLegalDocumentValidation(t *testing.T) {
 	}
 }
 
+func TestSyncLegalDocumentIsKeyedOnTheRelease(t *testing.T) {
+	put := func(h *harness, key, docType, body string) *httptest.ResponseRecorder {
+		return h.do(http.MethodPut, "/api/c15t/legal-documents/"+docType+"/current", body, auth(key))
+	}
+	release := func(version, hash, date string) string {
+		return `{"version":"` + version + `","hash":"` + hash + `","effectiveDate":"` + date + `"}`
+	}
+
+	t.Run("only legal document types", func(t *testing.T) {
+		h := newHarness(t, api.DefaultConfig())
+		wantEnvelope(t, put(h, h.key(), "cookie_banner", release("1.0.0", "abc", "2026-01-01T00:00:00Z")),
+			http.StatusBadRequest, "INPUT_VALIDATION_FAILED")
+		if got := h.count("consentPolicy"); got != 0 {
+			t.Errorf("consentPolicy rows = %d, want 0", got)
+		}
+	})
+
+	t.Run("suffixed variants are legal documents", func(t *testing.T) {
+		h := newHarness(t, api.DefaultConfig())
+		if rec := put(h, h.key(), "terms_and_conditions_b2b", release("1.0.0", "abc", "2026-01-01T00:00:00Z")); rec.Code != http.StatusOK {
+			t.Errorf("status = %d: %s", rec.Code, rec.Body.String())
+		}
+	})
+
+	t.Run("the same release with another effective date conflicts", func(t *testing.T) {
+		h := newHarness(t, api.DefaultConfig())
+		key := h.key()
+		put(h, key, "dpa", release("1.0.0", "abc", "2026-01-01T00:00:00Z"))
+
+		wantEnvelope(t, put(h, key, "dpa", release("1.0.0", "abc", "2026-06-01T00:00:00Z")),
+			http.StatusConflict, "LEGAL_DOCUMENT_RELEASE_CONFLICT")
+
+		stored, err := h.app.FindFirstRecordByFilter("consentPolicy", "type = 'dpa'", nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if got := stored.GetDateTime("effectiveDate").Time().Format("2006-01-02"); got != "2026-01-01" {
+			t.Errorf("effectiveDate = %s, want it left unchanged by a rejected sync", got)
+		}
+	})
+
+	t.Run("the same hash under another version conflicts", func(t *testing.T) {
+		h := newHarness(t, api.DefaultConfig())
+		key := h.key()
+		put(h, key, "dpa", release("1.0.0", "abc", "2026-01-01T00:00:00Z"))
+
+		wantEnvelope(t, put(h, key, "dpa", release("2.0.0", "abc", "2026-01-01T00:00:00Z")),
+			http.StatusConflict, "LEGAL_DOCUMENT_RELEASE_CONFLICT")
+	})
+
+	t.Run("republishing an older release makes it current again", func(t *testing.T) {
+		h := newHarness(t, api.DefaultConfig())
+		key := h.key()
+		first := publishDocument(t, h, key, "dpa", "1.0.0", "abc")
+		publishDocument(t, h, key, "dpa", "2.0.0", "def")
+
+		rec := put(h, key, "dpa", release("1.0.0", "abc", "2026-01-01T00:00:00Z"))
+		if rec.Code != http.StatusOK {
+			t.Fatalf("status = %d: %s", rec.Code, rec.Body.String())
+		}
+
+		active, err := h.app.FindRecordsByFilter("consentPolicy", "type = 'dpa' && isActive = true", "", 0, 0, nil)
+		if err != nil || len(active) != 1 || active[0].Id != first {
+			t.Errorf("active = %v (%v), want only the republished release %s", active, err, first)
+		}
+		if got := h.count("consentPolicy"); got != 2 {
+			t.Errorf("consentPolicy rows = %d, want 2", got)
+		}
+	})
+
+	t.Run("a release seen through a token can be made current", func(t *testing.T) {
+		h := newHarness(t, docConfig())
+		key := h.key()
+		publishDocument(t, h, key, "privacy_policy", "2027-01-01", "current")
+
+		token := docToken(t, docSecret, "privacy_policy", "2026-01-01", "sha256:old", time.Now())
+		if rec := legalConsent(h, "privacy_policy", token); rec.Code != http.StatusCreated {
+			t.Fatalf("consent status = %d: %s", rec.Code, rec.Body.String())
+		}
+
+		rec := put(h, key, "privacy_policy", release("2026-01-01", "sha256:old", "2026-01-01T00:00:00Z"))
+		if rec.Code != http.StatusOK {
+			t.Fatalf("status = %d: %s", rec.Code, rec.Body.String())
+		}
+		if got := h.count("consentPolicy"); got != 2 {
+			t.Errorf("consentPolicy rows = %d, want the existing historical row reused", got)
+		}
+	})
+}
+
 func TestSyncLegalDocumentRejectsHashChange(t *testing.T) {
 	h := newHarness(t, api.DefaultConfig())
 	key := h.key()
