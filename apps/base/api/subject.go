@@ -46,7 +46,13 @@ func (h *Handler) getSubject(c *Ctx, _ any) (subjectPayload, error) {
 	}
 
 	record, err := c.DB().FindByID("subject", id)
-	if err != nil || record.GetString("tenantId") != c.TenantID() {
+	if err != nil {
+		if isMissing(err) {
+			return subjectPayload{}, NotFound(codeSubjectNotFound, "Subject not found")
+		}
+		return subjectPayload{}, err
+	}
+	if record.GetString("tenantId") != c.TenantID() {
 		return subjectPayload{}, NotFound(codeSubjectNotFound, "Subject not found")
 	}
 
@@ -108,7 +114,13 @@ func (h *Handler) patchSubject(c *Ctx, body patchSubjectRequest) (subjectPayload
 	}
 
 	record, err := c.DB().FindByID("subject", id)
-	if err != nil || record.GetString("tenantId") != c.TenantID() {
+	if err != nil {
+		if isMissing(err) {
+			return subjectPayload{}, NotFound(codeSubjectNotFound, "Subject not found")
+		}
+		return subjectPayload{}, err
+	}
+	if record.GetString("tenantId") != c.TenantID() {
 		return subjectPayload{}, NotFound(codeSubjectNotFound, "Subject not found")
 	}
 

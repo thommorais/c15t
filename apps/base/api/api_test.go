@@ -1657,6 +1657,41 @@ func TestCheckConsentSurfacesStorageFailures(t *testing.T) {
 	}
 }
 
+func TestLookupsSurfaceStorageFailures(t *testing.T) {
+	h := newHarness(t, api.DefaultConfig())
+	key := h.key()
+
+	seed := h.do(http.MethodPost, "/api/c15t/consent",
+		`{"givenAt":"2026-03-01T12:00:00Z","externalId":"user-1","domain":"example.com","categories":["necessary"]}`,
+		auth(key, "cf-ipcountry", "DE"))
+	if seed.Code != http.StatusCreated {
+		t.Fatalf("seed status = %d: %s", seed.Code, seed.Body.String())
+	}
+	subjectID, _ := decode(t, seed)["subjectId"].(string)
+
+	rename := func(table string) {
+		if _, err := h.app.DB().NewQuery("ALTER TABLE " + table + " RENAME TO " + table + "_gone").Execute(); err != nil {
+			t.Fatalf("break %s: %v", table, err)
+		}
+	}
+
+	policyBody := func(ref string) string {
+		return `{"givenAt":"2026-03-02T12:00:00Z","externalId":"user-2","domain":"example.com","categories":["necessary"],"policyType":"privacy_policy",` + ref + `}`
+	}
+
+	rename("consentPolicy")
+	wantEnvelope(t, h.do(http.MethodPost, "/api/c15t/consent", policyBody(`"policyId":"abc"`), auth(key, "cf-ipcountry", "DE")),
+		http.StatusInternalServerError, "INTERNAL_SERVER_ERROR")
+	wantEnvelope(t, h.do(http.MethodPost, "/api/c15t/consent", policyBody(`"policyHash":"abc"`), auth(key, "cf-ipcountry", "DE")),
+		http.StatusInternalServerError, "INTERNAL_SERVER_ERROR")
+
+	rename("subject")
+	wantEnvelope(t, h.do(http.MethodGet, "/api/c15t/subjects/"+subjectID, "", auth(key)),
+		http.StatusInternalServerError, "INTERNAL_SERVER_ERROR")
+	wantEnvelope(t, h.do(http.MethodPatch, "/api/c15t/subjects/"+subjectID, `{"externalId":"user-9"}`, auth(key)),
+		http.StatusInternalServerError, "INTERNAL_SERVER_ERROR")
+}
+
 func TestCheckConsentRequiresAuth(t *testing.T) {
 	h := newHarness(t, api.DefaultConfig())
 

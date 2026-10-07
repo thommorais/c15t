@@ -30,8 +30,11 @@ func (h *Handler) resolvePolicyRecord(
 ) (*core.Record, error) {
 	if body.PolicyID != "" {
 		record, err := db.FindByID("consentPolicy", body.PolicyID)
-		if err != nil || false {
-			return nil, NotFound(codePolicyNotFound, "Policy not found")
+		if err != nil {
+			if isMissing(err) {
+				return nil, NotFound(codePolicyNotFound, "Policy not found")
+			}
+			return nil, err
 		}
 		if !record.GetBool("isActive") {
 			return nil, BadRequest(codePolicyInactive, "Policy is inactive")
@@ -41,7 +44,10 @@ func (h *Handler) resolvePolicyRecord(
 
 	if body.PolicyHash != "" {
 		record, err := db.FindFirst("consentPolicy", "type = {:type} && hash = {:hash}", dbx.Params{"type": policyType, "hash": body.PolicyHash})
-		if err != nil || record == nil {
+		if err != nil && !isMissing(err) {
+			return nil, err
+		}
+		if record == nil {
 			return nil, NotFound(codePolicyNotFound, "Policy not found")
 		}
 		if !record.GetBool("isActive") {
