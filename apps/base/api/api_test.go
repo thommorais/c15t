@@ -2958,6 +2958,70 @@ func TestScopeHidesForeignRowsFromEveryReadPath(t *testing.T) {
 	})
 }
 
+func TestPreflightReachesPocketBaseCORSOnOurRoutes(t *testing.T) {
+	app, err := tests.NewTestApp(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(app.Cleanup)
+	if err := app.RunAppMigrations(); err != nil {
+		t.Fatal(err)
+	}
+
+	router, err := apis.NewRouter(app)
+	if err != nil {
+		t.Fatal(err)
+	}
+	router.Bind(apis.CORS(apis.CORSConfig{
+		AllowOrigins: []string{"https://app.example.com"},
+		AllowMethods: []string{http.MethodGet, http.MethodPost, http.MethodPatch, http.MethodPut},
+	}))
+	api.Register(app, &core.ServeEvent{App: app, Router: router}, api.DefaultConfig())
+
+	mux, err := router.BuildMux()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	preflight := func(method, path, origin string) *httptest.ResponseRecorder {
+		req := httptest.NewRequest(http.MethodOptions, path, nil)
+		req.Header.Set("Origin", origin)
+		req.Header.Set("Access-Control-Request-Method", method)
+		req.Header.Set("Access-Control-Request-Headers", "authorization, content-type, x-c15t-country, accept-language")
+		rec := httptest.NewRecorder()
+		mux.ServeHTTP(rec, req)
+		return rec
+	}
+
+	for _, route := range []struct{ method, path string }{
+		{http.MethodGet, "/api/c15t/init"},
+		{http.MethodPost, "/api/c15t/consent"},
+		{http.MethodGet, "/api/c15t/consents/check"},
+		{http.MethodPatch, "/api/c15t/subjects/abc"},
+		{http.MethodPut, "/api/c15t/legal-documents/dpa/current"},
+	} {
+		t.Run(route.method+" "+route.path, func(t *testing.T) {
+			rec := preflight(route.method, route.path, "https://app.example.com")
+			if rec.Code != http.StatusNoContent {
+				t.Fatalf("status = %d, want 204: %s", rec.Code, rec.Body.String())
+			}
+			if got := rec.Header().Get("Access-Control-Allow-Origin"); got != "https://app.example.com" {
+				t.Errorf("Access-Control-Allow-Origin = %q", got)
+			}
+			if got := strings.ToLower(rec.Header().Get("Access-Control-Allow-Headers")); !strings.Contains(got, "authorization") || !strings.Contains(got, "x-c15t-country") {
+				t.Errorf("Access-Control-Allow-Headers = %q, want the bearer and c15t headers allowed", got)
+			}
+		})
+	}
+
+	t.Run("another origin is not allowed", func(t *testing.T) {
+		rec := preflight(http.MethodPost, "/api/c15t/consent", "https://evil.example")
+		if got := rec.Header().Get("Access-Control-Allow-Origin"); got != "" {
+			t.Errorf("Access-Control-Allow-Origin = %q, want none for an origin that is not listed", got)
+		}
+	})
+}
+
 func TestPublishableKeyReachesBannerEndpoints(t *testing.T) {
 	h := newHarness(t, api.DefaultConfig())
 	key := h.publishableKey()
