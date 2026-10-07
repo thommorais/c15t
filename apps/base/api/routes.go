@@ -441,7 +441,10 @@ func (h *Handler) checkConsent(c *Ctx, _ any) (map[string]any, error) {
 	}
 
 	subjects, err := c.DB().FindAll("subject", "externalId = {:ext}", "", 0, 0, dbx.Params{"ext": externalID})
-	if err != nil || len(subjects) == 0 {
+	if err != nil {
+		return nil, err
+	}
+	if len(subjects) == 0 {
 		return map[string]any{"results": results}, nil
 	}
 
@@ -457,7 +460,10 @@ func (h *Handler) checkConsent(c *Ctx, _ any) (map[string]any, error) {
 	latestByType := map[string]string{}
 	for _, t := range types {
 		latest, err := c.DB().FindFirst("consentPolicy", "type = {:type} && isActive = true", dbx.Params{"type": t})
-		if err == nil && latest != nil {
+		if err != nil && !isMissing(err) {
+			return nil, err
+		}
+		if latest != nil {
 			latestByType[t] = latest.Id
 		}
 	}
@@ -470,7 +476,10 @@ func (h *Handler) checkConsent(c *Ctx, _ any) (map[string]any, error) {
 
 		policyRecord, err := c.DB().FindByID("consentPolicy", policyID)
 		if err != nil {
-			continue
+			if isMissing(err) {
+				continue
+			}
+			return nil, err
 		}
 
 		policyType := policyRecord.GetString("type")

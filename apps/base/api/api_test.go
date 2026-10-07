@@ -1634,6 +1634,29 @@ func TestCheckConsentLeaksNoIdentifiers(t *testing.T) {
 	}
 }
 
+func TestCheckConsentSurfacesStorageFailures(t *testing.T) {
+	for _, table := range []string{"subject", "consentPolicy", "consent"} {
+		t.Run(table, func(t *testing.T) {
+			h := newHarness(t, api.DefaultConfig())
+			key := h.key()
+
+			rec := h.do(http.MethodPost, "/api/c15t/consent",
+				`{"givenAt":"2026-03-01T12:00:00Z","externalId":"user-1","domain":"example.com","categories":["necessary"]}`,
+				auth(key, "cf-ipcountry", "DE"))
+			if rec.Code != http.StatusCreated {
+				t.Fatalf("seed status = %d: %s", rec.Code, rec.Body.String())
+			}
+
+			if _, err := h.app.DB().NewQuery("ALTER TABLE " + table + " RENAME TO " + table + "_gone").Execute(); err != nil {
+				t.Fatalf("break %s: %v", table, err)
+			}
+
+			rec = h.do(http.MethodGet, "/api/c15t/consents/check?externalId=user-1&type=cookie_banner", "", auth(key))
+			wantEnvelope(t, rec, http.StatusInternalServerError, "INTERNAL_SERVER_ERROR")
+		})
+	}
+}
+
 func TestCheckConsentRequiresAuth(t *testing.T) {
 	h := newHarness(t, api.DefaultConfig())
 

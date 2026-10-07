@@ -1,6 +1,7 @@
 package api
 
 import (
+	"database/sql"
 	"errors"
 	"time"
 
@@ -11,6 +12,13 @@ import (
 	"thom/core/jurisdiction"
 	"thom/core/policy"
 )
+
+// isMissing reports a lookup that found nothing, as opposed to one that failed:
+// a failure must reach the caller, because answering "no consent" when the
+// answer could not be read tells a client to ask again and hides the outage.
+func isMissing(err error) bool {
+	return errors.Is(err, sql.ErrNoRows) || errors.Is(err, errNotOwned)
+}
 
 var (
 	errInvalidInput = errors.New("invalid input")
