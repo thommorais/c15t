@@ -81,12 +81,14 @@ func collectErrors(policies []Config, iabEnabled bool) []string {
 		errs = append(errs, "Only one fallback policy is allowed")
 	}
 
+	iabReported := false
 	for _, p := range policies {
 		if modelOf(p) != ModelIAB {
 			continue
 		}
-		if !iabEnabled {
+		if !iabEnabled && !iabReported {
 			errs = append(errs, `Policies using consent.model="iab" require top-level iab.enabled=true`)
+			iabReported = true
 		}
 		if hasUIConfig(p) {
 			errs = append(errs, fmt.Sprintf(
@@ -98,7 +100,6 @@ func collectErrors(policies []Config, iabEnabled bool) []string {
 				`Policy '%s' uses consent.model="iab" and cannot define consent.preselectedCategories.`,
 				p.ID))
 		}
-		break
 	}
 
 	for i, p := range policies {
@@ -176,7 +177,7 @@ func surfaceErrors(p Config, index int) []string {
 				continue
 			}
 			for _, action := range group {
-				if len(allowed) > 0 {
+				if allowed != nil {
 					if _, ok := allowedSet[action]; !ok {
 						errs = append(errs, fmt.Sprintf(
 							"Policy %s ui.%s.layout contains '%s' which is not in allowedActions [%s].",

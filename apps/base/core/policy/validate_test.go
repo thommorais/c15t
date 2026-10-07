@@ -157,6 +157,48 @@ func TestInspectErrors(t *testing.T) {
 			policies: []Config{{ID: "a"}},
 			wantErr:  "has no matcher",
 		},
+		{
+			name: "iab ui override on a later iab policy",
+			policies: []Config{
+				{ID: "a", Match: MatchCountries([]string{"DE"}), Consent: &ConsentConfig{Model: ptr(ModelIAB)}},
+				{
+					ID:      "b",
+					Match:   MatchCountries([]string{"FR"}),
+					Consent: &ConsentConfig{Model: ptr(ModelIAB)},
+					UI:      &UIConfig{Mode: ptr(UIModeBanner)},
+				},
+			},
+			iab:     true,
+			wantErr: `Policy 'b' uses consent.model="iab" and cannot define ui.* overrides`,
+		},
+		{
+			name: "iab preselected categories on a later iab policy",
+			policies: []Config{
+				{ID: "a", Match: MatchCountries([]string{"DE"}), Consent: &ConsentConfig{Model: ptr(ModelIAB)}},
+				{
+					ID:    "b",
+					Match: MatchCountries([]string{"FR"}),
+					Consent: &ConsentConfig{
+						Model:                 ptr(ModelIAB),
+						PreselectedCategories: []string{"marketing"},
+					},
+				},
+			},
+			iab:     true,
+			wantErr: `Policy 'b' uses consent.model="iab" and cannot define consent.preselectedCategories`,
+		},
+		{
+			name: "empty allowedActions with a layout",
+			policies: []Config{{
+				ID:    "a",
+				Match: MatchCountries([]string{"DE"}),
+				UI: &UIConfig{Banner: &UISurfaceConfig{
+					AllowedActions: []UIAction{},
+					Layout:         [][]UIAction{{ActionAccept, ActionReject}},
+				}},
+			}},
+			wantErr: "ui.banner.layout contains 'accept' which is not in allowedActions []",
+		},
 	}
 
 	for _, tt := range tests {
@@ -186,6 +228,24 @@ func TestInspectAccepts(t *testing.T) {
 					Layout:         [][]UIAction{{ActionAccept, ActionReject}},
 				}},
 			}},
+		},
+		{
+			name: "unset allowedActions with a layout is valid",
+			policies: []Config{{
+				ID:    "a",
+				Match: MatchCountries([]string{"DE"}),
+				UI: &UIConfig{Banner: &UISurfaceConfig{
+					Layout: [][]UIAction{{ActionAccept, ActionReject}},
+				}},
+			}},
+		},
+		{
+			name: "every iab policy without overrides is valid",
+			policies: []Config{
+				{ID: "a", Match: MatchCountries([]string{"DE"}), Consent: &ConsentConfig{Model: ptr(ModelIAB)}},
+				{ID: "b", Match: MatchCountries([]string{"FR"}), Consent: &ConsentConfig{Model: ptr(ModelIAB)}},
+			},
+			iab: true,
 		},
 		{
 			name:     "fallback only matcher is valid",
