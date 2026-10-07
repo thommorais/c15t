@@ -16,6 +16,7 @@ type wildcardEntry struct {
 
 type List struct {
 	exact    map[string]struct{}
+	bare     map[string]struct{}
 	wildcard []wildcardEntry
 	open     bool
 }
@@ -23,7 +24,7 @@ type List struct {
 // Parse reads a comma separated allowlist. An empty list, or "*", allows every
 // origin.
 func Parse(raw string) List {
-	list := List{exact: map[string]struct{}{}}
+	list := List{exact: map[string]struct{}{}, bare: map[string]struct{}{}}
 
 	entries := strings.Split(raw, ",")
 	found := false
@@ -40,13 +41,21 @@ func Parse(raw string) List {
 		found = true
 
 		if scheme, host, ok := splitWildcard(entry); ok {
-			list.wildcard = append(list.wildcard, wildcardEntry{
-				scheme: scheme,
-				host:   normalize(host),
-			})
+			host = normalize(host)
+			// An entry that would cover a whole public suffix, or is not a
+			// well formed wildcard, matches nothing instead of widening access.
+			if validWildcardBase(host) {
+				list.wildcard = append(list.wildcard, wildcardEntry{scheme: scheme, host: host})
+			}
 			continue
 		}
-		list.exact[normalize(entry)] = struct{}{}
+
+		key := normalize(entry)
+		if scheme, hostport := split(key); scheme == "" {
+			list.bare[hostport] = struct{}{}
+			continue
+		}
+		list.exact[key] = struct{}{}
 	}
 
 	if !found {
@@ -75,6 +84,15 @@ func (l List) Allows(origin string) bool {
 
 	scheme, host := split(candidate)
 
+	// An entry that names no scheme covers the web schemes, so a bare host keeps
+	// working whichever of http and https a site is served over. App schemes
+	// have to be listed.
+	if isWebScheme(scheme) {
+		if _, ok := l.bare[host]; ok {
+			return true
+		}
+	}
+
 	for _, w := range l.wildcard {
 		if w.scheme != "" && w.scheme != scheme {
 			continue
@@ -97,7 +115,10 @@ func normalize(raw string) string {
 
 	scheme, rest := split(raw)
 	host, port := splitPort(rest)
-	host = strings.TrimPrefix(host, "www.")
+	// www equivalence is a web convention; a custom scheme names its host as is.
+	if scheme == "" || isWebScheme(scheme) {
+		host = strings.TrimPrefix(host, "www.")
+	}
 
 	if isDefaultPort(scheme, port) {
 		port = ""
@@ -147,6 +168,28 @@ func splitPort(hostport string) (string, string) {
 	}
 
 	return host, port
+}
+
+func isWebScheme(scheme string) bool {
+	switch scheme {
+	case "http", "https", "ws", "wss":
+		return true
+	}
+	return false
+}
+
+// validWildcardBase accepts the host a "*." entry covers. It needs at least two
+// labels so "*.com" cannot cover every .com site; "localhost" is the one
+// single-label name that is not a public suffix.
+func validWildcardBase(host string) bool {
+	name, _ := splitPort(host)
+
+	if name == "" || strings.Contains(name, "*") || strings.HasPrefix(name, ".") ||
+		strings.HasSuffix(name, ".") || strings.Contains(name, "..") {
+		return false
+	}
+
+	return strings.Contains(name, ".") || name == "localhost"
 }
 
 func isDefaultPort(scheme, port string) bool {
