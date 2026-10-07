@@ -10,6 +10,7 @@ const (
 	codeServiceUnavailable    = "SERVICE_UNAVAILABLE"
 	codeSubjectIDRequired     = "SUBJECT_ID_REQUIRED"
 	codeSubjectNotFound       = "SUBJECT_NOT_FOUND"
+	codeExternalIDConflict    = "EXTERNAL_ID_CONFLICT"
 	codeExternalIDRequired    = "EXTERNAL_ID_REQUIRED"
 	codeTypeRequired          = "TYPE_REQUIRED"
 	codePolicyNotFound        = "POLICY_NOT_FOUND"
@@ -27,6 +28,8 @@ const (
 )
 
 const (
+	unknownPolicyType = "unknown"
+
 	sourceSnapshot  = "snapshot_token"
 	sourceWriteTime = "write_time_fallback"
 )

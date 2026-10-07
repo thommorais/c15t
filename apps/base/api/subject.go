@@ -5,8 +5,6 @@ import (
 
 	"github.com/pocketbase/dbx"
 	"github.com/pocketbase/pocketbase/core"
-
-	"thom/core/consent"
 )
 
 type subjectPayload struct {
@@ -130,10 +128,29 @@ func (h *Handler) patchSubject(c *Ctx, body patchSubjectRequest) (subjectPayload
 	}
 
 	err = c.DB().Tx(func(tx *scope) error {
+		heldElsewhere := func() (bool, error) {
+			other, err := tx.FindFirst("subject", "identityProvider = {:provider} && externalId = {:ext} && id != {:id}",
+				dbx.Params{"provider": provider, "ext": body.ExternalID, "id": record.Id})
+			if err != nil && !isMissing(err) {
+				return false, err
+			}
+			return other != nil, nil
+		}
+		conflict := Conflict(codeExternalIDConflict, "externalId is already linked to another subject")
+
+		if held, err := heldElsewhere(); err != nil {
+			return err
+		} else if held {
+			return conflict
+		}
+
 		record.Set("externalId", body.ExternalID)
 		record.Set("identityProvider", provider)
 
 		if err := tx.Save(record); err != nil {
+			if held, lookupErr := heldElsewhere(); lookupErr == nil && held {
+				return conflict
+			}
 			return err
 		}
 
@@ -177,22 +194,30 @@ func (h *Handler) enrichConsents(db *scope, subjectID string) ([]enrichedItem, e
 	for _, record := range records {
 		item := enrichedItem{
 			ID:         record.Id,
-			PolicyType: consent.DefaultPolicyType,
+			PolicyType: unknownPolicyType,
 			GivenAt:    record.GetDateTime("givenAt").Time(),
 			ValidUntil: validUntilOf(record),
 			Action:     record.GetString("consentAction"),
 		}
 
-		policyID := record.GetString("policy")
-		if policyID != "" {
-			if policyRecord, err := db.FindByID("consentPolicy", policyID); err == nil {
+		if policyID := record.GetString("policy"); policyID != "" {
+			policyRecord, err := db.FindByID("consentPolicy", policyID)
+			if err != nil && !isMissing(err) {
+				return nil, err
+			}
+
+			if policyRecord != nil {
 				item.PolicyID = policyID
 				item.PolicyType = policyRecord.GetString("type")
 				item.PolicyVersion = policyRecord.GetString("version")
 
 				latest, cached := latestByType[item.PolicyType]
 				if !cached {
-					if active, err := db.FindFirst("consentPolicy", "type = {:type} && isActive = true", dbx.Params{"type": item.PolicyType}); err == nil && active != nil {
+					active, err := db.FindFirst("consentPolicy", "type = {:type} && isActive = true", dbx.Params{"type": item.PolicyType})
+					if err != nil && !isMissing(err) {
+						return nil, err
+					}
+					if active != nil {
 						latest = active.Id
 					}
 					latestByType[item.PolicyType] = latest

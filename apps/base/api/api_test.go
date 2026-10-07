@@ -2087,6 +2087,83 @@ func TestGetSubject(t *testing.T) {
 	}
 }
 
+func seedSubject(t *testing.T, h *harness, key, externalID string) string {
+	t.Helper()
+
+	rec := h.do(http.MethodPost, "/api/c15t/consent",
+		`{"givenAt":"2026-03-01T12:00:00Z","externalId":"`+externalID+`","domain":"example.com","categories":["necessary"]}`,
+		auth(key, "cf-ipcountry", "DE"))
+	if rec.Code != http.StatusCreated {
+		t.Fatalf("seed %s status = %d: %s", externalID, rec.Code, rec.Body.String())
+	}
+	id, _ := decode(t, rec)["subjectId"].(string)
+	return id
+}
+
+func TestPatchSubjectToAnIdentityAnotherSubjectHoldsIsAConflict(t *testing.T) {
+	h := newHarness(t, api.DefaultConfig())
+	key := h.key()
+
+	first := seedSubject(t, h, key, "a")
+	second := seedSubject(t, h, key, "b")
+
+	if rec := h.do(http.MethodPatch, "/api/c15t/subjects/"+first, `{"externalId":"shared"}`, auth(key)); rec.Code != http.StatusOK {
+		t.Fatalf("first link status = %d: %s", rec.Code, rec.Body.String())
+	}
+
+	rec := h.do(http.MethodPatch, "/api/c15t/subjects/"+second, `{"externalId":"shared"}`, auth(key))
+	wantEnvelope(t, rec, http.StatusConflict, "EXTERNAL_ID_CONFLICT")
+
+	stored, err := h.app.FindRecordById("subject", second)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := stored.GetString("externalId"); got != "b" {
+		t.Errorf("externalId = %q, want the subject left as it was", got)
+	}
+
+	if rec := h.do(http.MethodPatch, "/api/c15t/subjects/"+first, `{"externalId":"shared"}`, auth(key)); rec.Code != http.StatusOK {
+		t.Errorf("linking a subject to the identity it already holds: status = %d, want 200: %s", rec.Code, rec.Body.String())
+	}
+}
+
+func TestSubjectConsentWhosePolicyCannotBeResolvedIsLabelledUnknown(t *testing.T) {
+	h := newHarness(t, api.DefaultConfig())
+	key := h.key()
+	subjectID := seedSubject(t, h, key, "user-1")
+
+	if _, err := h.app.DB().NewQuery("UPDATE consent SET policy = 'gone'").Execute(); err != nil {
+		t.Fatal(err)
+	}
+
+	rec := h.do(http.MethodGet, "/api/c15t/subjects/"+subjectID, "", auth(key))
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d: %s", rec.Code, rec.Body.String())
+	}
+
+	consents, _ := decode(t, rec)["consents"].([]any)
+	item, _ := consents[0].(map[string]any)
+	if item["type"] != "unknown" {
+		t.Errorf("type = %v, want unknown: a consent must not be labelled a cookie banner when its policy is gone", item["type"])
+	}
+	if item["isLatestPolicy"] != false {
+		t.Errorf("isLatestPolicy = %v, want false", item["isLatestPolicy"])
+	}
+}
+
+func TestSubjectEnrichmentSurfacesStorageFailures(t *testing.T) {
+	h := newHarness(t, api.DefaultConfig())
+	key := h.key()
+	subjectID := seedSubject(t, h, key, "user-1")
+
+	if _, err := h.app.DB().NewQuery("ALTER TABLE consentPolicy RENAME TO consentPolicy_gone").Execute(); err != nil {
+		t.Fatal(err)
+	}
+
+	wantEnvelope(t, h.do(http.MethodGet, "/api/c15t/subjects/"+subjectID, "", auth(key)),
+		http.StatusInternalServerError, "INTERNAL_SERVER_ERROR")
+}
+
 func TestGetSubjectNotFound(t *testing.T) {
 	h := newHarness(t, api.DefaultConfig())
 	key := h.key()
