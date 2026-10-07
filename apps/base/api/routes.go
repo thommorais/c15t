@@ -194,35 +194,49 @@ func (h *Handler) recordConsent(c *Ctx, body consentRequest) (Status, error) {
 		return Status{}, BadRequest(codeInputValidationFailed, "unknown policyType "+policyType)
 	}
 
-	shown, err := h.verifySnapshot(body.SnapshotToken, c.TenantID())
-	if err != nil {
-		return Status{}, err
-	}
-
 	var (
 		loc      jurisdiction.Location
 		code     jurisdiction.Code
 		decision *policy.Decision
+		resolved policy.Resolved
+		language string
 		source   = sourceWriteTime
+		err      error
 	)
-	if shown != nil {
-		source = sourceSnapshot
-		loc, code, decision, err = decisionFromSnapshot(shown)
-	} else {
-		loc, code, decision, err = h.resolve(c.Event.Request)
-	}
-	if err != nil {
-		return Status{}, err
-	}
-	if decision == nil {
-		return Status{}, BadRequest(codePolicyResolution, "No policy applies to this request")
-	}
 
-	// The language the visitor was shown: the token's when there is one, else
-	// what init would have chosen for this request.
-	language := i18n.Resolve(acceptLanguage(c.Event.Request), policyLanguageOf(&decision.Policy)).Language
-	if shown != nil && shown.Language != "" {
-		language = shown.Language
+	if consent.IsLegalDocumentType(policyType) {
+		// Accepting a legal document is not a banner interaction: the cookie
+		// policy neither judges it nor expires it, and no banner decision is
+		// recorded as having been shown.
+		loc = h.locationOf(c.Event.Request)
+		code = jurisdiction.Resolve(loc, h.cfg.GeoDisabled)
+	} else {
+		var shown *snapshot.Payload
+		if shown, err = h.verifySnapshot(body.SnapshotToken, c.TenantID()); err != nil {
+			return Status{}, err
+		}
+
+		if shown != nil {
+			source = sourceSnapshot
+			loc, code, decision, err = decisionFromSnapshot(shown)
+		} else {
+			loc, code, decision, err = h.resolve(c.Event.Request)
+		}
+		if err != nil {
+			return Status{}, err
+		}
+		if decision == nil {
+			return Status{}, BadRequest(codePolicyResolution, "No policy applies to this request")
+		}
+
+		resolved = decision.Policy
+
+		// The language the visitor was shown: the token's when there is one,
+		// else what init would have chosen for this request.
+		language = i18n.Resolve(acceptLanguage(c.Event.Request), policyLanguageOf(&resolved)).Language
+		if shown != nil && shown.Language != "" {
+			language = shown.Language
+		}
 	}
 
 	if err := h.requireLegalDocumentProof(policyType, body); err != nil {
@@ -255,11 +269,11 @@ func (h *Handler) recordConsent(c *Ctx, body consentRequest) (Status, error) {
 			DomainID:     domain.Id,
 			TenantID:     c.TenantID(),
 			Categories:   body.Categories,
-			Policy:       decision.Policy,
+			Policy:       resolved,
 			Jurisdiction: code,
-			IPAddress:    storedIf(decision.Policy.Proof.StoresIP(), request.ClientIP(c.Event.Request.Header, h.ipOptions())),
-			UserAgent:    storedIf(decision.Policy.Proof.StoresUserAgent(), c.Event.Request.UserAgent()),
-			Language:     storedIf(decision.Policy.Proof.StoresLanguage(), language),
+			IPAddress:    storedIf(resolved.Proof.StoresIP(), request.ClientIP(c.Event.Request.Header, h.ipOptions())),
+			UserAgent:    storedIf(resolved.Proof.StoresUserAgent(), c.Event.Request.UserAgent()),
+			Language:     storedIf(resolved.Proof.StoresLanguage(), language),
 			UISource:     consent.UISource(body.UISource),
 			Action:       consent.Action(body.Action),
 			TCString:     body.TCString,
@@ -277,12 +291,15 @@ func (h *Handler) recordConsent(c *Ctx, body consentRequest) (Status, error) {
 			return err
 		}
 
-		rpd, err := h.upsertDecision(tx, loc, code, decision, policyType, policyRecord, language)
-		if err != nil {
-			return err
+		var rpd *core.Record
+		if decision != nil {
+			rpd, err = h.upsertDecision(tx, loc, code, decision, policyType, policyRecord, language)
+			if err != nil {
+				return err
+			}
 		}
 
-		stored, duplicate, err = h.insertConsent(tx, record, rpd, policyType, source)
+		stored, duplicate, err = h.insertConsent(tx, record, policyRecord, rpd, policyType, source)
 		if err != nil {
 			return err
 		}
@@ -296,10 +313,15 @@ func (h *Handler) recordConsent(c *Ctx, body consentRequest) (Status, error) {
 		return Status{}, err
 	}
 
+	policyID := stored.GetString("policy")
+	if decision != nil {
+		policyID = decision.Policy.ID
+	}
+
 	resp := consentResponse{
 		ID:         stored.Id,
 		SubjectID:  stored.GetString("subject"),
-		PolicyID:   decision.Policy.ID,
+		PolicyID:   policyID,
 		GivenAt:    stored.GetDateTime("givenAt").Time(),
 		ValidUntil: validUntilOf(stored),
 		Action:     stored.GetString("consentAction"),

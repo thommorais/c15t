@@ -107,6 +107,7 @@ func (h *Handler) upsertDecision(
 	}
 
 	record.Set("policy", storedPolicy.Id)
+	record.Set("packId", decision.Policy.ID)
 	record.Set("fingerprint", decision.Fingerprint)
 	record.Set("matchedBy", string(decision.MatchedBy))
 	record.Set("countryCode", loc.CountryCode)
@@ -171,6 +172,7 @@ func (h *Handler) findOrCreatePolicy(db *scope, policyType string) (*core.Record
 func (h *Handler) insertConsent(
 	db *scope,
 	rec consent.Record,
+	policyRecord *core.Record,
 	decision *core.Record,
 	policyType string,
 	source string,
@@ -203,8 +205,11 @@ func (h *Handler) insertConsent(
 
 	record.Set("subject", rec.SubjectID)
 	record.Set("domain", rec.DomainID)
-	record.Set("policy", decision.GetString("policy"))
-	record.Set("runtimePolicyDecision", decision.Id)
+	record.Set("policy", policyRecord.Id)
+	if decision != nil {
+		record.Set("runtimePolicyDecision", decision.Id)
+		record.Set("runtimePolicySource", source)
+	}
 	record.Set("purposes", purposeIDs)
 	record.Set("jurisdiction", rec.Jurisdiction)
 	record.Set("jurisdictionModel", rec.JurisdictionModel)
@@ -214,7 +219,6 @@ func (h *Handler) insertConsent(
 	record.Set("consentAction", string(rec.Action))
 	record.Set("tcString", rec.TCString)
 	record.Set("givenAt", rec.GivenAt)
-	record.Set("runtimePolicySource", source)
 	record.Set("submissionKey", key)
 
 	if rec.Metadata != nil {

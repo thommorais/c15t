@@ -1071,6 +1071,80 @@ func TestConfiguredIPHeadersDecideTheStoredAddressAndTheBucket(t *testing.T) {
 	}
 }
 
+func TestDecisionRecordsThePackThatApplied(t *testing.T) {
+	h := newHarness(t, api.DefaultConfig())
+
+	rec := h.do(http.MethodPost, "/api/c15t/consent",
+		`{"givenAt":"2026-03-01T12:00:00Z","externalId":"x","domain":"example.com","categories":["necessary"]}`,
+		auth(h.key(), "cf-ipcountry", "DE"))
+	if rec.Code != http.StatusCreated {
+		t.Fatalf("status = %d: %s", rec.Code, rec.Body.String())
+	}
+
+	decision, err := h.app.FindFirstRecordByFilter("runtimePolicyDecision", "id != ''", nil)
+	if err != nil {
+		t.Fatalf("find decision: %v", err)
+	}
+	if got := decision.GetString("packId"); got != "europe_opt_in" {
+		t.Errorf("packId = %q, want the pack that applied, europe_opt_in", got)
+	}
+}
+
+func TestLegalDocumentConsentIsNotAttachedToABannerDecision(t *testing.T) {
+	h := newHarness(t, snapshotConfig(true))
+	key := h.key()
+
+	docID := publishDocument(t, h, key, "privacy_policy", "1.0.0", "abc")
+
+	rec := h.do(http.MethodPost, "/api/c15t/consent",
+		`{"givenAt":"2026-03-01T12:00:00Z","externalId":"x","domain":"example.com","categories":["necessary"],"policyType":"privacy_policy","policyId":"`+docID+`"}`,
+		auth(key, "cf-ipcountry", "DE"))
+	if rec.Code != http.StatusCreated {
+		t.Fatalf("status = %d, want 201: a required cookie-policy snapshot does not apply to a legal document: %s", rec.Code, rec.Body.String())
+	}
+
+	stored, err := h.app.FindFirstRecordByFilter("consent", "id != ''", nil)
+	if err != nil {
+		t.Fatalf("find consent: %v", err)
+	}
+
+	if got := stored.GetString("runtimePolicyDecision"); got != "" {
+		t.Errorf("runtimePolicyDecision = %q, want none: the user did not see a banner policy", got)
+	}
+	if got := stored.GetString("runtimePolicySource"); got != "" {
+		t.Errorf("runtimePolicySource = %q, want empty", got)
+	}
+	if !stored.GetDateTime("validUntil").IsZero() {
+		t.Errorf("validUntil = %v, want none: a banner policy's expiry must not expire a legal document", stored.GetDateTime("validUntil"))
+	}
+	if got := stored.GetString("policy"); got != docID {
+		t.Errorf("policy = %q, want the legal document %q", got, docID)
+	}
+	if got := stored.GetString("jurisdiction"); got != "GDPR" {
+		t.Errorf("jurisdiction = %q, want GDPR from the request location", got)
+	}
+	if got := h.count("runtimePolicyDecision"); got != 0 {
+		t.Errorf("decision rows = %d, want 0", got)
+	}
+}
+
+func TestLegalDocumentConsentNeedsNoBannerPolicy(t *testing.T) {
+	cfg := api.DefaultConfig()
+	cfg.PolicyPacks = []policy.Config{}
+
+	h := newHarness(t, cfg)
+	key := h.key()
+
+	docID := publishDocument(t, h, key, "privacy_policy", "1.0.0", "abc")
+
+	rec := h.do(http.MethodPost, "/api/c15t/consent",
+		`{"givenAt":"2026-03-01T12:00:00Z","externalId":"x","domain":"example.com","categories":["necessary"],"policyType":"privacy_policy","policyId":"`+docID+`"}`,
+		auth(key, "cf-ipcountry", "DE"))
+	if rec.Code != http.StatusCreated {
+		t.Errorf("status = %d, want 201 with no banner pack configured: %s", rec.Code, rec.Body.String())
+	}
+}
+
 func TestConsentReusesSubjectAndDomain(t *testing.T) {
 	h := newHarness(t, api.DefaultConfig())
 	key := h.key()
