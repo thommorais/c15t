@@ -1037,6 +1037,40 @@ func TestConsentStoresTheNoticeAsShown(t *testing.T) {
 	}
 }
 
+func TestConfiguredIPHeadersDecideTheStoredAddressAndTheBucket(t *testing.T) {
+	cfg := rateLimitedConfig()
+	cfg.IPHeaders = []string{"x-real-ip"}
+
+	h := newHarness(t, cfg)
+	key := h.key()
+
+	rec := h.do(http.MethodPost, "/api/c15t/consent",
+		`{"givenAt":"2026-03-01T12:00:00Z","externalId":"x","domain":"example.com","categories":["necessary"]}`,
+		auth(key, "cf-ipcountry", "DE", "X-Real-IP", "203.0.113.55", "X-Forwarded-For", "198.51.100.77"))
+	if rec.Code != http.StatusCreated {
+		t.Fatalf("status = %d: %s", rec.Code, rec.Body.String())
+	}
+
+	stored, err := h.app.FindFirstRecordByFilter("consent", "id != ''", nil)
+	if err != nil {
+		t.Fatalf("find consent: %v", err)
+	}
+	if got := stored.GetString("ipAddress"); got != "203.0.113.0" {
+		t.Errorf("ipAddress = %q, want the x-real-ip address, masked: an untrusted header must not be stored", got)
+	}
+
+	url := "/api/c15t/consents/check?externalId=x&type=cookie_banner"
+	for i := range 2 {
+		spoof := "198.51.100." + strconv.Itoa(i+1)
+		if rec := h.do(http.MethodGet, url, "", auth(key, "X-Real-IP", "203.0.113.55", "X-Forwarded-For", spoof)); rec.Code != http.StatusOK {
+			t.Fatalf("request %d status = %d: %s", i+1, rec.Code, rec.Body.String())
+		}
+	}
+	if rec := h.do(http.MethodGet, url, "", auth(key, "X-Real-IP", "203.0.113.55", "X-Forwarded-For", "198.51.100.3")); rec.Code != http.StatusTooManyRequests {
+		t.Errorf("status = %d, want 429: rotating an untrusted header must not give a fresh bucket", rec.Code)
+	}
+}
+
 func TestConsentReusesSubjectAndDomain(t *testing.T) {
 	h := newHarness(t, api.DefaultConfig())
 	key := h.key()

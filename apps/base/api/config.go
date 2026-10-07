@@ -21,6 +21,11 @@ type Config struct {
 	TrackIPDisabled bool
 	MaskIPDisabled  bool
 
+	// IPHeaders are the only headers read for a client address, in order. Set it
+	// to the header your proxy writes: the default list also trusts headers a
+	// client can send itself, so a caller could pick its own address.
+	IPHeaders []string
+
 	// Snapshot tokens are off until a secret is configured. SnapshotRequired
 	// rejects a write without a valid token; otherwise a failure falls back to
 	// resolving the policy for the request as it arrives.

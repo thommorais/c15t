@@ -100,7 +100,7 @@ func handle[B any, R any](h *Handler, need apikey.Scope, fn func(*Ctx, B) (R, er
 		}
 
 		limiter := h.limiterFor(e.Request.Method, e.Request.URL.Path)
-		bucket := tenant.KeyID + "|" + rateAddress(e.Request)
+		bucket := tenant.KeyID + "|" + rateAddress(e.Request, h.cfg.IPHeaders)
 
 		if now := time.Now(); !limiter.Allow(bucket, now) {
 			retry := limiter.RetryAfter(bucket, now)
@@ -145,8 +145,8 @@ var rateSalt = func() []byte {
 // address is therefore read raw but only its keyed hash is held, under a salt
 // that exists only in this process, so the limiter never holds an address and
 // the bucket names cannot be reversed after a restart.
-func rateAddress(r *http.Request) string {
-	addr := request.ClientIP(r.Header, request.IPOptions{DisableMasking: true})
+func rateAddress(r *http.Request, headers []string) string {
+	addr := request.ClientIP(r.Header, request.IPOptions{DisableMasking: true, Headers: headers})
 	if addr == "" {
 		addr = r.RemoteAddr
 		if host, _, err := net.SplitHostPort(addr); err == nil {

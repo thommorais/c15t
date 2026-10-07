@@ -392,6 +392,7 @@ func (h *Handler) ipOptions() request.IPOptions {
 	return request.IPOptions{
 		DisableTracking: h.cfg.TrackIPDisabled,
 		DisableMasking:  h.cfg.MaskIPDisabled,
+		Headers:         h.cfg.IPHeaders,
 	}
 }
 

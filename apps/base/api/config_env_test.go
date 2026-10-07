@@ -1,6 +1,7 @@
 package api
 
 import (
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -90,5 +91,26 @@ func TestConfigFromEnvRejectsBadValues(t *testing.T) {
 				t.Fatalf("want error naming %s, got %v", tt.want, err)
 			}
 		})
+	}
+}
+
+func TestConfigFromEnvReadsTheTrustedIPHeaders(t *testing.T) {
+	got, err := ConfigFromEnv(envFrom(map[string]string{"C15T_IP_HEADERS": " CF-Connecting-IP , x-real-ip ,, "}))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if want := []string{"cf-connecting-ip", "x-real-ip"}; !slices.Equal(got.IPHeaders, want) {
+		t.Errorf("IPHeaders = %v, want %v", got.IPHeaders, want)
+	}
+
+	unset, err := ConfigFromEnv(envFrom(nil))
+	if err != nil || unset.IPHeaders != nil {
+		t.Errorf("unset: IPHeaders = %v (%v), want nil so the defaults apply", unset.IPHeaders, err)
+	}
+
+	for _, bad := range []string{"x real ip", "x-real-ip:", "x/real"} {
+		if _, err := ConfigFromEnv(envFrom(map[string]string{"C15T_IP_HEADERS": bad})); err == nil || !strings.Contains(err.Error(), "C15T_IP_HEADERS") {
+			t.Errorf("%q: want an error naming C15T_IP_HEADERS, got %v", bad, err)
+		}
 	}
 }

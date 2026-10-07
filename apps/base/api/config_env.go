@@ -3,6 +3,7 @@ package api
 import (
 	"fmt"
 	"strconv"
+	"strings"
 	"time"
 
 	"thom/core/ratelimit"
@@ -14,6 +15,12 @@ func ConfigFromEnv(getenv func(string) string) (Config, error) {
 	cfg.SnapshotSecret = getenv("C15T_SNAPSHOT_SECRET")
 	cfg.SnapshotIssuer = getenv("C15T_SNAPSHOT_ISSUER")
 	cfg.SnapshotAudience = getenv("C15T_SNAPSHOT_AUDIENCE")
+
+	headers, err := parseHeaderNames("C15T_IP_HEADERS", getenv("C15T_IP_HEADERS"))
+	if err != nil {
+		return Config{}, err
+	}
+	cfg.IPHeaders = headers
 
 	bools := []struct {
 		key string
@@ -73,4 +80,23 @@ func ConfigFromEnv(getenv func(string) string) (Config, error) {
 	}
 
 	return cfg, nil
+}
+
+func parseHeaderNames(name, raw string) ([]string, error) {
+	var out []string
+
+	for _, entry := range strings.Split(raw, ",") {
+		entry = strings.ToLower(strings.TrimSpace(entry))
+		if entry == "" {
+			continue
+		}
+		for _, r := range entry {
+			if !(r >= 'a' && r <= 'z' || r >= '0' && r <= '9' || r == '-' || r == '_') {
+				return nil, fmt.Errorf("%s: %q is not a header name", name, entry)
+			}
+		}
+		out = append(out, entry)
+	}
+
+	return out, nil
 }

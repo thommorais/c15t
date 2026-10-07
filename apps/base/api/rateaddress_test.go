@@ -6,13 +6,13 @@ import (
 	"testing"
 )
 
-func rateAddressFor(remote string, headers map[string]string) string {
+func rateAddressFor(remote string, headers map[string]string, trusted ...string) string {
 	r := httptest.NewRequest("GET", "/", nil)
 	r.RemoteAddr = remote
 	for k, v := range headers {
 		r.Header.Set(k, v)
 	}
-	return rateAddress(r)
+	return rateAddress(r, trusted)
 }
 
 func TestRateAddressNeverExposesTheClientAddress(t *testing.T) {
@@ -39,5 +39,26 @@ func TestRateAddressIsStablePerClient(t *testing.T) {
 	}
 	if a == c {
 		t.Errorf("different clients share %q", a)
+	}
+}
+
+func TestRateAddressUsesOnlyTheConfiguredHeaders(t *testing.T) {
+	trusted := []string{"x-real-ip"}
+
+	first := rateAddressFor("10.0.0.1:1", map[string]string{"x-real-ip": "203.0.113.7", "x-forwarded-for": "198.51.100.1"}, trusted...)
+	rotated := rateAddressFor("10.0.0.1:1", map[string]string{"x-real-ip": "203.0.113.7", "x-forwarded-for": "198.51.100.2"}, trusted...)
+	if first != rotated {
+		t.Error("rotating an untrusted header changed the bucket")
+	}
+
+	other := rateAddressFor("10.0.0.1:1", map[string]string{"x-real-ip": "203.0.113.8"}, trusted...)
+	if first == other {
+		t.Error("different clients on the trusted header share a bucket")
+	}
+
+	peerOnly := rateAddressFor("10.0.0.1:1", map[string]string{"x-forwarded-for": "198.51.100.1"}, trusted...)
+	peerAgain := rateAddressFor("10.0.0.1:1", map[string]string{"x-forwarded-for": "198.51.100.9"}, trusted...)
+	if peerOnly != peerAgain {
+		t.Error("without the trusted header the peer address should decide the bucket")
 	}
 }
