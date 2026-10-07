@@ -19,6 +19,7 @@ import (
 
 	"thom/api"
 	"thom/core/apikey"
+	"thom/core/docsnapshot"
 	"thom/core/policy"
 	"thom/core/ratelimit"
 	_ "thom/migrations"
@@ -2384,7 +2385,7 @@ func TestConsentRejectsInactivePolicy(t *testing.T) {
 	}
 }
 
-func TestLegalDocumentConsentAllowedWithSnapshotSigner(t *testing.T) {
+func TestLegalDocumentConsentStillNeedsProofWhenOnlyThePolicySignerIsConfigured(t *testing.T) {
 	h := newHarness(t, snapshotConfig(false))
 	key := h.key()
 
@@ -2392,8 +2393,154 @@ func TestLegalDocumentConsentAllowedWithSnapshotSigner(t *testing.T) {
 		`{"givenAt":"2026-03-01T12:00:00Z","externalId":"x","domain":"example.com","categories":["necessary"],"policyType":"privacy_policy"}`,
 		auth(key, "cf-ipcountry", "DE"),
 	)
+	wantEnvelope(t, rec, http.StatusConflict, "LEGAL_DOCUMENT_PROOF_REQUIRED")
+}
+
+const docSecret = "doc-secret"
+
+func docConfig() api.Config {
+	cfg := api.DefaultConfig()
+	cfg.LegalDocSnapshotSecret = docSecret
+	return cfg
+}
+
+func docToken(t *testing.T, secret, docType, version, hash string, issuedAt time.Time) string {
+	t.Helper()
+
+	token, err := docsnapshot.NewSigner(secret, "", "", 0).Sign(docsnapshot.Payload{
+		Type:          docType,
+		Version:       version,
+		Hash:          hash,
+		EffectiveDate: "2026-01-01T00:00:00.000Z",
+	}, issuedAt)
+	if err != nil {
+		t.Fatalf("sign: %v", err)
+	}
+	return token
+}
+
+func legalConsent(h *harness, docType, token string) *httptest.ResponseRecorder {
+	extra := ""
+	if token != "" {
+		extra = `,"documentSnapshotToken":"` + token + `"`
+	}
+	return h.do(http.MethodPost, "/api/c15t/consent",
+		`{"givenAt":"2026-03-01T12:00:00Z","externalId":"x","domain":"example.com","categories":["necessary"],"policyType":"`+docType+`"`+extra+`}`,
+		auth(h.key(), "cf-ipcountry", "DE"))
+}
+
+func TestLegalDocumentTokenRecordsTheReleaseShown(t *testing.T) {
+	h := newHarness(t, docConfig())
+	key := h.key()
+
+	publishDocument(t, h, key, "privacy_policy", "2027-01-01", "current")
+
+	token := docToken(t, docSecret, "privacy_policy", "2026-01-01", "sha256:old", time.Now())
+	rec := legalConsent(h, "privacy_policy", token)
 	if rec.Code != http.StatusCreated {
-		t.Errorf("status = %d, want 201 when a signing key is configured: %s", rec.Code, rec.Body.String())
+		t.Fatalf("status = %d: %s", rec.Code, rec.Body.String())
+	}
+
+	stored, err := h.app.FindFirstRecordByFilter("consent", "id != ''", nil)
+	if err != nil {
+		t.Fatalf("find consent: %v", err)
+	}
+	policyRecord, err := h.app.FindRecordById("consentPolicy", stored.GetString("policy"))
+	if err != nil {
+		t.Fatalf("find policy: %v", err)
+	}
+
+	if policyRecord.GetString("hash") != "sha256:old" || policyRecord.GetString("version") != "2026-01-01" {
+		t.Errorf("consent is on %s/%s, want the release the token names, not the active one",
+			policyRecord.GetString("version"), policyRecord.GetString("hash"))
+	}
+	if policyRecord.GetBool("isActive") {
+		t.Error("a historical release must be recorded inactive, not promoted")
+	}
+
+	active, err := h.app.FindFirstRecordByFilter("consentPolicy", "type = 'privacy_policy' && isActive = true", nil)
+	if err != nil || active.GetString("hash") != "current" {
+		t.Errorf("the active release changed: %v (%v)", active, err)
+	}
+
+	again := h.do(http.MethodPost, "/api/c15t/consent",
+		`{"givenAt":"2026-03-02T12:00:00Z","externalId":"y","domain":"example.com","categories":["necessary"],"policyType":"privacy_policy","documentSnapshotToken":"`+token+`"}`,
+		auth(key, "cf-ipcountry", "DE"))
+	if again.Code != http.StatusCreated {
+		t.Fatalf("second consent status = %d: %s", again.Code, again.Body.String())
+	}
+	if got := h.count("consentPolicy"); got != 2 {
+		t.Errorf("consentPolicy rows = %d, want 2 (the active release and one historical release, reused)", got)
+	}
+}
+
+func TestLegalDocumentTokenIsRequiredWhenConfigured(t *testing.T) {
+	good := func(t *testing.T) string {
+		return docToken(t, docSecret, "privacy_policy", "2026-01-01", "sha256:old", time.Now())
+	}
+
+	tests := []struct {
+		name  string
+		token func(t *testing.T) string
+		want  string
+	}{
+		{name: "missing", token: func(*testing.T) string { return "" }, want: "LEGAL_DOCUMENT_SNAPSHOT_REQUIRED"},
+		{name: "malformed", token: func(*testing.T) string { return "not-a-jwt" }, want: "LEGAL_DOCUMENT_SNAPSHOT_INVALID"},
+		{name: "another secret", token: func(t *testing.T) string {
+			return docToken(t, "other", "privacy_policy", "2026-01-01", "sha256:old", time.Now())
+		}, want: "LEGAL_DOCUMENT_SNAPSHOT_INVALID"},
+		{name: "expired", token: func(t *testing.T) string {
+			return docToken(t, docSecret, "privacy_policy", "2026-01-01", "sha256:old", time.Now().Add(-time.Hour))
+		}, want: "LEGAL_DOCUMENT_SNAPSHOT_EXPIRED"},
+		{name: "another document type", token: func(t *testing.T) string {
+			return docToken(t, docSecret, "dpa", "2026-01-01", "sha256:old", time.Now())
+		}, want: "LEGAL_DOCUMENT_SNAPSHOT_INVALID"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			h := newHarness(t, docConfig())
+			wantEnvelope(t, legalConsent(h, "privacy_policy", tt.token(t)), http.StatusConflict, tt.want)
+			if got := h.count("consent"); got != 0 {
+				t.Errorf("consent rows = %d, want 0", got)
+			}
+		})
+	}
+
+	t.Run("a policy reference does not replace the token", func(t *testing.T) {
+		h := newHarness(t, docConfig())
+		docID := publishDocument(t, h, h.key(), "privacy_policy", "1.0.0", "abc")
+
+		rec := h.do(http.MethodPost, "/api/c15t/consent",
+			`{"givenAt":"2026-03-01T12:00:00Z","externalId":"x","domain":"example.com","categories":["necessary"],"policyType":"privacy_policy","policyId":"`+docID+`"}`,
+			auth(h.key(), "cf-ipcountry", "DE"))
+		wantEnvelope(t, rec, http.StatusConflict, "LEGAL_DOCUMENT_SNAPSHOT_REQUIRED")
+	})
+
+	t.Run("a valid token is accepted", func(t *testing.T) {
+		h := newHarness(t, docConfig())
+		if rec := legalConsent(h, "privacy_policy", good(t)); rec.Code != http.StatusCreated {
+			t.Errorf("status = %d: %s", rec.Code, rec.Body.String())
+		}
+	})
+}
+
+func TestLegalDocumentTokenForAConflictingReleaseIsRejected(t *testing.T) {
+	h := newHarness(t, docConfig())
+	publishDocument(t, h, h.key(), "privacy_policy", "2026-01-01", "sha256:published")
+
+	token := docToken(t, docSecret, "privacy_policy", "2026-01-01", "sha256:different", time.Now())
+	wantEnvelope(t, legalConsent(h, "privacy_policy", token), http.StatusConflict, "LEGAL_DOCUMENT_RELEASE_CONFLICT")
+}
+
+func TestPolicyReferencesApplyOnlyToLegalDocuments(t *testing.T) {
+	h := newHarness(t, api.DefaultConfig())
+
+	rec := h.do(http.MethodPost, "/api/c15t/consent",
+		`{"givenAt":"2026-03-01T12:00:00Z","externalId":"x","domain":"example.com","categories":["necessary"],"policyId":"doesnotexist00","policyHash":"nosuchhash"}`,
+		auth(h.key(), "cf-ipcountry", "DE"))
+	if rec.Code != http.StatusCreated {
+		t.Errorf("status = %d, want 201: a cookie consent ignores a policy reference: %s", rec.Code, rec.Body.String())
 	}
 }
 

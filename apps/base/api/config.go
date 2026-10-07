@@ -36,6 +36,14 @@ type Config struct {
 	SnapshotTTL      time.Duration
 	SnapshotRequired bool
 
+	// Legal-document snapshot tokens are proof of which release of a document a
+	// visitor was shown. They are issued by whatever renders the document and
+	// signed with this shared secret. With a secret set, a consent to a legal
+	// document must carry one; the audience is used as written when set.
+	LegalDocSnapshotSecret   string
+	LegalDocSnapshotIssuer   string
+	LegalDocSnapshotAudience string
+
 	// Rate limits are per api key and client address. A zero Limit disables the
 	// rule. CheckRate guards the cross-device check, which answers questions
 	// about an arbitrary externalId and is the easiest endpoint to abuse.

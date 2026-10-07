@@ -10,6 +10,7 @@ import (
 
 	"thom/core/apikey"
 	"thom/core/consent"
+	"thom/core/docsnapshot"
 	"thom/core/i18n"
 	"thom/core/jurisdiction"
 	"thom/core/policy"
@@ -22,6 +23,8 @@ type Handler struct {
 	app    core.App
 	cfg    Config
 	signer *snapshot.Signer
+
+	docSigner *docsnapshot.Signer
 
 	checkLimiter *ratelimit.Limiter
 	writeLimiter *ratelimit.Limiter
@@ -54,6 +57,15 @@ func Register(app core.App, se *core.ServeEvent, cfg Config) {
 			cfg.SnapshotIssuer,
 			cfg.SnapshotAudience,
 			cfg.SnapshotTTL,
+		)
+	}
+
+	if cfg.LegalDocSnapshotSecret != "" {
+		h.docSigner = docsnapshot.NewSigner(
+			cfg.LegalDocSnapshotSecret,
+			cfg.LegalDocSnapshotIssuer,
+			cfg.LegalDocSnapshotAudience,
+			0,
 		)
 	}
 
@@ -162,6 +174,7 @@ type consentRequest struct {
 	TCString      string         `json:"tcString"`
 	GivenAt       *time.Time     `json:"givenAt"`
 	SnapshotToken string         `json:"policySnapshotToken"`
+	DocumentToken string         `json:"documentSnapshotToken"`
 	Metadata      map[string]any `json:"metadata"`
 }
 
@@ -202,6 +215,9 @@ func (h *Handler) recordConsent(c *Ctx, body consentRequest) (Status, error) {
 		language string
 		source   = sourceWriteTime
 		err      error
+
+		release   *docsnapshot.Payload
+		effective time.Time
 	)
 
 	if consent.IsLegalDocumentType(policyType) {
@@ -210,6 +226,13 @@ func (h *Handler) recordConsent(c *Ctx, body consentRequest) (Status, error) {
 		// recorded as having been shown.
 		loc = h.locationOf(c.Event.Request)
 		code = jurisdiction.Resolve(loc, h.cfg.GeoDisabled)
+
+		if h.docSigner != nil {
+			release, effective, err = h.verifyDocumentSnapshot(body.DocumentToken, policyType, c.TenantID())
+			if err != nil {
+				return Status{}, err
+			}
+		}
 	} else {
 		var shown *snapshot.Payload
 		if shown, err = h.verifySnapshot(body.SnapshotToken, c.TenantID()); err != nil {
@@ -286,7 +309,12 @@ func (h *Handler) recordConsent(c *Ctx, body consentRequest) (Status, error) {
 			return err
 		}
 
-		policyRecord, err := h.resolvePolicyRecord(tx, policyType, body)
+		var policyRecord *core.Record
+		if release != nil {
+			policyRecord, err = h.findOrCreateLegalDocumentPolicy(tx, policyType, release.Version, release.Hash, effective)
+		} else {
+			policyRecord, err = h.resolvePolicyRecord(tx, policyType, body)
+		}
 		if err != nil {
 			return err
 		}

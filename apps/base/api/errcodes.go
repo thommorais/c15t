@@ -20,6 +20,9 @@ const (
 	codeSnapshotExpired       = "POLICY_SNAPSHOT_EXPIRED"
 	codeSnapshotInvalid       = "POLICY_SNAPSHOT_INVALID"
 	codeProofRequired         = "LEGAL_DOCUMENT_PROOF_REQUIRED"
+	codeDocSnapshotRequired   = "LEGAL_DOCUMENT_SNAPSHOT_REQUIRED"
+	codeDocSnapshotExpired    = "LEGAL_DOCUMENT_SNAPSHOT_EXPIRED"
+	codeDocSnapshotInvalid    = "LEGAL_DOCUMENT_SNAPSHOT_INVALID"
 	codeReleaseConflict       = "LEGAL_DOCUMENT_RELEASE_CONFLICT"
 )
 

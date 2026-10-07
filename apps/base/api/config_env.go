@@ -15,6 +15,9 @@ func ConfigFromEnv(getenv func(string) string) (Config, error) {
 	cfg.SnapshotSecret = getenv("C15T_SNAPSHOT_SECRET")
 	cfg.SnapshotIssuer = getenv("C15T_SNAPSHOT_ISSUER")
 	cfg.SnapshotAudience = getenv("C15T_SNAPSHOT_AUDIENCE")
+	cfg.LegalDocSnapshotSecret = getenv("C15T_LEGAL_DOC_SNAPSHOT_SECRET")
+	cfg.LegalDocSnapshotIssuer = getenv("C15T_LEGAL_DOC_SNAPSHOT_ISSUER")
+	cfg.LegalDocSnapshotAudience = getenv("C15T_LEGAL_DOC_SNAPSHOT_AUDIENCE")
 
 	headers, err := parseHeaderNames("C15T_IP_HEADERS", getenv("C15T_IP_HEADERS"))
 	if err != nil {

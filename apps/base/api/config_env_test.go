@@ -114,3 +114,22 @@ func TestConfigFromEnvReadsTheTrustedIPHeaders(t *testing.T) {
 		}
 	}
 }
+
+func TestConfigFromEnvReadsTheLegalDocumentSnapshotSettings(t *testing.T) {
+	got, err := ConfigFromEnv(envFrom(map[string]string{
+		"C15T_LEGAL_DOC_SNAPSHOT_SECRET":   "doc-secret",
+		"C15T_LEGAL_DOC_SNAPSHOT_ISSUER":   "renderer",
+		"C15T_LEGAL_DOC_SNAPSHOT_AUDIENCE": "docs.example",
+	}))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.LegalDocSnapshotSecret != "doc-secret" || got.LegalDocSnapshotIssuer != "renderer" || got.LegalDocSnapshotAudience != "docs.example" {
+		t.Errorf("legal document snapshot settings not read: %+v", got)
+	}
+
+	unset, _ := ConfigFromEnv(envFrom(nil))
+	if unset.LegalDocSnapshotSecret != "" {
+		t.Errorf("secret = %q, want none so tokens stay off", unset.LegalDocSnapshotSecret)
+	}
+}
