@@ -103,6 +103,10 @@ func (h *Handler) init(c *Ctx, _ any) (initResponse, error) {
 		},
 	}
 
+	if decision == nil {
+		resp.Policy = noBannerPolicy()
+	}
+
 	if decision != nil {
 		resp.Policy = &decision.Policy
 		resp.Decision = &decisionPayload{
@@ -120,6 +124,17 @@ func (h *Handler) init(c *Ctx, _ any) (initResponse, error) {
 	}
 
 	return resp, nil
+}
+
+// noBannerPolicy is what a client is told when no policy applies, so that
+// "show nothing" is an explicit answer and not an absent field.
+func noBannerPolicy() *policy.Resolved {
+	mode := policy.UIModeNone
+	return &policy.Resolved{
+		ID:    "no_banner",
+		Model: policy.ModelNone,
+		UI:    &policy.ResolvedUI{Mode: &mode},
+	}
 }
 
 type consentRequest struct {

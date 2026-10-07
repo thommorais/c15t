@@ -334,6 +334,54 @@ func TestInitGeoDisabledFallsBackToGDPR(t *testing.T) {
 	}
 }
 
+func TestInitWithoutAMatchingPolicyIsNoBannerMode(t *testing.T) {
+	californiaOnly := []policy.Config{{
+		ID:      "california",
+		Match:   policy.MatchRegions([]policy.Region{{Country: "US", Region: "CA"}}),
+		Consent: &policy.ConsentConfig{Model: ptrTo(policy.ModelOptOut)},
+		UI:      &policy.UIConfig{Mode: ptrTo(policy.UIModeBanner)},
+	}}
+
+	tests := []struct {
+		name  string
+		packs []policy.Config
+	}{
+		{name: "explicit empty pack", packs: []policy.Config{}},
+		{name: "pack with no match for the request", packs: californiaOnly},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cfg := snapshotConfig(true)
+			cfg.PolicyPacks = tt.packs
+
+			h := newHarness(t, cfg)
+			rec := h.do(http.MethodGet, "/api/c15t/init", "", auth(h.key(), "cf-ipcountry", "DE"))
+			if rec.Code != http.StatusOK {
+				t.Fatalf("status = %d: %s", rec.Code, rec.Body.String())
+			}
+
+			body := decode(t, rec)
+			shown, ok := body["policy"].(map[string]any)
+			if !ok {
+				t.Fatalf("policy missing, a client cannot tell no banner from a failure: %s", rec.Body.String())
+			}
+			if shown["id"] != "no_banner" || shown["model"] != "none" {
+				t.Errorf("policy = %v, want id no_banner and model none", shown)
+			}
+			if ui, _ := shown["ui"].(map[string]any); ui["mode"] != "none" {
+				t.Errorf("ui = %v, want mode none", shown["ui"])
+			}
+			if _, present := body["policyDecision"]; present {
+				t.Error("a no-banner response must carry no policy decision")
+			}
+			if _, present := body["policySnapshotToken"]; present {
+				t.Error("a no-banner response must carry no snapshot token")
+			}
+		})
+	}
+}
+
 func TestConsentWrite(t *testing.T) {
 	h := newHarness(t, api.DefaultConfig())
 	key := h.key()
@@ -845,6 +893,8 @@ func TestListConsentRequiresAuth(t *testing.T) {
 		t.Errorf("status = %d, want 401", rec.Code)
 	}
 }
+
+func ptrTo[T any](v T) *T { return &v }
 
 func strictPack() []policy.Config {
 	strict := policy.ScopeStrict
