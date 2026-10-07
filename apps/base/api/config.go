@@ -69,6 +69,7 @@ func DefaultConfig() Config {
 			policy.PresetEurope(policy.ModelOptIn),
 			policy.PresetCalifornia(policy.ModelOptOut),
 			policy.PresetQuebec(),
+			policy.PresetBrazilOptIn(),
 			policy.PresetWorldNoBanner(),
 		},
 	}

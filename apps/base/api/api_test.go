@@ -541,6 +541,70 @@ func TestInitStillCarriesTranslationsWithoutAPolicy(t *testing.T) {
 	}
 }
 
+func TestBrazilGetsTheOptInBannerByDefault(t *testing.T) {
+	h := newHarness(t, api.DefaultConfig())
+	key := h.key()
+
+	rec := h.do(http.MethodGet, "/api/c15t/init", "", auth(key, "cf-ipcountry", "BR", "Accept-Language", "pt-BR"))
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d: %s", rec.Code, rec.Body.String())
+	}
+
+	body := decode(t, rec)
+	if body["jurisdiction"] != "BR" {
+		t.Errorf("jurisdiction = %v, want BR", body["jurisdiction"])
+	}
+	shown, _ := body["policy"].(map[string]any)
+	if shown["id"] != "brazil_opt_in" || shown["model"] != "opt-in" {
+		t.Errorf("policy = %v, want brazil_opt_in, opt-in", shown)
+	}
+	if ui, _ := shown["ui"].(map[string]any); ui["mode"] != "banner" {
+		t.Errorf("ui = %v, want a banner", shown["ui"])
+	}
+	if tr, _ := body["translations"].(map[string]any); tr["language"] != "pt-BR" {
+		t.Errorf("translations = %v, want pt-BR", tr["language"])
+	}
+
+	post := func(categories string) *httptest.ResponseRecorder {
+		return h.do(http.MethodPost, "/api/c15t/consent",
+			`{"givenAt":"2026-03-01T12:00:00Z","externalId":"x","domain":"example.com","categories":`+categories+`}`,
+			auth(key, "cf-ipcountry", "BR"))
+	}
+
+	wantEnvelope(t, post(`["necessary","experience"]`), http.StatusBadRequest, "PURPOSE_NOT_ALLOWED")
+
+	if rec := post(`["necessary","measurement"]`); rec.Code != http.StatusCreated {
+		t.Fatalf("status = %d: %s", rec.Code, rec.Body.String())
+	}
+	stored, err := h.app.FindFirstRecordByFilter("consent", "id != ''", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !stored.GetDateTime("validUntil").IsZero() {
+		t.Errorf("validUntil = %v, want none: the law sets no consent period", stored.GetDateTime("validUntil"))
+	}
+	if got := stored.GetString("jurisdiction"); got != "BR" {
+		t.Errorf("jurisdiction = %q, want BR", got)
+	}
+}
+
+func TestBrazilOptOutPresetCanReplaceTheDefault(t *testing.T) {
+	cfg := api.DefaultConfig()
+	cfg.PolicyPacks = []policy.Config{policy.PresetEurope(policy.ModelOptIn), policy.PresetBrazilOptOut(), policy.PresetWorldNoBanner()}
+
+	if warnings, err := api.ValidateConfig(cfg); err != nil || len(warnings) != 0 {
+		t.Fatalf("ValidateConfig: warnings = %v, err = %v", warnings, err)
+	}
+
+	h := newHarness(t, cfg)
+	rec := h.do(http.MethodGet, "/api/c15t/init", "", auth(h.key(), "cf-ipcountry", "BR"))
+
+	shown, _ := decode(t, rec)["policy"].(map[string]any)
+	if shown["id"] != "brazil_opt_out" || shown["model"] != "opt-out" {
+		t.Errorf("policy = %v, want brazil_opt_out, opt-out", shown)
+	}
+}
+
 func TestInitWithoutAMatchingPolicyIsNoBannerMode(t *testing.T) {
 	californiaOnly := []policy.Config{{
 		ID:      "california",

@@ -90,6 +90,53 @@ func PresetQuebec() Config {
 	}
 }
 
+func brazilBanner() *UIConfig {
+	return &UIConfig{
+		Mode:   ptrOf(UIModeBanner),
+		Banner: splitRowSurface(),
+		Dialog: splitRowSurface(),
+	}
+}
+
+// PresetBrazilOptIn is the default for Brazil. The LGPD sets no consent period,
+// so ExpiryDays is left unset: consent holds until the visitor withdraws it or
+// the notice changes, which a new fingerprint surfaces as a stale policy. The
+// ANPD cookie guide advises consent for non-necessary cookies, nothing
+// pre-selected, and a reject button beside accept on the first layer.
+func PresetBrazilOptIn() Config {
+	return Config{
+		ID:    "brazil_opt_in",
+		Match: MatchCountries([]string{"BR"}),
+		Consent: &ConsentConfig{
+			Model:      ptrOf(ModelOptIn),
+			ScopeMode:  ptrOf(ScopeStrict),
+			Categories: []string{"necessary", "functionality", "measurement", "marketing"},
+		},
+		UI:    brazilBanner(),
+		Proof: fullProof(),
+	}
+}
+
+// PresetBrazilOptOut is for a site that only measures audience and relies on
+// legitimate interest, which the ANPD guide allows under conditions this
+// backend cannot check (aggregated data, no profiling, no combination with
+// other tracking). Scope is limited to measurement so nothing else can be
+// recorded, and the banner keeps a way to refuse. Use it instead of
+// PresetBrazilOptIn, not beside it: both match BR.
+func PresetBrazilOptOut() Config {
+	return Config{
+		ID:    "brazil_opt_out",
+		Match: MatchCountries([]string{"BR"}),
+		Consent: &ConsentConfig{
+			Model:      ptrOf(ModelOptOut),
+			ScopeMode:  ptrOf(ScopeStrict),
+			Categories: []string{"necessary", "measurement"},
+		},
+		UI:    brazilBanner(),
+		Proof: fullProof(),
+	}
+}
+
 func PresetWorldNoBanner() Config {
 	return Config{
 		ID:      "world_no_banner",
