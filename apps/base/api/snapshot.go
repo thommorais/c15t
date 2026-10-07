@@ -14,6 +14,7 @@ func (h *Handler) signSnapshot(
 	loc jurisdiction.Location,
 	code jurisdiction.Code,
 	decision *policy.Decision,
+	language string,
 ) (string, error) {
 	if h.signer == nil {
 		return "", nil
@@ -28,6 +29,7 @@ func (h *Handler) signSnapshot(
 		Country:      loc.CountryCode,
 		Region:       loc.RegionCode,
 		Jurisdiction: string(code),
+		Language:     language,
 		Model:        string(decision.Policy.Model),
 	}
 
@@ -41,9 +43,6 @@ func (h *Handler) signSnapshot(
 
 	if i18n := decision.Policy.I18n; i18n != nil {
 		p.PolicyI18n = i18n
-		if i18n.Language != nil {
-			p.Language = *i18n.Language
-		}
 	}
 
 	if ui := decision.Policy.UI; ui != nil {

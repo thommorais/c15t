@@ -72,6 +72,7 @@ func (h *Handler) upsertDecision(
 	decision *policy.Decision,
 	policyType string,
 	storedPolicy *core.Record,
+	language string,
 ) (*core.Record, error) {
 	key := consent.DedupeKey(consent.DecisionKey{
 		TenantID:     db.tenant,
@@ -81,6 +82,7 @@ func (h *Handler) upsertDecision(
 		CountryCode:  loc.CountryCode,
 		RegionCode:   loc.RegionCode,
 		Jurisdiction: string(code),
+		Language:     language,
 	})
 
 	if existing, err := db.FindFirst(
@@ -103,6 +105,7 @@ func (h *Handler) upsertDecision(
 	record.Set("regionCode", loc.RegionCode)
 	record.Set("jurisdiction", string(code))
 	record.Set("model", string(decision.Policy.Model))
+	record.Set("language", language)
 	record.Set("dedupeKey", key)
 
 	if c := decision.Policy.Consent; c != nil {
@@ -121,9 +124,6 @@ func (h *Handler) upsertDecision(
 	}
 	if i18n := decision.Policy.I18n; i18n != nil {
 		record.Set("policyI18n", i18n)
-		if i18n.Language != nil {
-			record.Set("language", *i18n.Language)
-		}
 	}
 
 	if err := db.Save(record); err != nil {

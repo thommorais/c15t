@@ -58,9 +58,14 @@ func IsInvalid(err error) bool {
 	return errors.Is(err, ErrInvalid) || errors.Is(err, ErrOutOfScope)
 }
 
-// ClientClaimKey is the metadata key under which a rejected client timestamp
-// is kept.
-const ClientClaimKey = "clientGivenAt"
+// Metadata keys the server owns. A client cannot set them: a value sent under
+// either is dropped.
+const (
+	// ClientClaimKey holds a client timestamp the server rejected.
+	ClientClaimKey = "clientGivenAt"
+	// PolicyLanguageKey holds the language the notice was shown in.
+	PolicyLanguageKey = "policyLanguage"
+)
 
 type Input struct {
 	SubjectID    string
@@ -140,19 +145,21 @@ func Build(in Input) (Record, error) {
 		claimed = now
 	}
 
-	// The key is the server's evidence of a rejected client clock, so a value
-	// the client sends under it is never kept.
 	metadata := in.Metadata
-	_, forged := metadata[ClientClaimKey]
-	if forged || !claimed.Equal(now) {
-		metadata = make(map[string]any, len(in.Metadata)+1)
+	_, forgedClaim := metadata[ClientClaimKey]
+	_, forgedLanguage := metadata[PolicyLanguageKey]
+	if forgedClaim || forgedLanguage || !claimed.Equal(now) || in.Language != "" {
+		metadata = make(map[string]any, len(in.Metadata)+2)
 		for k, v := range in.Metadata {
-			if k != ClientClaimKey {
+			if k != ClientClaimKey && k != PolicyLanguageKey {
 				metadata[k] = v
 			}
 		}
 		if !claimed.Equal(now) {
 			metadata[ClientClaimKey] = claimed.UTC().Format(time.RFC3339Nano)
+		}
+		if in.Language != "" {
+			metadata[PolicyLanguageKey] = in.Language
 		}
 	}
 

@@ -124,6 +124,12 @@ func (p *ProofConfig) StoresUserAgent() bool {
 	return p == nil || p.StoreUserAgent == nil || *p.StoreUserAgent
 }
 
+// StoresLanguage defaults to false: the notice language is only kept on the
+// consent when the policy asks for it.
+func (p *ProofConfig) StoresLanguage() bool {
+	return p != nil && p.StoreLanguage != nil && *p.StoreLanguage
+}
+
 type Config struct {
 	ID      string         `json:"id"`
 	Match   Match          `json:"match"`

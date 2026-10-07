@@ -29,3 +29,26 @@ func TestProofConfigDefaultsToKeepingEvidence(t *testing.T) {
 		})
 	}
 }
+
+func TestProofConfigDoesNotStoreTheLanguageUnlessAsked(t *testing.T) {
+	yes, no := true, false
+
+	tests := []struct {
+		name  string
+		proof *ProofConfig
+		want  bool
+	}{
+		{name: "nil config", proof: nil, want: false},
+		{name: "empty config", proof: &ProofConfig{}, want: false},
+		{name: "explicit true", proof: &ProofConfig{StoreLanguage: &yes}, want: true},
+		{name: "explicit false", proof: &ProofConfig{StoreLanguage: &no}, want: false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := tt.proof.StoresLanguage(); got != tt.want {
+				t.Errorf("StoresLanguage = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}

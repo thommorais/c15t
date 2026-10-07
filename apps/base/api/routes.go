@@ -107,10 +107,13 @@ func (h *Handler) init(c *Ctx, _ any) (initResponse, error) {
 
 	if decision == nil {
 		resp.Policy = noBannerPolicy()
+	} else {
+		resp.Policy = &decision.Policy
 	}
 
+	resp.Translations = i18n.Resolve(acceptLanguage(c.Event.Request), policyLanguageOf(resp.Policy))
+
 	if decision != nil {
-		resp.Policy = &decision.Policy
 		resp.Decision = &decisionPayload{
 			PolicyID:     decision.Policy.ID,
 			Fingerprint:  decision.Fingerprint,
@@ -118,20 +121,21 @@ func (h *Handler) init(c *Ctx, _ any) (initResponse, error) {
 			Jurisdiction: string(code),
 		}
 
-		token, err := h.signSnapshot(c.TenantID(), loc, code, decision)
+		token, err := h.signSnapshot(c.TenantID(), loc, code, decision, resp.Translations.Language)
 		if err != nil {
 			return initResponse{}, err
 		}
 		resp.SnapshotToken = token
 	}
 
-	var policyLanguage string
-	if resp.Policy.I18n != nil && resp.Policy.I18n.Language != nil {
-		policyLanguage = *resp.Policy.I18n.Language
-	}
-	resp.Translations = i18n.Resolve(acceptLanguage(c.Event.Request), policyLanguage)
-
 	return resp, nil
+}
+
+func policyLanguageOf(p *policy.Resolved) string {
+	if p == nil || p.I18n == nil || p.I18n.Language == nil {
+		return ""
+	}
+	return *p.I18n.Language
 }
 
 // noBannerPolicy is what a client is told when no policy applies, so that
@@ -214,6 +218,13 @@ func (h *Handler) recordConsent(c *Ctx, body consentRequest) (Status, error) {
 		return Status{}, BadRequest(codePolicyResolution, "No policy applies to this request")
 	}
 
+	// The language the visitor was shown: the token's when there is one, else
+	// what init would have chosen for this request.
+	language := i18n.Resolve(acceptLanguage(c.Event.Request), policyLanguageOf(&decision.Policy)).Language
+	if shown != nil && shown.Language != "" {
+		language = shown.Language
+	}
+
 	if err := h.requireLegalDocumentProof(policyType, body); err != nil {
 		return Status{}, err
 	}
@@ -248,7 +259,7 @@ func (h *Handler) recordConsent(c *Ctx, body consentRequest) (Status, error) {
 			Jurisdiction: code,
 			IPAddress:    storedIf(decision.Policy.Proof.StoresIP(), request.ClientIP(c.Event.Request.Header, h.ipOptions())),
 			UserAgent:    storedIf(decision.Policy.Proof.StoresUserAgent(), c.Event.Request.UserAgent()),
-			Language:     acceptLanguage(c.Event.Request),
+			Language:     storedIf(decision.Policy.Proof.StoresLanguage(), language),
 			UISource:     consent.UISource(body.UISource),
 			Action:       consent.Action(body.Action),
 			TCString:     body.TCString,
@@ -266,7 +277,7 @@ func (h *Handler) recordConsent(c *Ctx, body consentRequest) (Status, error) {
 			return err
 		}
 
-		rpd, err := h.upsertDecision(tx, loc, code, decision, policyType, policyRecord)
+		rpd, err := h.upsertDecision(tx, loc, code, decision, policyType, policyRecord, language)
 		if err != nil {
 			return err
 		}

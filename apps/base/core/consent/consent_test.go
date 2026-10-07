@@ -597,3 +597,86 @@ func TestBuildOwnsTheClientClaimKey(t *testing.T) {
 		}
 	})
 }
+
+func TestBuildRecordsTheNoticeLanguageAndOwnsItsKey(t *testing.T) {
+	base := Input{
+		SubjectID: "s1",
+		DomainID:  "d1",
+		Policy:    optInPolicy(nil, policy.ScopePermissive, nil),
+		Now:       fixedNow,
+	}
+
+	t.Run("language is recorded in metadata", func(t *testing.T) {
+		in := base
+		in.Language = "pt-BR"
+		in.Metadata = map[string]any{"source": "banner"}
+
+		got, err := Build(in)
+		if err != nil {
+			t.Fatalf("Build: %v", err)
+		}
+		if got.Metadata[PolicyLanguageKey] != "pt-BR" {
+			t.Errorf("metadata = %v, want policyLanguage pt-BR", got.Metadata)
+		}
+		if got.Metadata["source"] != "banner" {
+			t.Errorf("caller metadata lost: %v", got.Metadata)
+		}
+		if _, touched := in.Metadata[PolicyLanguageKey]; touched {
+			t.Error("the caller's metadata map was modified")
+		}
+	})
+
+	t.Run("no language records nothing", func(t *testing.T) {
+		got, err := Build(base)
+		if err != nil {
+			t.Fatalf("Build: %v", err)
+		}
+		if _, present := got.Metadata[PolicyLanguageKey]; present {
+			t.Errorf("metadata = %v, want no policyLanguage", got.Metadata)
+		}
+	})
+
+	t.Run("a forged value is dropped", func(t *testing.T) {
+		in := base
+		in.Metadata = map[string]any{PolicyLanguageKey: "xx", "source": "banner"}
+
+		got, err := Build(in)
+		if err != nil {
+			t.Fatalf("Build: %v", err)
+		}
+		if _, present := got.Metadata[PolicyLanguageKey]; present {
+			t.Errorf("metadata = %v, want the client-supplied policyLanguage removed", got.Metadata)
+		}
+		if got.Metadata["source"] != "banner" {
+			t.Errorf("other metadata lost: %v", got.Metadata)
+		}
+	})
+
+	t.Run("the server value wins over a forged one", func(t *testing.T) {
+		in := base
+		in.Language = "de"
+		in.Metadata = map[string]any{PolicyLanguageKey: "xx"}
+
+		got, err := Build(in)
+		if err != nil {
+			t.Fatalf("Build: %v", err)
+		}
+		if got.Metadata[PolicyLanguageKey] != "de" {
+			t.Errorf("metadata = %v, want de", got.Metadata)
+		}
+	})
+
+	t.Run("both owned keys can be present", func(t *testing.T) {
+		in := base
+		in.Language = "de"
+		in.ClaimedAt = fixedNow.Add(time.Hour)
+
+		got, err := Build(in)
+		if err != nil {
+			t.Fatalf("Build: %v", err)
+		}
+		if got.Metadata[PolicyLanguageKey] != "de" || got.Metadata[ClientClaimKey] == nil {
+			t.Errorf("metadata = %v, want both policyLanguage and clientGivenAt", got.Metadata)
+		}
+	})
+}

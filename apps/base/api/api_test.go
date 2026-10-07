@@ -397,6 +397,135 @@ func TestInitCarriesTheNoticeTranslations(t *testing.T) {
 	}
 }
 
+func languagePack(proof *policy.ProofConfig) []policy.Config {
+	model := policy.ModelOptIn
+	return []policy.Config{
+		{
+			ID:      "open_de",
+			Match:   policy.MatchCountries([]string{"DE"}),
+			Consent: &policy.ConsentConfig{Model: &model},
+			Proof:   proof,
+		},
+		policy.PresetWorldNoBanner(),
+	}
+}
+
+func snapshotPayloadOf(t *testing.T, token string) map[string]any {
+	t.Helper()
+
+	raw, err := base64.RawURLEncoding.DecodeString(strings.Split(token, ".")[1])
+	if err != nil {
+		t.Fatalf("decode payload: %v", err)
+	}
+
+	var payload map[string]any
+	if err := json.Unmarshal(raw, &payload); err != nil {
+		t.Fatalf("unmarshal payload: %v", err)
+	}
+	return payload
+}
+
+func TestSnapshotCarriesTheLanguageShown(t *testing.T) {
+	h := newHarness(t, snapshotConfig(false))
+
+	rec := h.do(http.MethodGet, "/api/c15t/init", "", auth(h.key(), "cf-ipcountry", "DE", "Accept-Language", "pt-BR,pt;q=0.9"))
+	token, _ := decode(t, rec)["policySnapshotToken"].(string)
+	if token == "" {
+		t.Fatal("no snapshot token issued")
+	}
+
+	if got := snapshotPayloadOf(t, token)["language"]; got != "pt-BR" {
+		t.Errorf("language = %v, want the pt-BR the visitor was shown", got)
+	}
+}
+
+func TestConsentRecordsTheLanguageShown(t *testing.T) {
+	yes, no := true, false
+
+	tests := []struct {
+		name         string
+		proof        *policy.ProofConfig
+		initHeader   string
+		writeHeader  string
+		useToken     bool
+		wantMetadata string
+		wantDecision string
+	}{
+		{name: "storeLanguage on, language from the token", proof: &policy.ProofConfig{StoreLanguage: &yes}, initHeader: "pt-BR", writeHeader: "en", useToken: true, wantMetadata: "pt-BR", wantDecision: "pt-BR"},
+		{name: "storeLanguage on, language from the request", proof: &policy.ProofConfig{StoreLanguage: &yes}, writeHeader: "de-DE", wantMetadata: "de", wantDecision: "de"},
+		{name: "storeLanguage off keeps it out of the consent", proof: &policy.ProofConfig{StoreLanguage: &no}, writeHeader: "de-DE", wantMetadata: "", wantDecision: "de"},
+		{name: "storeLanguage unset defaults to off", proof: nil, writeHeader: "de-DE", wantMetadata: "", wantDecision: "de"},
+		{name: "unsupported language is recorded as english", proof: &policy.ProofConfig{StoreLanguage: &yes}, writeHeader: "xx-XX", wantMetadata: "en", wantDecision: "en"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cfg := snapshotConfig(false)
+			cfg.PolicyPacks = languagePack(tt.proof)
+
+			h := newHarness(t, cfg)
+			key := h.key()
+
+			extra := ""
+			if tt.useToken {
+				init := h.do(http.MethodGet, "/api/c15t/init", "", auth(key, "cf-ipcountry", "DE", "Accept-Language", tt.initHeader))
+				token, _ := decode(t, init)["policySnapshotToken"].(string)
+				extra = `,"policySnapshotToken":"` + token + `"`
+			}
+
+			rec := h.do(http.MethodPost, "/api/c15t/consent",
+				`{"givenAt":"2026-03-01T12:00:00Z","externalId":"x","domain":"example.com","categories":["necessary"],"metadata":{"policyLanguage":"forged"}`+extra+`}`,
+				auth(key, "cf-ipcountry", "DE", "Accept-Language", tt.writeHeader))
+			if rec.Code != http.StatusCreated {
+				t.Fatalf("status = %d: %s", rec.Code, rec.Body.String())
+			}
+
+			stored, err := h.app.FindFirstRecordByFilter("consent", "id != ''", nil)
+			if err != nil {
+				t.Fatalf("find consent: %v", err)
+			}
+			var metadata map[string]any
+			if err := stored.UnmarshalJSONField("metadata", &metadata); err != nil {
+				t.Fatalf("metadata: %v", err)
+			}
+
+			got, _ := metadata["policyLanguage"].(string)
+			if got != tt.wantMetadata {
+				t.Errorf("metadata.policyLanguage = %q, want %q (a client-sent value never counts)", got, tt.wantMetadata)
+			}
+
+			decision, err := h.app.FindFirstRecordByFilter("runtimePolicyDecision", "id != ''", nil)
+			if err != nil {
+				t.Fatalf("find decision: %v", err)
+			}
+			if got := decision.GetString("language"); got != tt.wantDecision {
+				t.Errorf("decision language = %q, want %q", got, tt.wantDecision)
+			}
+		})
+	}
+}
+
+func TestDecisionsInDifferentLanguagesAreSeparateRows(t *testing.T) {
+	cfg := snapshotConfig(false)
+	cfg.PolicyPacks = languagePack(nil)
+
+	h := newHarness(t, cfg)
+	key := h.key()
+
+	for i, language := range []string{"de", "pt-BR"} {
+		rec := h.do(http.MethodPost, "/api/c15t/consent",
+			`{"givenAt":"2026-03-0`+strconv.Itoa(i+1)+`T12:00:00Z","externalId":"x","domain":"example.com","categories":["necessary"]}`,
+			auth(key, "cf-ipcountry", "DE", "Accept-Language", language))
+		if rec.Code != http.StatusCreated {
+			t.Fatalf("status = %d: %s", rec.Code, rec.Body.String())
+		}
+	}
+
+	if got := h.count("runtimePolicyDecision"); got != 2 {
+		t.Errorf("decision rows = %d, want 2: the notice language is part of what was shown", got)
+	}
+}
+
 func TestInitStillCarriesTranslationsWithoutAPolicy(t *testing.T) {
 	cfg := api.DefaultConfig()
 	cfg.PolicyPacks = []policy.Config{}
