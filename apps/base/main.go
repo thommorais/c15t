@@ -32,6 +32,14 @@ func main() {
 		if err != nil {
 			return err
 		}
+
+		warnings, err := api.ValidateConfig(cfg)
+		if err != nil {
+			return err
+		}
+		for _, w := range warnings {
+			app.Logger().Warn(w)
+		}
 		api.Register(app, se, cfg)
 		return se.Next()
 	})

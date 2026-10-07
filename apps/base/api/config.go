@@ -1,6 +1,7 @@
 package api
 
 import (
+	"errors"
 	"time"
 
 	"thom/core/policy"
@@ -56,4 +57,21 @@ func DefaultConfig() Config {
 			policy.PresetWorldNoBanner(),
 		},
 	}
+}
+
+// ValidateConfig checks what can be checked before serving. An invalid policy
+// pack is an error, so it stops startup instead of failing every request; the
+// warnings are for the operator to read.
+func ValidateConfig(cfg Config) ([]string, error) {
+	result := policy.Inspect(cfg.PolicyPacks, cfg.IABEnabled)
+
+	if len(result.Errors) > 0 {
+		return nil, errors.New("policyPacks: " + result.Errors[0])
+	}
+
+	warnings := make([]string, 0, len(result.Warnings))
+	for _, w := range result.Warnings {
+		warnings = append(warnings, "policyPacks: "+w)
+	}
+	return warnings, nil
 }
