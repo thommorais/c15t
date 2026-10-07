@@ -713,6 +713,39 @@ func TestConsentRejectionLeavesNoRows(t *testing.T) {
 	}
 }
 
+func TestConsentStrictScopeAlwaysAllowsNecessary(t *testing.T) {
+	strict := policy.ScopeStrict
+	model := policy.ModelOptIn
+
+	cfg := api.DefaultConfig()
+	cfg.PolicyPacks = []policy.Config{
+		{
+			ID:    "measurement_only",
+			Match: policy.MatchCountries([]string{"DE"}),
+			Consent: &policy.ConsentConfig{
+				Model:      &model,
+				ScopeMode:  &strict,
+				Categories: []string{"measurement"},
+			},
+		},
+		policy.PresetWorldNoBanner(),
+	}
+
+	h := newHarness(t, cfg)
+	key := h.key()
+
+	post := func(categories string) *httptest.ResponseRecorder {
+		return h.do(http.MethodPost, "/api/c15t/consent",
+			`{"givenAt":"2026-03-01T12:00:00Z","externalId":"x","domain":"example.com","categories":`+categories+`}`,
+			auth(key, "cf-ipcountry", "DE"))
+	}
+
+	if rec := post(`["necessary","measurement"]`); rec.Code != http.StatusCreated {
+		t.Errorf("necessary with an allowed category: status = %d, want 201: %s", rec.Code, rec.Body.String())
+	}
+	wantEnvelope(t, post(`["necessary","marketing"]`), http.StatusBadRequest, "PURPOSE_NOT_ALLOWED")
+}
+
 func TestConsentStrictScopeRejectsOutOfScope(t *testing.T) {
 	cfg := api.DefaultConfig()
 	cfg.PolicyPacks = strictPack()

@@ -132,6 +132,27 @@ func TestBuildScopeAllowances(t *testing.T) {
 			requested:  []string{"marketing"},
 			wantAccept: false,
 		},
+		{
+			name:       "strict always allows necessary even when the policy omits it",
+			scope:      policy.ScopeStrict,
+			allowed:    []string{"measurement"},
+			requested:  []string{"necessary", "measurement"},
+			wantAccept: true,
+		},
+		{
+			name:       "strict allows necessary on its own when the policy omits it",
+			scope:      policy.ScopeStrict,
+			allowed:    []string{"measurement"},
+			requested:  []string{"necessary"},
+			wantAccept: true,
+		},
+		{
+			name:       "strict still rejects other categories the policy omits",
+			scope:      policy.ScopeStrict,
+			allowed:    []string{"measurement"},
+			requested:  []string{"necessary", "marketing"},
+			wantAccept: false,
+		},
 	}
 
 	for _, tt := range tests {

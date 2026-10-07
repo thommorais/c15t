@@ -58,6 +58,8 @@ func IsInvalid(err error) bool {
 	return errors.Is(err, ErrInvalid) || errors.Is(err, ErrOutOfScope)
 }
 
+const categoryNecessary = "necessary"
+
 // Metadata keys the server owns. A client cannot set them: a value sent under
 // either is dropped.
 const (
@@ -185,7 +187,8 @@ func Build(in Input) (Record, error) {
 }
 
 // A strict policy rejects categories outside its allowlist; a permissive one
-// records them and leaves enforcement to the client.
+// records them and leaves enforcement to the client. "necessary" is always in
+// scope: it cannot be refused, so a policy that omits it must not reject it.
 func checkScope(categories []string, p policy.Resolved) error {
 	if p.Consent == nil || p.Consent.ScopeMode != policy.ScopeStrict {
 		return nil
@@ -197,7 +200,7 @@ func checkScope(categories []string, p policy.Resolved) error {
 	}
 
 	for _, c := range categories {
-		if !slices.Contains(allowed, c) {
+		if c != categoryNecessary && !slices.Contains(allowed, c) {
 			return fmt.Errorf("%w: %q not in %v", ErrOutOfScope, c, allowed)
 		}
 	}
