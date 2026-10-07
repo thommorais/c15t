@@ -10,6 +10,7 @@ import (
 
 	"thom/core/apikey"
 	"thom/core/consent"
+	"thom/core/i18n"
 	"thom/core/jurisdiction"
 	"thom/core/policy"
 	"thom/core/ratelimit"
@@ -75,6 +76,7 @@ type initResponse struct {
 	Policy        *policy.Resolved `json:"policy,omitempty"`
 	Decision      *decisionPayload `json:"policyDecision,omitempty"`
 	SnapshotToken string           `json:"policySnapshotToken,omitempty"`
+	Translations  i18n.Result      `json:"translations"`
 }
 
 type locationPayload struct {
@@ -122,6 +124,12 @@ func (h *Handler) init(c *Ctx, _ any) (initResponse, error) {
 		}
 		resp.SnapshotToken = token
 	}
+
+	var policyLanguage string
+	if resp.Policy.I18n != nil && resp.Policy.I18n.Language != nil {
+		policyLanguage = *resp.Policy.I18n.Language
+	}
+	resp.Translations = i18n.Resolve(acceptLanguage(c.Event.Request), policyLanguage)
 
 	return resp, nil
 }

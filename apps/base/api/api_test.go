@@ -334,6 +334,82 @@ func TestInitGeoDisabledFallsBackToGDPR(t *testing.T) {
 	}
 }
 
+func TestInitCarriesTheNoticeTranslations(t *testing.T) {
+	german := "de"
+
+	tests := []struct {
+		name   string
+		packs  []policy.Config
+		header string
+		want   string
+	}{
+		{name: "no header is english", header: "", want: "en"},
+		{name: "primary subtag", header: "de-DE,en;q=0.9", want: "de"},
+		{name: "brazilian portuguese", header: "pt-BR,pt;q=0.9", want: "pt-BR"},
+		{name: "european portuguese", header: "pt-PT", want: "pt-PT"},
+		{name: "unsupported language", header: "xx-XX", want: "en"},
+		{
+			name:   "policy language wins over the header",
+			header: "fr",
+			want:   "de",
+			packs: []policy.Config{{
+				ID:    "german",
+				Match: policy.MatchCountries([]string{"DE"}),
+				I18n:  &policy.I18n{Language: &german},
+			}},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cfg := api.DefaultConfig()
+			if tt.packs != nil {
+				cfg.PolicyPacks = tt.packs
+			}
+
+			h := newHarness(t, cfg)
+			headers := []string{"cf-ipcountry", "DE"}
+			if tt.header != "" {
+				headers = append(headers, "Accept-Language", tt.header)
+			}
+
+			rec := h.do(http.MethodGet, "/api/c15t/init", "", auth(h.key(), headers...))
+			if rec.Code != http.StatusOK {
+				t.Fatalf("status = %d: %s", rec.Code, rec.Body.String())
+			}
+
+			shown, ok := decode(t, rec)["translations"].(map[string]any)
+			if !ok {
+				t.Fatalf("translations missing: %s", rec.Body.String())
+			}
+			if shown["language"] != tt.want {
+				t.Errorf("language = %v, want %s", shown["language"], tt.want)
+			}
+
+			strings, _ := shown["translations"].(map[string]any)
+			if common, _ := strings["common"].(map[string]any); common["acceptAll"] == nil {
+				t.Errorf("translations = %v, want the notice strings", strings)
+			}
+			if _, present := strings["iab"]; present {
+				t.Error("the iab section must not be sent")
+			}
+		})
+	}
+}
+
+func TestInitStillCarriesTranslationsWithoutAPolicy(t *testing.T) {
+	cfg := api.DefaultConfig()
+	cfg.PolicyPacks = []policy.Config{}
+
+	h := newHarness(t, cfg)
+	rec := h.do(http.MethodGet, "/api/c15t/init", "", auth(h.key(), "cf-ipcountry", "DE", "Accept-Language", "pt-BR"))
+
+	shown, _ := decode(t, rec)["translations"].(map[string]any)
+	if shown["language"] != "pt-BR" {
+		t.Errorf("translations = %v, want pt-BR even in no-banner mode", shown)
+	}
+}
+
 func TestInitWithoutAMatchingPolicyIsNoBannerMode(t *testing.T) {
 	californiaOnly := []policy.Config{{
 		ID:      "california",
