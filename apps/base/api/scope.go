@@ -24,9 +24,8 @@ func isUnscoped(collection string) bool {
 func scopeFilter(filter string) string {
 	clause := "tenantId = {:" + tenantParam + "}"
 
-	if strings.Contains(filter, tenantParam) {
-		return filter
-	}
+	// A filter is always wrapped, even one that mentions the tenant parameter:
+	// "a || tenantId = {:__tenant}" would otherwise match other tenants' rows.
 	if strings.TrimSpace(filter) == "" {
 		return clause
 	}
@@ -124,7 +123,12 @@ func (s *scope) New(collection string) (*core.Record, error) {
 	return record, nil
 }
 
+// Save refuses a record that is not stamped for this tenant, so a record built
+// outside New, or loaded from elsewhere, cannot be written through a scope.
 func (s *scope) Save(record *core.Record) error {
+	if !s.skip(record.Collection().Name) && record.GetString("tenantId") != s.tenant {
+		return errNotOwned
+	}
 	return s.app.Save(record)
 }
 
