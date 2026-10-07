@@ -182,6 +182,7 @@ func (h *Handler) insertConsent(
 		SubjectID:  rec.SubjectID,
 		DomainID:   rec.DomainID,
 		PolicyType: policyType,
+		PolicyID:   policyRecord.Id,
 		GivenAt:    rec.ClaimedAt,
 	})
 

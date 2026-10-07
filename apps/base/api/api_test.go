@@ -1523,6 +1523,27 @@ func TestConsentRejectsUnrepresentableTimestamps(t *testing.T) {
 	}
 }
 
+func TestTwoReleasesAcceptedAtTheSameTimeAreSeparateConsents(t *testing.T) {
+	h := newHarness(t, docConfig())
+
+	older := docToken(t, docSecret, "privacy_policy", "1.0.0", "sha256:one", time.Now())
+	newer := docToken(t, docSecret, "privacy_policy", "2.0.0", "sha256:two", time.Now())
+
+	if rec := legalConsent(h, "privacy_policy", older); rec.Code != http.StatusCreated {
+		t.Fatalf("first release status = %d: %s", rec.Code, rec.Body.String())
+	}
+	if rec := legalConsent(h, "privacy_policy", newer); rec.Code != http.StatusCreated {
+		t.Fatalf("second release status = %d, want 201: accepting another release at the same instant is a new consent: %s", rec.Code, rec.Body.String())
+	}
+	if got := h.count("consent"); got != 2 {
+		t.Errorf("consent rows = %d, want 2", got)
+	}
+
+	if rec := legalConsent(h, "privacy_policy", newer); rec.Code != http.StatusOK || decode(t, rec)["duplicate"] != true {
+		t.Errorf("repeating the same release: status = %d, want a 200 duplicate: %s", rec.Code, rec.Body.String())
+	}
+}
+
 func TestConsentDistinctSubmissionsAreSeparate(t *testing.T) {
 	h := newHarness(t, api.DefaultConfig())
 	key := h.key()

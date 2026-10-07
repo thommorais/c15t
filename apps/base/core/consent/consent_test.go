@@ -441,6 +441,7 @@ func TestSubmissionKeyIsStableAndScoped(t *testing.T) {
 		SubjectID:  "s1",
 		DomainID:   "d1",
 		PolicyType: "cookie_banner",
+		PolicyID:   "p1",
 		GivenAt:    fixedNow,
 	}
 
@@ -450,11 +451,12 @@ func TestSubmissionKeyIsStableAndScoped(t *testing.T) {
 	}
 
 	variants := map[string]Submission{
-		"tenant":      {TenantID: "t2", SubjectID: "s1", DomainID: "d1", PolicyType: "cookie_banner", GivenAt: fixedNow},
-		"subject":     {TenantID: "t1", SubjectID: "s2", DomainID: "d1", PolicyType: "cookie_banner", GivenAt: fixedNow},
-		"domain":      {TenantID: "t1", SubjectID: "s1", DomainID: "d2", PolicyType: "cookie_banner", GivenAt: fixedNow},
-		"policy type": {TenantID: "t1", SubjectID: "s1", DomainID: "d1", PolicyType: "privacy_policy", GivenAt: fixedNow},
-		"given at":    {TenantID: "t1", SubjectID: "s1", DomainID: "d1", PolicyType: "cookie_banner", GivenAt: fixedNow.Add(time.Second)},
+		"tenant":      {TenantID: "t2", SubjectID: "s1", DomainID: "d1", PolicyType: "cookie_banner", PolicyID: "p1", GivenAt: fixedNow},
+		"subject":     {TenantID: "t1", SubjectID: "s2", DomainID: "d1", PolicyType: "cookie_banner", PolicyID: "p1", GivenAt: fixedNow},
+		"domain":      {TenantID: "t1", SubjectID: "s1", DomainID: "d2", PolicyType: "cookie_banner", PolicyID: "p1", GivenAt: fixedNow},
+		"policy type": {TenantID: "t1", SubjectID: "s1", DomainID: "d1", PolicyType: "privacy_policy", PolicyID: "p1", GivenAt: fixedNow},
+		"given at":    {TenantID: "t1", SubjectID: "s1", DomainID: "d1", PolicyType: "cookie_banner", PolicyID: "p1", GivenAt: fixedNow.Add(time.Second)},
+		"policy":      {TenantID: "t1", SubjectID: "s1", DomainID: "d1", PolicyType: "cookie_banner", PolicyID: "p2", GivenAt: fixedNow},
 	}
 
 	for name, v := range variants {

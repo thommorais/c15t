@@ -18,7 +18,10 @@ type Submission struct {
 	SubjectID  string
 	DomainID   string
 	PolicyType string
-	GivenAt    time.Time
+	// PolicyID is the stored policy record, so two releases of one document
+	// accepted at the same instant are two consents, not a retry.
+	PolicyID string
+	GivenAt  time.Time
 }
 
 func SubmissionKey(s Submission) string {
@@ -27,6 +30,7 @@ func SubmissionKey(s Submission) string {
 		s.SubjectID,
 		s.DomainID,
 		s.PolicyType,
+		s.PolicyID,
 		s.GivenAt.UTC().Format(time.RFC3339Nano),
 	}, "\x1f")
 
