@@ -2,6 +2,7 @@ package request
 
 import (
 	"net/http"
+	"net/netip"
 	"testing"
 )
 
@@ -151,6 +152,39 @@ func TestClientIP(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if got := ClientIP(tt.headers, tt.opts); got != tt.want {
+				t.Errorf("ClientIP = %q, want %q", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestClientIPTrustsHeadersOnlyFromTrustedProxies(t *testing.T) {
+	proxies := []netip.Prefix{netip.MustParsePrefix("10.0.0.0/8"), netip.MustParsePrefix("2001:db8::/32")}
+
+	tests := []struct {
+		name string
+		peer string
+		opts IPOptions
+		set  []string
+		want string
+	}{
+		{name: "no proxies configured trusts the headers as before", peer: "203.0.113.9:1", set: []string{"x-forwarded-for", "198.51.100.7"}, want: "198.51.100.0"},
+		{name: "a trusted peer's header is used", peer: "10.1.2.3:443", opts: IPOptions{TrustedProxies: proxies}, set: []string{"x-forwarded-for", "198.51.100.7"}, want: "198.51.100.0"},
+		{name: "an untrusted peer cannot choose its address", peer: "192.0.2.5:1", opts: IPOptions{TrustedProxies: proxies}, set: []string{"x-forwarded-for", "198.51.100.7"}, want: "192.0.2.0"},
+		{name: "the untrusted peer is stored unmasked when masking is off", peer: "192.0.2.5:1", opts: IPOptions{TrustedProxies: proxies, DisableMasking: true}, set: []string{"x-forwarded-for", "198.51.100.7"}, want: "192.0.2.5"},
+		{name: "an ipv4 mapped peer matches an ipv4 range", peer: "[::ffff:10.1.2.3]:80", opts: IPOptions{TrustedProxies: proxies}, set: []string{"x-forwarded-for", "198.51.100.7"}, want: "198.51.100.0"},
+		{name: "an ipv6 peer matches an ipv6 range", peer: "[2001:db8::1]:80", opts: IPOptions{TrustedProxies: proxies}, set: []string{"x-forwarded-for", "198.51.100.7"}, want: "198.51.100.0"},
+		{name: "an untrusted ipv6 peer is the client", peer: "[2001:db9::1]:80", opts: IPOptions{TrustedProxies: proxies}, set: []string{"x-forwarded-for", "198.51.100.7"}, want: "2001:db9::"},
+		{name: "a peer that is not an address yields nothing", peer: "garbage", opts: IPOptions{TrustedProxies: proxies}, set: []string{"x-forwarded-for", "198.51.100.7"}, want: ""},
+		{name: "a trusted peer without the header yields nothing", peer: "10.1.2.3:443", opts: IPOptions{TrustedProxies: proxies}, want: ""},
+		{name: "tracking disabled wins", peer: "192.0.2.5:1", opts: IPOptions{TrustedProxies: proxies, DisableTracking: true}, want: ""},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			opts := tt.opts
+			opts.Peer = tt.peer
+			if got := ClientIP(headers(tt.set...), opts); got != tt.want {
 				t.Errorf("ClientIP = %q, want %q", got, tt.want)
 			}
 		})

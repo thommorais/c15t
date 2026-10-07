@@ -2,6 +2,7 @@ package api
 
 import (
 	"fmt"
+	"net/netip"
 	"strconv"
 	"strings"
 	"time"
@@ -24,6 +25,12 @@ func ConfigFromEnv(getenv func(string) string) (Config, error) {
 		return Config{}, err
 	}
 	cfg.IPHeaders = headers
+
+	proxies, err := parsePrefixes("C15T_TRUSTED_PROXIES", getenv("C15T_TRUSTED_PROXIES"))
+	if err != nil {
+		return Config{}, err
+	}
+	cfg.TrustedProxies = proxies
 
 	bools := []struct {
 		key string
@@ -99,6 +106,36 @@ func parseHeaderNames(name, raw string) ([]string, error) {
 			}
 		}
 		out = append(out, entry)
+	}
+
+	return out, nil
+}
+
+// parsePrefixes reads addresses and CIDR ranges; a bare address is a range of
+// one.
+func parsePrefixes(name, raw string) ([]netip.Prefix, error) {
+	var out []netip.Prefix
+
+	for _, entry := range strings.Split(raw, ",") {
+		entry = strings.TrimSpace(entry)
+		if entry == "" {
+			continue
+		}
+
+		if strings.Contains(entry, "/") {
+			prefix, err := netip.ParsePrefix(entry)
+			if err != nil {
+				return nil, fmt.Errorf("%s: %q is not a CIDR range", name, entry)
+			}
+			out = append(out, prefix)
+			continue
+		}
+
+		addr, err := netip.ParseAddr(entry)
+		if err != nil {
+			return nil, fmt.Errorf("%s: %q is not an address or range", name, entry)
+		}
+		out = append(out, netip.PrefixFrom(addr, addr.BitLen()))
 	}
 
 	return out, nil

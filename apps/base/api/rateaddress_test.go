@@ -4,6 +4,8 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+
+	"thom/core/request"
 )
 
 func rateAddressFor(remote string, headers map[string]string, trusted ...string) string {
@@ -12,7 +14,7 @@ func rateAddressFor(remote string, headers map[string]string, trusted ...string)
 	for k, v := range headers {
 		r.Header.Set(k, v)
 	}
-	return rateAddress(r, trusted)
+	return rateAddress(r, request.IPOptions{Headers: trusted})
 }
 
 func TestRateAddressNeverExposesTheClientAddress(t *testing.T) {

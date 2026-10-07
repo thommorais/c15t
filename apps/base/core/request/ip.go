@@ -24,6 +24,12 @@ type IPOptions struct {
 	DisableMasking  bool
 	// Headers overrides the default proxy header precedence.
 	Headers []string
+	// TrustedProxies are the peers whose forwarding headers are believed. When
+	// any are set, a request from another peer is attributed to that peer and
+	// its headers are ignored, since a client can write them itself. Unset, the
+	// headers are always believed. Peer is the connection's remote address.
+	TrustedProxies []netip.Prefix
+	Peer           string
 }
 
 type headerGetter interface {
@@ -33,6 +39,19 @@ type headerGetter interface {
 func ClientIP(h headerGetter, opts IPOptions) string {
 	if opts.DisableTracking {
 		return ""
+	}
+
+	if len(opts.TrustedProxies) > 0 {
+		peer, ok := parseAddr(opts.Peer)
+		if !ok {
+			return ""
+		}
+		if !trusted(peer, opts.TrustedProxies) {
+			if opts.DisableMasking {
+				return peer.WithZone("").String()
+			}
+			return maskAddr(peer)
+		}
 	}
 
 	names := opts.Headers
@@ -60,6 +79,15 @@ func ClientIP(h headerGetter, opts IPOptions) string {
 	}
 
 	return ""
+}
+
+func trusted(peer netip.Addr, proxies []netip.Prefix) bool {
+	for _, prefix := range proxies {
+		if prefix.Contains(peer) || prefix.Contains(peer.Unmap()) {
+			return true
+		}
+	}
+	return false
 }
 
 // MaskIP drops the identifying low bits of an address: IPv4 to /24 and IPv6 to

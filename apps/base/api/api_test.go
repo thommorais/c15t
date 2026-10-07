@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"net/netip"
 	"strconv"
 	"strings"
 	"testing"
@@ -1143,6 +1144,61 @@ func TestLegalDocumentConsentNeedsNoBannerPolicy(t *testing.T) {
 		auth(key, "cf-ipcountry", "DE"))
 	if rec.Code != http.StatusCreated {
 		t.Errorf("status = %d, want 201 with no banner pack configured: %s", rec.Code, rec.Body.String())
+	}
+}
+
+func TestAnUntrustedPeerCannotChooseItsAddress(t *testing.T) {
+	cfg := rateLimitedConfig()
+	cfg.TrustedProxies = []netip.Prefix{netip.MustParsePrefix("10.0.0.0/8")}
+
+	h := newHarness(t, cfg)
+	key := h.key()
+
+	rec := h.do(http.MethodPost, "/api/c15t/consent",
+		`{"givenAt":"2026-03-01T12:00:00Z","externalId":"x","domain":"example.com","categories":["necessary"]}`,
+		auth(key, "cf-ipcountry", "DE", "X-Forwarded-For", "198.51.100.77"))
+	if rec.Code != http.StatusCreated {
+		t.Fatalf("status = %d: %s", rec.Code, rec.Body.String())
+	}
+
+	stored, err := h.app.FindFirstRecordByFilter("consent", "id != ''", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := stored.GetString("ipAddress"); got != "192.0.2.0" {
+		t.Errorf("ipAddress = %q, want the peer's masked address: a header from an untrusted peer must not be stored", got)
+	}
+
+	url := "/api/c15t/consents/check?externalId=x&type=cookie_banner"
+	for i := range 2 {
+		if rec := h.do(http.MethodGet, url, "", auth(key, "X-Forwarded-For", "198.51.100."+strconv.Itoa(i+1))); rec.Code != http.StatusOK {
+			t.Fatalf("request %d status = %d: %s", i+1, rec.Code, rec.Body.String())
+		}
+	}
+	if rec := h.do(http.MethodGet, url, "", auth(key, "X-Forwarded-For", "198.51.100.3")); rec.Code != http.StatusTooManyRequests {
+		t.Errorf("status = %d, want 429: rotating a header from an untrusted peer must not give a fresh bucket", rec.Code)
+	}
+}
+
+func TestATrustedPeersHeaderIsUsed(t *testing.T) {
+	cfg := api.DefaultConfig()
+	cfg.TrustedProxies = []netip.Prefix{netip.MustParsePrefix("192.0.2.0/24")}
+
+	h := newHarness(t, cfg)
+
+	rec := h.do(http.MethodPost, "/api/c15t/consent",
+		`{"givenAt":"2026-03-01T12:00:00Z","externalId":"x","domain":"example.com","categories":["necessary"]}`,
+		auth(h.key(), "cf-ipcountry", "DE", "X-Forwarded-For", "198.51.100.77"))
+	if rec.Code != http.StatusCreated {
+		t.Fatalf("status = %d: %s", rec.Code, rec.Body.String())
+	}
+
+	stored, err := h.app.FindFirstRecordByFilter("consent", "id != ''", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := stored.GetString("ipAddress"); got != "198.51.100.0" {
+		t.Errorf("ipAddress = %q, want the forwarded client, masked: the test peer is a configured proxy", got)
 	}
 }
 

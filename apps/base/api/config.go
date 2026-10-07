@@ -2,6 +2,7 @@ package api
 
 import (
 	"errors"
+	"net/netip"
 	"time"
 
 	"thom/core/policy"
@@ -26,6 +27,12 @@ type Config struct {
 	// to the header your proxy writes: the default list also trusts headers a
 	// client can send itself, so a caller could pick its own address.
 	IPHeaders []string
+
+	// TrustedProxies are the peers whose IP headers are believed. Set it to
+	// your proxy's addresses and a client can no longer pick its own address,
+	// for the stored IP and for the rate limit. Unset, the headers are trusted
+	// from any peer.
+	TrustedProxies []netip.Prefix
 
 	// Snapshot tokens are off until a secret is configured. SnapshotRequired
 	// rejects a write without a valid token; otherwise a failure falls back to

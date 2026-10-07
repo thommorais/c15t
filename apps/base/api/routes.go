@@ -294,7 +294,7 @@ func (h *Handler) recordConsent(c *Ctx, body consentRequest) (Status, error) {
 			Categories:   body.Categories,
 			Policy:       resolved,
 			Jurisdiction: code,
-			IPAddress:    storedIf(resolved.Proof.StoresIP(), request.ClientIP(c.Event.Request.Header, h.ipOptions())),
+			IPAddress:    storedIf(resolved.Proof.StoresIP(), request.ClientIP(c.Event.Request.Header, h.ipOptions(c.Event.Request))),
 			UserAgent:    storedIf(resolved.Proof.StoresUserAgent(), c.Event.Request.UserAgent()),
 			Language:     storedIf(resolved.Proof.StoresLanguage(), language),
 			UISource:     consent.UISource(body.UISource),
@@ -408,7 +408,7 @@ func (h *Handler) locationOf(r *http.Request) jurisdiction.Location {
 }
 
 func requestIP(c *Ctx, h *Handler) string {
-	return request.ClientIP(c.Event.Request.Header, h.ipOptions())
+	return request.ClientIP(c.Event.Request.Header, h.ipOptions(c.Event.Request))
 }
 
 func storedIf(allowed bool, value string) string {
@@ -438,8 +438,10 @@ func (h *Handler) resolve(r *http.Request) (jurisdiction.Location, jurisdiction.
 	return loc, code, decision, err
 }
 
-func (h *Handler) ipOptions() request.IPOptions {
+func (h *Handler) ipOptions(r *http.Request) request.IPOptions {
 	return request.IPOptions{
+		Peer:            r.RemoteAddr,
+		TrustedProxies:  h.cfg.TrustedProxies,
 		DisableTracking: h.cfg.TrackIPDisabled,
 		DisableMasking:  h.cfg.MaskIPDisabled,
 		Headers:         h.cfg.IPHeaders,

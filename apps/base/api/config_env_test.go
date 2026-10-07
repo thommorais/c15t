@@ -133,3 +133,30 @@ func TestConfigFromEnvReadsTheLegalDocumentSnapshotSettings(t *testing.T) {
 		t.Errorf("secret = %q, want none so tokens stay off", unset.LegalDocSnapshotSecret)
 	}
 }
+
+func TestConfigFromEnvReadsTheTrustedProxies(t *testing.T) {
+	got, err := ConfigFromEnv(envFrom(map[string]string{"C15T_TRUSTED_PROXIES": " 10.0.0.0/8, 192.0.2.7 , ::1 ,, "}))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	want := []string{"10.0.0.0/8", "192.0.2.7/32", "::1/128"}
+	if len(got.TrustedProxies) != len(want) {
+		t.Fatalf("TrustedProxies = %v, want %v", got.TrustedProxies, want)
+	}
+	for i, prefix := range got.TrustedProxies {
+		if prefix.String() != want[i] {
+			t.Errorf("TrustedProxies[%d] = %s, want %s", i, prefix, want[i])
+		}
+	}
+
+	if unset, _ := ConfigFromEnv(envFrom(nil)); unset.TrustedProxies != nil {
+		t.Errorf("unset: TrustedProxies = %v, want none so the headers stay trusted", unset.TrustedProxies)
+	}
+
+	for _, bad := range []string{"10.0.0.0/33", "not-an-ip", "10.0.0.0/8/9"} {
+		if _, err := ConfigFromEnv(envFrom(map[string]string{"C15T_TRUSTED_PROXIES": bad})); err == nil || !strings.Contains(err.Error(), "C15T_TRUSTED_PROXIES") {
+			t.Errorf("%q: want an error naming C15T_TRUSTED_PROXIES, got %v", bad, err)
+		}
+	}
+}
