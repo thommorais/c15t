@@ -115,8 +115,12 @@ type clientPayload struct {
 }
 
 func (h *Handler) status(c *Ctx, _ any) (statusPayload, error) {
-	if _, err := c.DB().FindFirst("apiKey", "id != ''", nil); err != nil {
-		return statusPayload{}, Unavailable(codeServiceUnavailable, "Database health check failed", err)
+	// Authentication has already read apiKey, so probing it proves nothing. These
+	// are the tables a consent write depends on; an empty one is healthy.
+	for _, collection := range []string{"subject", "consent", "consentPolicy"} {
+		if _, err := c.DB().FindFirst(collection, "id != ''", nil); err != nil && !isMissing(err) {
+			return statusPayload{}, Unavailable(codeServiceUnavailable, "Database health check failed", err)
+		}
 	}
 
 	loc := h.locationOf(c.Event.Request)

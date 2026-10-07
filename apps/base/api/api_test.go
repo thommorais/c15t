@@ -1943,6 +1943,26 @@ func TestStatus(t *testing.T) {
 	}
 }
 
+func TestStatusReportsUnavailableWhenTheConsentStoreFails(t *testing.T) {
+	for _, table := range []string{"subject", "consent", "consentPolicy"} {
+		t.Run(table, func(t *testing.T) {
+			h := newHarness(t, api.DefaultConfig())
+			key := h.key()
+
+			if rec := h.do(http.MethodGet, "/api/c15t/status", "", auth(key)); rec.Code != http.StatusOK {
+				t.Fatalf("healthy status = %d, want 200 even with empty tables: %s", rec.Code, rec.Body.String())
+			}
+
+			if _, err := h.app.DB().NewQuery("ALTER TABLE " + table + " RENAME TO " + table + "_gone").Execute(); err != nil {
+				t.Fatalf("break %s: %v", table, err)
+			}
+
+			wantEnvelope(t, h.do(http.MethodGet, "/api/c15t/status", "", auth(key)),
+				http.StatusServiceUnavailable, "SERVICE_UNAVAILABLE")
+		})
+	}
+}
+
 func TestStatusRequiresAuth(t *testing.T) {
 	h := newHarness(t, api.DefaultConfig())
 
