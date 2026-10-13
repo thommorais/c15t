@@ -68,6 +68,10 @@ func Conflict(code, message string) error {
 	return &Fail{Status: http.StatusConflict, Code: code, Message: message}
 }
 
+func Forbidden(message string) error {
+	return &Fail{Status: http.StatusForbidden, Code: codeForbidden, Message: message}
+}
+
 func NotFound(code, message string) error {
 	return &Fail{Status: http.StatusNotFound, Code: code, Message: message}
 }

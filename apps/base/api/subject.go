@@ -5,6 +5,8 @@ import (
 
 	"github.com/pocketbase/dbx"
 	"github.com/pocketbase/pocketbase/core"
+
+	"thom/core/apikey"
 )
 
 type subjectPayload struct {
@@ -108,7 +110,7 @@ func (h *Handler) patchSubject(c *Ctx, body patchSubjectRequest) (subjectPayload
 
 	provider := body.IdentityProvider
 	if provider == "" {
-		provider = "external"
+		provider = apikey.ExternalProvider
 	}
 
 	record, err := c.DB().FindByID("subject", id)
@@ -120,6 +122,11 @@ func (h *Handler) patchSubject(c *Ctx, body patchSubjectRequest) (subjectPayload
 	}
 	if record.GetString("tenantId") != c.TenantID() {
 		return subjectPayload{}, NotFound(codeSubjectNotFound, "Subject not found")
+	}
+
+	current := apikey.Link{ExternalID: record.GetString("externalId"), Provider: record.GetString("identityProvider")}
+	if !c.Tenant.Scope.MayLink(current, apikey.Link{ExternalID: body.ExternalID, Provider: provider}) {
+		return subjectPayload{}, Forbidden("Changing an existing link requires a secret API key")
 	}
 
 	before := map[string]any{

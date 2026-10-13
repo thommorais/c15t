@@ -83,7 +83,7 @@ func Register(app core.App, se *core.ServeEvent, cfg Config) {
 	g.GET("/subjects", handle(h, apikey.ScopeSecret, h.listSubjects))
 	g.DELETE("/subjects", handle(h, apikey.ScopeSecret, h.eraseSubject))
 	g.GET("/subjects/{id}", handle(h, apikey.ScopeSecret, h.getSubject))
-	g.PATCH("/subjects/{id}", handle(h, apikey.ScopeSecret, h.patchSubject))
+	g.PATCH("/subjects/{id}", handle(h, apikey.ScopePublishable, h.patchSubject))
 	g.PUT("/legal-documents/{type}/current", handle(h, apikey.ScopeSecret, h.syncLegalDocument))
 	g.Any("/{path...}", notFound)
 }

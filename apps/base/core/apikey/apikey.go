@@ -42,6 +42,36 @@ func (s Scope) Allows(need Scope) bool {
 	return false
 }
 
+// ExternalProvider is the identity provider of a link that names none.
+const ExternalProvider = "external"
+
+// Link ties a subject to an identity outside c15t.
+type Link struct {
+	ExternalID string
+	Provider   string
+}
+
+func (l Link) normalized() Link {
+	if l.Provider == "" {
+		l.Provider = ExternalProvider
+	}
+	return l
+}
+
+// MayLink decides who may set a subject's link. A publishable key is public,
+// so it may only make a first link or repeat the one already there; moving a
+// subject to another identity moves its consent history and needs a secret
+// key.
+func (s Scope) MayLink(current, requested Link) bool {
+	switch s {
+	case ScopeSecret:
+		return true
+	case ScopePublishable:
+		return current.ExternalID == "" || current.normalized() == requested.normalized()
+	}
+	return false
+}
+
 func (s Scope) marker() string {
 	switch s {
 	case ScopePublishable:

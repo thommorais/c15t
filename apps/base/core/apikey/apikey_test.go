@@ -219,3 +219,32 @@ func TestParseBearerAcceptsScopedKeys(t *testing.T) {
 		}
 	}
 }
+
+func TestMayLink(t *testing.T) {
+	unlinked := Link{}
+	linked := Link{ExternalID: "user-1", Provider: "okta"}
+
+	tests := []struct {
+		name      string
+		scope     Scope
+		current   Link
+		requested Link
+		want      bool
+	}{
+		{name: "publishable sets a first link", scope: ScopePublishable, current: unlinked, requested: linked, want: true},
+		{name: "publishable repeats the same link", scope: ScopePublishable, current: linked, requested: linked, want: true},
+		{name: "publishable cannot change the externalId", scope: ScopePublishable, current: linked, requested: Link{ExternalID: "user-2", Provider: "okta"}},
+		{name: "publishable cannot change the provider", scope: ScopePublishable, current: linked, requested: Link{ExternalID: "user-1", Provider: "auth0"}},
+		{name: "an empty provider is the external provider", scope: ScopePublishable, current: Link{ExternalID: "user-1"}, requested: Link{ExternalID: "user-1", Provider: "external"}, want: true},
+		{name: "secret relinks", scope: ScopeSecret, current: linked, requested: Link{ExternalID: "user-2"}, want: true},
+		{name: "an unknown scope links nothing", scope: Scope(""), current: unlinked, requested: linked},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := tt.scope.MayLink(tt.current, tt.requested); got != tt.want {
+				t.Errorf("MayLink = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
