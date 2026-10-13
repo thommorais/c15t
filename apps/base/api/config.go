@@ -82,8 +82,9 @@ func DefaultConfig() Config {
 }
 
 // ValidateConfig checks what can be checked before serving. An invalid policy
-// pack is an error, so it stops startup instead of failing every request; the
-// warnings are for the operator to read.
+// pack, or a policy naming translations that cannot exist, is an error, so it
+// stops startup instead of failing every request; the warnings are for the
+// operator to read.
 func ValidateConfig(cfg Config) ([]string, error) {
 	result := policy.Inspect(cfg.PolicyPacks, cfg.IABEnabled)
 
@@ -94,6 +95,29 @@ func ValidateConfig(cfg Config) ([]string, error) {
 	warnings := make([]string, 0, len(result.Warnings))
 	for _, w := range result.Warnings {
 		warnings = append(warnings, "policyPacks: "+w)
+	}
+
+	var asked []i18n.PolicyI18n
+	for _, p := range cfg.PolicyPacks {
+		if p.I18n == nil {
+			continue
+		}
+		ask := i18n.PolicyI18n{PolicyID: p.ID}
+		if p.I18n.Language != nil {
+			ask.Language = *p.I18n.Language
+		}
+		if p.I18n.MessageProfile != nil {
+			ask.Profile = *p.I18n.MessageProfile
+		}
+		asked = append(asked, ask)
+	}
+
+	i18nWarnings, err := cfg.Messages.Check(asked)
+	if err != nil {
+		return nil, errors.New("i18n: " + err.Error())
+	}
+	for _, w := range i18nWarnings {
+		warnings = append(warnings, "i18n: "+w)
 	}
 	return warnings, nil
 }

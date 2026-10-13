@@ -4,6 +4,7 @@ import (
 	"strings"
 	"testing"
 
+	"thom/core/i18n"
 	"thom/core/policy"
 )
 
@@ -53,5 +54,38 @@ func TestValidateConfigTreatsNoPacksAsValid(t *testing.T) {
 
 	if warnings, err := ValidateConfig(cfg); err != nil || len(warnings) != 0 {
 		t.Errorf("no packs: warnings = %v, err = %v", warnings, err)
+	}
+}
+
+func TestValidateConfigRejectsAPolicyNamingAMissingProfile(t *testing.T) {
+	profile := "strict"
+	cfg := DefaultConfig()
+	cfg.Messages = i18n.Messages{Profiles: map[string]i18n.Profile{
+		"default": {Translations: map[string]i18n.Translations{"en": {}}},
+	}}
+	cfg.PolicyPacks = append(cfg.PolicyPacks, policy.Config{
+		ID:    "strict_de",
+		Match: policy.MatchCountries([]string{"DE"}),
+		I18n:  &policy.I18n{MessageProfile: &profile},
+	})
+
+	_, err := ValidateConfig(cfg)
+	if err == nil || !strings.HasPrefix(err.Error(), "i18n: ") || !strings.Contains(err.Error(), `"strict"`) {
+		t.Fatalf("err = %v, want an i18n error naming the profile", err)
+	}
+}
+
+func TestValidateConfigWarnsAboutAMissingDefaultProfile(t *testing.T) {
+	cfg := DefaultConfig()
+	cfg.Messages = i18n.Messages{DefaultProfile: "main", Profiles: map[string]i18n.Profile{
+		"strict": {Translations: map[string]i18n.Translations{"de": {}}},
+	}}
+
+	warnings, err := ValidateConfig(cfg)
+	if err != nil {
+		t.Fatalf("a missing default profile must still start: %v", err)
+	}
+	if len(warnings) != 1 || !strings.HasPrefix(warnings[0], "i18n: ") {
+		t.Fatalf("warnings = %v, want one labelled i18n", warnings)
 	}
 }
