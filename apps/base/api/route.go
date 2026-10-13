@@ -180,7 +180,7 @@ func notFound(e *core.RequestEvent) error {
 }
 
 func needsBody(method string) bool {
-	return method == http.MethodPost || method == http.MethodPut || method == http.MethodPatch
+	return method == http.MethodPost || method == http.MethodPut || method == http.MethodPatch || method == http.MethodDelete
 }
 
 type errorEnvelope struct {
