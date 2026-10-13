@@ -3,6 +3,7 @@ package api
 import (
 	"fmt"
 	"net/netip"
+	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -19,6 +20,15 @@ func ConfigFromEnv(getenv func(string) string) (Config, error) {
 	cfg.LegalDocSnapshotSecret = getenv("C15T_LEGAL_DOC_SNAPSHOT_SECRET")
 	cfg.LegalDocSnapshotIssuer = getenv("C15T_LEGAL_DOC_SNAPSHOT_ISSUER")
 	cfg.LegalDocSnapshotAudience = getenv("C15T_LEGAL_DOC_SNAPSHOT_AUDIENCE")
+
+	if dir := getenv("C15T_I18N_DIR"); dir != "" {
+		messages, err := loadMessages(os.DirFS(dir))
+		if err != nil {
+			return Config{}, fmt.Errorf("C15T_I18N_DIR: %w", err)
+		}
+		cfg.Messages = messages
+	}
+	cfg.Messages.DefaultProfile = getenv("C15T_I18N_DEFAULT_PROFILE")
 
 	headers, err := parseHeaderNames("C15T_IP_HEADERS", getenv("C15T_IP_HEADERS"))
 	if err != nil {

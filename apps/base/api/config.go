@@ -5,6 +5,7 @@ import (
 	"net/netip"
 	"time"
 
+	"thom/core/i18n"
 	"thom/core/policy"
 	"thom/core/ratelimit"
 )
@@ -17,6 +18,11 @@ type Config struct {
 
 	PolicyPacks []policy.Config
 	IABEnabled  bool
+
+	// Messages replace bundled notice strings per profile. Empty serves the
+	// bundle unchanged.
+	Messages i18n.Messages
+
 	// GeoDisabled forces an unknown location, which resolves jurisdiction to
 	// GDPR and lets a fallback policy apply.
 	GeoDisabled     bool

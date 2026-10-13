@@ -130,3 +130,41 @@ func mergeInto(dst, src map[string]any) {
 		dst[key] = value
 	}
 }
+
+// CheckOverride rejects a profile string the bundle has no key for, so a typo
+// fails at startup instead of reaching visitors as an unused field.
+func CheckOverride(override Translations) error {
+	reference, _ := Lookup(fallbackLanguage)
+	return checkAgainst("", override, reference)
+}
+
+func checkAgainst(prefix string, override, reference map[string]any) error {
+	for key, value := range override {
+		path := prefix + key
+		want, known := reference[key]
+		if !known {
+			return fmt.Errorf("%s is not a translation key", path)
+		}
+
+		section, isSection := want.(map[string]any)
+		switch v := value.(type) {
+		case map[string]any:
+			if !isSection {
+				return fmt.Errorf("%s must be a string", path)
+			}
+			if err := checkAgainst(path+".", v, section); err != nil {
+				return err
+			}
+		case string:
+			if isSection {
+				return fmt.Errorf("%s must be a section", path)
+			}
+		default:
+			if isSection {
+				return fmt.Errorf("%s must be a section", path)
+			}
+			return fmt.Errorf("%s must be a string", path)
+		}
+	}
+	return nil
+}

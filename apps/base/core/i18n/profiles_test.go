@@ -202,3 +202,35 @@ func TestMessagesDoNotLetACallerChangeAProfile(t *testing.T) {
 		t.Error("a caller's edit leaked into the profile")
 	}
 }
+
+func TestCheckOverride(t *testing.T) {
+	tests := []struct {
+		name     string
+		override Translations
+		wantErr  string
+	}{
+		{name: "a bundled key", override: override("common", "acceptAll", "Yes")},
+		{name: "a nested bundled key", override: Translations{"consentTypes": map[string]any{"necessary": map[string]any{"title": "Needed"}}}},
+		{name: "the iab section", override: Translations{"iab": map[string]any{"banner": map[string]any{"title": "TCF"}}}},
+		{name: "an unknown section", override: override("cookiebanner", "title", "x"), wantErr: "cookiebanner"},
+		{name: "an unknown key", override: override("common", "acceptAl", "x"), wantErr: "common.acceptAl"},
+		{name: "a string where the bundle has a section", override: Translations{"common": "x"}, wantErr: "common"},
+		{name: "a section where the bundle has a string", override: Translations{"common": map[string]any{"acceptAll": map[string]any{"x": "y"}}}, wantErr: "common.acceptAll"},
+		{name: "a value that is not a string", override: Translations{"common": map[string]any{"acceptAll": 1.0}}, wantErr: "common.acceptAll"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := CheckOverride(tt.override)
+			if tt.wantErr == "" {
+				if err != nil {
+					t.Fatalf("CheckOverride = %v, want nil", err)
+				}
+				return
+			}
+			if err == nil || !strings.Contains(err.Error(), tt.wantErr) {
+				t.Fatalf("CheckOverride = %v, want an error naming %q", err, tt.wantErr)
+			}
+		})
+	}
+}

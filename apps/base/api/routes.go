@@ -3,6 +3,7 @@ package api
 import (
 	"net/http"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/pocketbase/dbx"
@@ -29,6 +30,10 @@ type Handler struct {
 	checkLimiter *ratelimit.Limiter
 	writeLimiter *ratelimit.Limiter
 	readLimiter  *ratelimit.Limiter
+
+	// warned holds the i18n warning keys already logged, so a fallback hit on
+	// every request is logged once per process.
+	warned sync.Map
 }
 
 // limiterFor picks the rule guarding an endpoint. The cross-device check is
@@ -123,7 +128,7 @@ func (h *Handler) init(c *Ctx, _ any) (initResponse, error) {
 		resp.Policy = &decision.Policy
 	}
 
-	resp.Translations = i18n.Resolve(acceptLanguage(c.Event.Request), policyLanguageOf(resp.Policy))
+	resp.Translations = h.translate(c.Event.Request, resp.Policy)
 
 	if decision != nil {
 		resp.Decision = &decisionPayload{
@@ -143,11 +148,24 @@ func (h *Handler) init(c *Ctx, _ any) (initResponse, error) {
 	return resp, nil
 }
 
-func policyLanguageOf(p *policy.Resolved) string {
-	if p == nil || p.I18n == nil || p.I18n.Language == nil {
-		return ""
+func (h *Handler) translate(r *http.Request, p *policy.Resolved) i18n.Result {
+	var language, profile string
+	if p != nil && p.I18n != nil {
+		if p.I18n.Language != nil {
+			language = *p.I18n.Language
+		}
+		if p.I18n.MessageProfile != nil {
+			profile = *p.I18n.MessageProfile
+		}
 	}
-	return *p.I18n.Language
+
+	result, warnings := h.cfg.Messages.Resolve(acceptLanguage(r), language, profile)
+	for _, w := range warnings {
+		if _, seen := h.warned.LoadOrStore(w.Key, struct{}{}); !seen {
+			h.app.Logger().Warn(w.Message)
+		}
+	}
+	return result
 }
 
 // noBannerPolicy is what a client is told when no policy applies, so that
@@ -256,7 +274,7 @@ func (h *Handler) recordConsent(c *Ctx, body consentRequest) (Status, error) {
 
 		// The language the visitor was shown: the token's when there is one,
 		// else what init would have chosen for this request.
-		language = i18n.Resolve(acceptLanguage(c.Event.Request), policyLanguageOf(&resolved)).Language
+		language = h.translate(c.Event.Request, &resolved).Language
 		if shown != nil && shown.Language != "" {
 			language = shown.Language
 		}
