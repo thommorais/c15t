@@ -220,30 +220,33 @@ func TestParseBearerAcceptsScopedKeys(t *testing.T) {
 	}
 }
 
-func TestMayLink(t *testing.T) {
+func TestCheckLink(t *testing.T) {
 	unlinked := Link{}
 	linked := Link{ExternalID: "user-1", Provider: "okta"}
+	erased := Link{Erased: true}
 
 	tests := []struct {
 		name      string
 		scope     Scope
 		current   Link
 		requested Link
-		want      bool
+		want      error
 	}{
-		{name: "publishable sets a first link", scope: ScopePublishable, current: unlinked, requested: linked, want: true},
-		{name: "publishable repeats the same link", scope: ScopePublishable, current: linked, requested: linked, want: true},
-		{name: "publishable cannot change the externalId", scope: ScopePublishable, current: linked, requested: Link{ExternalID: "user-2", Provider: "okta"}},
-		{name: "publishable cannot change the provider", scope: ScopePublishable, current: linked, requested: Link{ExternalID: "user-1", Provider: "auth0"}},
-		{name: "an empty provider is the external provider", scope: ScopePublishable, current: Link{ExternalID: "user-1"}, requested: Link{ExternalID: "user-1", Provider: "external"}, want: true},
-		{name: "secret relinks", scope: ScopeSecret, current: linked, requested: Link{ExternalID: "user-2"}, want: true},
-		{name: "an unknown scope links nothing", scope: Scope(""), current: unlinked, requested: linked},
+		{name: "publishable sets a first link", scope: ScopePublishable, current: unlinked, requested: linked},
+		{name: "publishable repeats the same link", scope: ScopePublishable, current: linked, requested: linked},
+		{name: "publishable cannot change the externalId", scope: ScopePublishable, current: linked, requested: Link{ExternalID: "user-2", Provider: "okta"}, want: ErrLinkNeedsSecret},
+		{name: "publishable cannot change the provider", scope: ScopePublishable, current: linked, requested: Link{ExternalID: "user-1", Provider: "auth0"}, want: ErrLinkNeedsSecret},
+		{name: "an empty provider is the external provider", scope: ScopePublishable, current: Link{ExternalID: "user-1"}, requested: Link{ExternalID: "user-1", Provider: "external"}},
+		{name: "secret relinks", scope: ScopeSecret, current: linked, requested: Link{ExternalID: "user-2"}},
+		{name: "an unknown scope links nothing", scope: Scope(""), current: unlinked, requested: linked, want: ErrLinkNeedsSecret},
+		{name: "publishable cannot link an erased subject", scope: ScopePublishable, current: erased, requested: linked, want: ErrSubjectErased},
+		{name: "secret cannot link an erased subject", scope: ScopeSecret, current: erased, requested: linked, want: ErrSubjectErased},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := tt.scope.MayLink(tt.current, tt.requested); got != tt.want {
-				t.Errorf("MayLink = %v, want %v", got, tt.want)
+			if got := tt.scope.CheckLink(tt.current, tt.requested); got != tt.want {
+				t.Errorf("CheckLink = %v, want %v", got, tt.want)
 			}
 		})
 	}

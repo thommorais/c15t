@@ -23,6 +23,7 @@ const (
 var schema = map[string]map[string]rule{
 	"subject": {
 		"id": keep, "tenantId": keep, "createdAt": keep, "updatedAt": keep,
+		"erasedAt":   keep,
 		"externalId": clear, "identityProvider": clear,
 	},
 	"consent": {

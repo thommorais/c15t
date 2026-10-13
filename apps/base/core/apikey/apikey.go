@@ -45,31 +45,47 @@ func (s Scope) Allows(need Scope) bool {
 // ExternalProvider is the identity provider of a link that names none.
 const ExternalProvider = "external"
 
-// Link ties a subject to an identity outside c15t.
+// Link ties a subject to an identity outside c15t. Erased marks a subject
+// whose identity was removed on request.
 type Link struct {
 	ExternalID string
 	Provider   string
+	Erased     bool
 }
 
-func (l Link) normalized() Link {
-	if l.Provider == "" {
-		l.Provider = ExternalProvider
+var (
+	ErrLinkNeedsSecret = errors.New("changing an existing link requires a secret API key")
+	ErrSubjectErased   = errors.New("the subject was erased and cannot be linked")
+)
+
+func (l Link) sameIdentity(other Link) bool {
+	provider := func(p string) string {
+		if p == "" {
+			return ExternalProvider
+		}
+		return p
 	}
-	return l
+	return l.ExternalID == other.ExternalID && provider(l.Provider) == provider(other.Provider)
 }
 
-// MayLink decides who may set a subject's link. A publishable key is public,
+// CheckLink decides who may set a subject's link. A publishable key is public,
 // so it may only make a first link or repeat the one already there; moving a
 // subject to another identity moves its consent history and needs a secret
-// key.
-func (s Scope) MayLink(current, requested Link) bool {
+// key. No key links an erased subject: that would hand the anonymised history
+// back to a person.
+func (s Scope) CheckLink(current, requested Link) error {
+	if current.Erased {
+		return ErrSubjectErased
+	}
 	switch s {
 	case ScopeSecret:
-		return true
+		return nil
 	case ScopePublishable:
-		return current.ExternalID == "" || current.normalized() == requested.normalized()
+		if current.ExternalID == "" || current.sameIdentity(requested) {
+			return nil
+		}
 	}
-	return false
+	return ErrLinkNeedsSecret
 }
 
 func (s Scope) marker() string {

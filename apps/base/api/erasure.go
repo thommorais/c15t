@@ -3,6 +3,7 @@ package api
 import (
 	"github.com/pocketbase/dbx"
 	"github.com/pocketbase/pocketbase/core"
+	"github.com/pocketbase/pocketbase/tools/types"
 
 	"thom/core/erasure"
 )
@@ -50,6 +51,7 @@ func (h *Handler) eraseSubject(c *Ctx, body eraseRequest) (eraseResult, error) {
 				}
 			}
 
+			subject.Set("erasedAt", types.NowDateTime())
 			if err := scrubRecord(tx, subject); err != nil {
 				return err
 			}

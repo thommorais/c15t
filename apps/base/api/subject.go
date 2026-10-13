@@ -124,8 +124,16 @@ func (h *Handler) patchSubject(c *Ctx, body patchSubjectRequest) (subjectPayload
 		return subjectPayload{}, NotFound(codeSubjectNotFound, "Subject not found")
 	}
 
-	current := apikey.Link{ExternalID: record.GetString("externalId"), Provider: record.GetString("identityProvider")}
-	if !c.Tenant.Scope.MayLink(current, apikey.Link{ExternalID: body.ExternalID, Provider: provider}) {
+	current := apikey.Link{
+		ExternalID: record.GetString("externalId"),
+		Provider:   record.GetString("identityProvider"),
+		Erased:     !record.GetDateTime("erasedAt").IsZero(),
+	}
+	switch err := c.Tenant.Scope.CheckLink(current, apikey.Link{ExternalID: body.ExternalID, Provider: provider}); err {
+	case nil:
+	case apikey.ErrSubjectErased:
+		return subjectPayload{}, Conflict(codeSubjectErased, "Subject was erased and cannot be linked")
+	default:
 		return subjectPayload{}, Forbidden("Changing an existing link requires a secret API key")
 	}
 

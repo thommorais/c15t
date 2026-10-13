@@ -10,6 +10,7 @@ const (
 	codeServiceUnavailable    = "SERVICE_UNAVAILABLE"
 	codeSubjectIDRequired     = "SUBJECT_ID_REQUIRED"
 	codeSubjectNotFound       = "SUBJECT_NOT_FOUND"
+	codeSubjectErased         = "SUBJECT_ERASED"
 	codeExternalIDConflict    = "EXTERNAL_ID_CONFLICT"
 	codeExternalIDRequired    = "EXTERNAL_ID_REQUIRED"
 	codeTypeRequired          = "TYPE_REQUIRED"

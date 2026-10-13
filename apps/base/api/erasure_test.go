@@ -205,3 +205,23 @@ func TestEraseValidation(t *testing.T) {
 		})
 	}
 }
+
+func TestAnErasedSubjectCannotBeLinkedAgain(t *testing.T) {
+	f := newErasureFixture(t)
+	f.erase(t, `{"externalId":"user-42"}`)
+
+	subject, err := f.h.app.FindRecordById("subject", f.direct)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if subject.GetDateTime("erasedAt").IsZero() {
+		t.Error("erasure must mark the subject so it stays unlinkable")
+	}
+
+	for name, key := range map[string]string{"publishable": f.h.publishableKey(), "secret": f.key} {
+		rec := f.h.do(http.MethodPatch, "/api/c15t/subjects/"+f.direct, `{"externalId":"user-42"}`, auth(key))
+		if rec.Code != http.StatusConflict || decode(t, rec)["code"] != "SUBJECT_ERASED" {
+			t.Errorf("%s key: status = %d, want 409 SUBJECT_ERASED: %s", name, rec.Code, rec.Body.String())
+		}
+	}
+}
