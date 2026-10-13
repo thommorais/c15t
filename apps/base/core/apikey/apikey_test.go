@@ -89,7 +89,7 @@ func TestParseBearer(t *testing.T) {
 		{name: "bearer", header: "Bearer c15t_live_abc", want: "c15t_live_abc"},
 		{name: "lowercase scheme", header: "bearer c15t_live_abc", want: "c15t_live_abc"},
 		{name: "extra whitespace", header: "Bearer    c15t_live_abc  ", want: "c15t_live_abc"},
-		{name: "bare token", header: "c15t_live_abc", want: "c15t_live_abc"},
+		{name: "bare token is refused", header: "c15t_live_abc", want: ""},
 		{name: "empty", header: "", want: ""},
 		{name: "scheme only", header: "Bearer", want: ""},
 		{name: "scheme only with space", header: "Bearer ", want: ""},
@@ -211,8 +211,8 @@ func TestEnvOfWithScopedKeys(t *testing.T) {
 
 func TestParseBearerAcceptsScopedKeys(t *testing.T) {
 	for _, secret := range []string{"c15t_live_pk_abc", "c15t_test_sk_abc"} {
-		if got := ParseBearer(secret); got != secret {
-			t.Errorf("ParseBearer(%q) = %q", secret, got)
+		if got := ParseBearer(secret); got != "" {
+			t.Errorf("ParseBearer(%q) = %q, want a bare token refused", secret, got)
 		}
 		if got := ParseBearer("Bearer " + secret); got != secret {
 			t.Errorf("ParseBearer with scheme = %q", got)

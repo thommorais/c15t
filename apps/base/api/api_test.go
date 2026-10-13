@@ -176,6 +176,7 @@ func TestInitRequiresAuth(t *testing.T) {
 		{name: "bogus key", headers: auth("c15t_test_nope")},
 		{name: "wrong scheme", headers: map[string]string{"Authorization": "Basic abc"}},
 		{name: "unprefixed token", headers: map[string]string{"Authorization": "Bearer abc"}},
+		{name: "valid key without the bearer scheme", headers: map[string]string{"Authorization": h.key()}},
 	}
 
 	for _, tt := range tests {

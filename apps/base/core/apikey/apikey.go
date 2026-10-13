@@ -113,13 +113,7 @@ func ParseBearer(header string) string {
 	}
 
 	scheme, token, found := strings.Cut(header, " ")
-	if !found {
-		if EnvOf(header) == "" {
-			return ""
-		}
-		return header
-	}
-	if !strings.EqualFold(scheme, "bearer") {
+	if !found || !strings.EqualFold(scheme, "bearer") {
 		return ""
 	}
 
