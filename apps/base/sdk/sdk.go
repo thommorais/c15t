@@ -128,6 +128,7 @@ type ConsentRecord struct {
 	ID         string     `json:"id"`
 	SubjectID  string     `json:"subjectId"`
 	PolicyID   string     `json:"policyId"`
+	PackID     string     `json:"packId,omitempty"`
 	GivenAt    time.Time  `json:"givenAt"`
 	ValidUntil *time.Time `json:"validUntil,omitempty"`
 	Action     string     `json:"action,omitempty"`

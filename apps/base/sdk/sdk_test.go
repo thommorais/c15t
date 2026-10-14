@@ -209,8 +209,11 @@ func TestRecordConsent(t *testing.T) {
 	if got.SubjectID == "" {
 		t.Error("subject id missing")
 	}
-	if got.PolicyID != "europe_opt_in" {
-		t.Errorf("policyId = %q, want europe_opt_in", got.PolicyID)
+	if got.PackID != "europe_opt_in" {
+		t.Errorf("packId = %q, want europe_opt_in", got.PackID)
+	}
+	if got.PolicyID == "" || got.PolicyID == got.PackID {
+		t.Errorf("policyId = %q, want the stored policy record id", got.PolicyID)
 	}
 	if got.ValidUntil == nil {
 		t.Error("validUntil missing")

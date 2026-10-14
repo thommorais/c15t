@@ -670,8 +670,8 @@ func TestConsentWrite(t *testing.T) {
 	if body["id"] == "" || body["id"] == nil {
 		t.Error("response has no consent id")
 	}
-	if got := body["policyId"]; got != "europe_opt_in" {
-		t.Errorf("policyId = %v, want europe_opt_in", got)
+	if got := body["packId"]; got != "europe_opt_in" {
+		t.Errorf("packId = %v, want europe_opt_in", got)
 	}
 	if body["validUntil"] == nil {
 		t.Error("validUntil missing for a policy with expiryDays")
@@ -680,6 +680,19 @@ func TestConsentWrite(t *testing.T) {
 	stored, err := h.app.FindFirstRecordByFilter("consent", "id != ''", nil)
 	if err != nil {
 		t.Fatalf("find consent: %v", err)
+	}
+	if got := body["policyId"]; got != stored.GetString("policy") {
+		t.Errorf("policyId = %v, want the stored policy record %s", got, stored.GetString("policy"))
+	}
+
+	listed := h.do(http.MethodGet, "/api/c15t/consent/"+stored.GetString("subject"), "", auth(key))
+	consents, _ := decode(t, listed)["consents"].([]any)
+	if len(consents) != 1 {
+		t.Fatalf("listed consents = %v", consents)
+	}
+	first, _ := consents[0].(map[string]any)
+	if first["policyId"] != body["policyId"] || first["packId"] != "europe_opt_in" {
+		t.Errorf("GET = %v / %v, want the same policyId and packId as the write", first["policyId"], first["packId"])
 	}
 
 	if got := stored.GetString("ipAddress"); got != "203.0.113.0" {

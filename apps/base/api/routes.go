@@ -200,10 +200,13 @@ type consentRequest struct {
 	Metadata      map[string]any `json:"metadata"`
 }
 
+// consentResponse names the stored policy record as policyId, the same id a
+// request's policyId takes, and the configured pack that applied as packId.
 type consentResponse struct {
 	ID         string     `json:"id"`
 	SubjectID  string     `json:"subjectId"`
 	PolicyID   string     `json:"policyId"`
+	PackID     string     `json:"packId,omitempty"`
 	GivenAt    time.Time  `json:"givenAt"`
 	ValidUntil *time.Time `json:"validUntil,omitempty"`
 	Action     string     `json:"action,omitempty"`
@@ -363,15 +366,16 @@ func (h *Handler) recordConsent(c *Ctx, body consentRequest) (Status, error) {
 		return Status{}, err
 	}
 
-	policyID := stored.GetString("policy")
+	var packID string
 	if decision != nil {
-		policyID = decision.Policy.ID
+		packID = decision.Policy.ID
 	}
 
 	resp := consentResponse{
 		ID:         stored.Id,
 		SubjectID:  stored.GetString("subject"),
-		PolicyID:   policyID,
+		PolicyID:   stored.GetString("policy"),
+		PackID:     packID,
 		GivenAt:    stored.GetDateTime("givenAt").Time(),
 		ValidUntil: validUntilOf(stored),
 		Action:     stored.GetString("consentAction"),
@@ -385,6 +389,22 @@ func (h *Handler) recordConsent(c *Ctx, body consentRequest) (Status, error) {
 	return Status{Code: http.StatusCreated, Body: resp}, nil
 }
 
+// packOf reads the pack id off a stored decision, once per decision.
+func packOf(c *Ctx, decisionID string, seen map[string]string) (string, error) {
+	if decisionID == "" {
+		return "", nil
+	}
+	if packID, ok := seen[decisionID]; ok {
+		return packID, nil
+	}
+	decision, err := c.DB().FindByID("runtimePolicyDecision", decisionID)
+	if err != nil {
+		return "", err
+	}
+	seen[decisionID] = decision.GetString("packId")
+	return seen[decisionID], nil
+}
+
 func (h *Handler) listConsent(c *Ctx, _ any) (map[string]any, error) {
 	subjectID := c.Path("subjectId")
 	if subjectID == "" {
@@ -396,12 +416,18 @@ func (h *Handler) listConsent(c *Ctx, _ any) (map[string]any, error) {
 		return nil, err
 	}
 
+	packs := map[string]string{}
 	out := make([]consentResponse, 0, len(records))
 	for _, r := range records {
+		packID, err := packOf(c, r.GetString("runtimePolicyDecision"), packs)
+		if err != nil {
+			return nil, err
+		}
 		out = append(out, consentResponse{
 			ID:         r.Id,
 			SubjectID:  r.GetString("subject"),
 			PolicyID:   r.GetString("policy"),
+			PackID:     packID,
 			GivenAt:    r.GetDateTime("givenAt").Time(),
 			ValidUntil: validUntilOf(r),
 			Action:     r.GetString("consentAction"),
