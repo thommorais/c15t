@@ -92,6 +92,17 @@ func DefaultConfig() Config {
 // stops startup instead of failing every request; the warnings are for the
 // operator to read.
 func ValidateConfig(cfg Config) ([]string, error) {
+	// init serves no vendor list, CMP id or TCF strings yet, so an IAB policy
+	// would reach a banner that cannot render it.
+	if cfg.IABEnabled {
+		return nil, errors.New("C15T_IAB_ENABLED: IAB TCF is not supported yet")
+	}
+	for _, p := range cfg.PolicyPacks {
+		if p.Consent != nil && p.Consent.Model != nil && *p.Consent.Model == policy.ModelIAB {
+			return nil, errors.New("policyPacks: policy '" + p.ID + "' uses consent.model=\"iab\"; IAB TCF is not supported yet")
+		}
+	}
+
 	result := policy.Inspect(cfg.PolicyPacks, cfg.IABEnabled)
 
 	if len(result.Errors) > 0 {

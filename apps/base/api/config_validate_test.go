@@ -89,3 +89,20 @@ func TestValidateConfigWarnsAboutAMissingDefaultProfile(t *testing.T) {
 		t.Fatalf("warnings = %v, want one labelled i18n", warnings)
 	}
 }
+
+func TestValidateConfigRefusesIABUntilTCFIsSupported(t *testing.T) {
+	enabled := DefaultConfig()
+	enabled.IABEnabled = true
+
+	iabPolicy := DefaultConfig()
+	iabPolicy.PolicyPacks = []policy.Config{policy.PresetEuropeIAB(), policy.PresetWorldNoBanner()}
+
+	for name, cfg := range map[string]Config{"iab enabled": enabled, "iab policy": iabPolicy} {
+		t.Run(name, func(t *testing.T) {
+			_, err := ValidateConfig(cfg)
+			if err == nil || !strings.Contains(err.Error(), "TCF is not supported") {
+				t.Fatalf("err = %v, want startup refused because TCF is not supported", err)
+			}
+		})
+	}
+}
