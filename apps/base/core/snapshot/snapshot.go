@@ -176,6 +176,12 @@ func (s *Signer) Verify(token, tenantID string, now time.Time) (*Payload, error)
 	if p.PolicyID == "" || p.Fingerprint == "" {
 		return nil, &Error{Reason: ReasonInvalid}
 	}
+	// Every token this server signs satisfies these. Checking them stops a token
+	// whose fields disagree, such as one from another issuer sharing the secret,
+	// from naming one tenant or policy while being accepted as another.
+	if p.Subject != p.PolicyID || p.TenantID != tenantID {
+		return nil, &Error{Reason: ReasonInvalid}
+	}
 	if p.ExpiresAt <= now.Unix() {
 		return nil, &Error{Reason: ReasonExpired}
 	}

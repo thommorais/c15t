@@ -1,6 +1,7 @@
 package snapshot
 
 import (
+	"encoding/base64"
 	"strings"
 	"testing"
 	"time"
@@ -152,5 +153,42 @@ func TestCustomTTL(t *testing.T) {
 	}
 	if _, err := s.Verify(token, "t1", now.Add(2*time.Minute)); err == nil {
 		t.Error("token accepted past its ttl")
+	}
+}
+
+func TestVerifyRejectsASubjectOtherThanThePolicy(t *testing.T) {
+	s := NewSigner("secret", "", "", 0)
+
+	p := payload()
+	p.Subject = "another_policy"
+	token, err := s.Sign(p, now)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if _, err := s.Verify(token, "t1", now); err == nil {
+		t.Fatal("a token whose sub is not its policyId must not verify")
+	} else if reason, _ := ReasonOf(err); reason != ReasonInvalid {
+		t.Errorf("reason = %q, want invalid", reason)
+	}
+}
+
+func TestVerifyRejectsAPayloadForAnotherTenant(t *testing.T) {
+	s := NewSigner("secret", "", "", 0)
+
+	p := payload()
+	p.Issuer = DefaultIssuer
+	p.Audience = s.audienceFor("t1")
+	p.TenantID = "t2"
+	p.IssuedAt = now.Unix()
+	p.ExpiresAt = now.Add(DefaultTTL).Unix()
+
+	header, _ := encodeSegment(map[string]string{"alg": "HS256", "typ": "JWT"})
+	body, _ := encodeSegment(p)
+	signing := header + "." + body
+	token := signing + "." + base64.RawURLEncoding.EncodeToString(s.mac(signing))
+
+	if _, err := s.Verify(token, "t1", now); err == nil {
+		t.Fatal("a payload naming another tenant must not verify, whatever its audience")
 	}
 }
