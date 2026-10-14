@@ -3463,3 +3463,18 @@ func TestSubjectConsentsAreNotSilentlyTruncated(t *testing.T) {
 		t.Errorf("consents = %d, want all 250", len(consents))
 	}
 }
+
+func TestSpecIsServedWithoutAKey(t *testing.T) {
+	h := newHarness(t, api.DefaultConfig())
+
+	rec := h.do(http.MethodGet, "/api/c15t/spec.json", "", nil)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, want 200: %s", rec.Code, rec.Body.String())
+	}
+	if ct := rec.Header().Get("Content-Type"); !strings.HasPrefix(ct, "application/json") {
+		t.Errorf("Content-Type = %q, want application/json", ct)
+	}
+	if body := decode(t, rec); body["openapi"] == nil || body["paths"] == nil {
+		t.Errorf("body is not an OpenAPI document: %v", body)
+	}
+}

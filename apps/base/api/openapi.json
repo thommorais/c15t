@@ -1,0 +1,444 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "c15t consent API",
+    "version": "0.1.0",
+    "description": "Consent backend. Every endpoint except the spec needs an API key as `Authorization: Bearer <key>`. Publishable keys (`c15t_{live,test}_pk_*`) reach only what a banner needs and are bound to their allowed origins; secret keys (`c15t_{live,test}_sk_*`) reach everything."
+  },
+  "servers": [{ "url": "/" }],
+  "security": [{ "apiKey": [] }],
+  "tags": [
+    { "name": "banner", "description": "Publishable or secret key." },
+    { "name": "server", "description": "Secret key only." }
+  ],
+  "paths": {
+    "/api/c15t/spec.json": {
+      "get": {
+        "summary": "This document",
+        "security": [],
+        "responses": {
+          "200": { "description": "The OpenAPI document.", "content": { "application/json": { "schema": { "type": "object" } } } }
+        }
+      }
+    },
+    "/api/c15t/init": {
+      "get": {
+        "tags": ["banner"],
+        "summary": "Resolve the policy and notice strings for a visitor",
+        "parameters": [
+          { "$ref": "#/components/parameters/AcceptLanguage" }
+        ],
+        "responses": {
+          "200": { "description": "What the banner should show.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Init" } } } },
+          "401": { "$ref": "#/components/responses/Error" },
+          "403": { "$ref": "#/components/responses/Error" },
+          "429": { "$ref": "#/components/responses/Error" }
+        }
+      }
+    },
+    "/api/c15t/consent": {
+      "post": {
+        "tags": ["banner"],
+        "summary": "Record a consent",
+        "description": "The subject is the one named by `subjectId`, else the one linked to `externalId`, else a new anonymous subject whose id the response carries for the client to keep. With a snapshot secret configured the token from init is required unless the operator opted out.",
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ConsentRequest" } } } },
+        "responses": {
+          "201": { "description": "Recorded.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Consent" } } } },
+          "200": { "description": "The same submission was already recorded; `duplicate` is true.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Consent" } } } },
+          "400": { "$ref": "#/components/responses/Error" },
+          "401": { "$ref": "#/components/responses/Error" },
+          "403": { "$ref": "#/components/responses/Error" },
+          "409": { "description": "SUBJECT_ERASED, POLICY_SNAPSHOT_REQUIRED, POLICY_SNAPSHOT_EXPIRED, POLICY_SNAPSHOT_INVALID, or a legal document snapshot failure.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
+          "422": { "$ref": "#/components/responses/Error" },
+          "429": { "$ref": "#/components/responses/Error" }
+        }
+      }
+    },
+    "/api/c15t/consent/{subjectId}": {
+      "get": {
+        "tags": ["server"],
+        "summary": "List a subject's consents, newest first",
+        "parameters": [
+          { "name": "subjectId", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "The subject's consents.",
+            "content": { "application/json": { "schema": { "type": "object", "required": ["consents"], "properties": { "consents": { "type": "array", "items": { "$ref": "#/components/schemas/Consent" } } } } } }
+          },
+          "401": { "$ref": "#/components/responses/Error" },
+          "403": { "$ref": "#/components/responses/Error" }
+        }
+      }
+    },
+    "/api/c15t/consents/check": {
+      "get": {
+        "tags": ["banner"],
+        "summary": "Whether an external identity has consented, per policy type",
+        "description": "Answers booleans only, never subject ids or consent detail.",
+        "parameters": [
+          { "name": "externalId", "in": "query", "required": true, "schema": { "type": "string" } },
+          { "name": "type", "in": "query", "required": true, "description": "Comma-separated policy types.", "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "One entry per requested type.",
+            "content": { "application/json": { "schema": {
+              "type": "object",
+              "required": ["results"],
+              "properties": {
+                "results": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "object",
+                    "required": ["hasConsent", "isLatestPolicy"],
+                    "properties": { "hasConsent": { "type": "boolean" }, "isLatestPolicy": { "type": "boolean" } }
+                  }
+                }
+              }
+            } } }
+          },
+          "400": { "$ref": "#/components/responses/Error" },
+          "401": { "$ref": "#/components/responses/Error" },
+          "422": { "$ref": "#/components/responses/Error" },
+          "429": { "$ref": "#/components/responses/Error" }
+        }
+      }
+    },
+    "/api/c15t/status": {
+      "get": {
+        "tags": ["banner"],
+        "summary": "Health and what the server sees of the caller",
+        "parameters": [
+          { "$ref": "#/components/parameters/AcceptLanguage" }
+        ],
+        "responses": {
+          "200": { "description": "Healthy.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Status" } } } },
+          "401": { "$ref": "#/components/responses/Error" },
+          "503": { "$ref": "#/components/responses/Error" }
+        }
+      }
+    },
+    "/api/c15t/subjects": {
+      "get": {
+        "tags": ["server"],
+        "summary": "Subjects linked to an external identity, newest first",
+        "parameters": [
+          { "name": "externalId", "in": "query", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Matching subjects with their consents.",
+            "content": { "application/json": { "schema": { "type": "object", "required": ["subjects"], "properties": { "subjects": { "type": "array", "items": { "$ref": "#/components/schemas/Subject" } } } } } }
+          },
+          "400": { "$ref": "#/components/responses/Error" },
+          "401": { "$ref": "#/components/responses/Error" },
+          "403": { "$ref": "#/components/responses/Error" },
+          "422": { "$ref": "#/components/responses/Error" }
+        }
+      },
+      "delete": {
+        "tags": ["server"],
+        "summary": "Erase a visitor's personal data",
+        "description": "Covers every subject linked to the externalId. In the default anonymise mode the consents stay as proof with nothing that names the visitor and the subjects are marked erased; in delete mode (C15T_ERASURE_MODE=delete) the subjects, their consents and their audit rows are removed. The externalId travels in the body so it never appears in a request log. Repeating the call returns zeros.",
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "type": "object", "required": ["externalId"], "properties": { "externalId": { "type": "string" } } } } }
+        },
+        "responses": {
+          "200": {
+            "description": "How much was erased.",
+            "content": { "application/json": { "schema": { "type": "object", "required": ["subjects", "consents"], "properties": { "subjects": { "type": "integer" }, "consents": { "type": "integer" } } } } }
+          },
+          "400": { "$ref": "#/components/responses/Error" },
+          "401": { "$ref": "#/components/responses/Error" },
+          "403": { "$ref": "#/components/responses/Error" }
+        }
+      }
+    },
+    "/api/c15t/subjects/{id}": {
+      "get": {
+        "tags": ["server"],
+        "summary": "A subject with its consents",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "description": "The subject.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Subject" } } } },
+          "401": { "$ref": "#/components/responses/Error" },
+          "403": { "$ref": "#/components/responses/Error" },
+          "404": { "$ref": "#/components/responses/Error" }
+        }
+      },
+      "patch": {
+        "tags": ["banner"],
+        "summary": "Link a subject to an external identity",
+        "description": "A publishable key may make a first link or repeat the current one; changing an existing link needs a secret key. No key can link an erased subject.",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": {
+            "type": "object",
+            "required": ["externalId"],
+            "properties": {
+              "externalId": { "type": "string" },
+              "identityProvider": { "type": "string", "description": "Defaults to `external`." }
+            }
+          } } }
+        },
+        "responses": {
+          "200": { "description": "The linked subject.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Subject" } } } },
+          "400": { "$ref": "#/components/responses/Error" },
+          "401": { "$ref": "#/components/responses/Error" },
+          "403": { "description": "A publishable key tried to change an existing link.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
+          "404": { "$ref": "#/components/responses/Error" },
+          "409": { "description": "EXTERNAL_ID_CONFLICT (another subject holds the identity) or SUBJECT_ERASED.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } }
+        }
+      }
+    },
+    "/api/c15t/legal-documents/{type}/current": {
+      "put": {
+        "tags": ["server"],
+        "summary": "Publish a legal document version and make it the active one",
+        "parameters": [
+          { "name": "type", "in": "path", "required": true, "description": "privacy_policy, dpa, terms_and_conditions, or one of them with a suffix such as terms_and_conditions_b2b.", "schema": { "type": "string" } }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": {
+            "type": "object",
+            "required": ["version", "hash", "effectiveDate"],
+            "properties": {
+              "version": { "type": "string", "minLength": 1 },
+              "hash": { "type": "string" },
+              "effectiveDate": { "type": "string", "format": "date-time" }
+            }
+          } } }
+        },
+        "responses": {
+          "200": {
+            "description": "The active release.",
+            "content": { "application/json": { "schema": {
+              "type": "object",
+              "required": ["policy"],
+              "properties": {
+                "policy": {
+                  "type": "object",
+                  "required": ["id", "type", "version", "effectiveDate", "isActive"],
+                  "properties": {
+                    "id": { "type": "string" },
+                    "type": { "type": "string" },
+                    "version": { "type": "string" },
+                    "hash": { "type": "string" },
+                    "effectiveDate": { "type": "string", "format": "date-time" },
+                    "isActive": { "type": "boolean" }
+                  }
+                }
+              }
+            } } }
+          },
+          "400": { "$ref": "#/components/responses/Error" },
+          "401": { "$ref": "#/components/responses/Error" },
+          "403": { "$ref": "#/components/responses/Error" },
+          "422": { "$ref": "#/components/responses/Error" }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "apiKey": { "type": "http", "scheme": "bearer", "description": "c15t_{live,test}_{pk,sk}_* key." }
+    },
+    "parameters": {
+      "AcceptLanguage": { "name": "Accept-Language", "in": "header", "required": false, "schema": { "type": "string" } }
+    },
+    "responses": {
+      "Error": { "description": "Error envelope.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } }
+    },
+    "schemas": {
+      "Error": {
+        "type": "object",
+        "required": ["code", "message", "status", "defined", "data"],
+        "properties": {
+          "code": { "type": "string", "examples": ["INPUT_VALIDATION_FAILED", "UNAUTHORIZED", "FORBIDDEN", "RATE_LIMITED", "SUBJECT_ERASED"] },
+          "message": { "type": "string" },
+          "status": { "type": "integer" },
+          "defined": { "type": "boolean" },
+          "data": { "type": "object" }
+        }
+      },
+      "Location": {
+        "type": "object",
+        "properties": {
+          "countryCode": { "type": "string" },
+          "regionCode": { "type": "string" }
+        }
+      },
+      "Jurisdiction": {
+        "type": "string",
+        "enum": ["UK_GDPR", "GDPR", "GI", "CH", "BR", "PIPEDA", "QC_LAW25", "AU", "APPI", "PIPA", "CCPA", "NONE"]
+      },
+      "UIAction": { "type": "string", "enum": ["accept", "reject", "customize"] },
+      "UISurface": {
+        "type": "object",
+        "properties": {
+          "allowedActions": { "type": "array", "items": { "$ref": "#/components/schemas/UIAction" } },
+          "primaryActions": { "type": "array", "items": { "$ref": "#/components/schemas/UIAction" } },
+          "layout": { "type": "array", "items": { "type": "array", "items": { "$ref": "#/components/schemas/UIAction" } } },
+          "direction": { "type": "string", "enum": ["row", "column"] },
+          "uiProfile": { "type": "string", "enum": ["balanced", "compact", "strict"] },
+          "scrollLock": { "type": "boolean" }
+        }
+      },
+      "Policy": {
+        "type": "object",
+        "required": ["id", "model"],
+        "properties": {
+          "id": { "type": "string" },
+          "model": { "type": "string", "enum": ["opt-in", "opt-out", "none", "iab"] },
+          "i18n": {
+            "type": "object",
+            "properties": { "language": { "type": "string" }, "messageProfile": { "type": "string" } }
+          },
+          "consent": {
+            "type": "object",
+            "required": ["scopeMode"],
+            "properties": {
+              "expiryDays": { "type": "integer", "minimum": 1 },
+              "scopeMode": { "type": "string", "enum": ["permissive", "strict"] },
+              "categories": { "type": "array", "items": { "type": "string" } },
+              "preselectedCategories": { "type": "array", "items": { "type": "string" } },
+              "gpc": { "type": "boolean" }
+            }
+          },
+          "ui": {
+            "type": "object",
+            "properties": {
+              "mode": { "type": "string", "enum": ["none", "banner", "dialog"] },
+              "banner": { "$ref": "#/components/schemas/UISurface" },
+              "dialog": { "$ref": "#/components/schemas/UISurface" }
+            }
+          },
+          "proof": {
+            "type": "object",
+            "properties": {
+              "storeIp": { "type": "boolean" },
+              "storeUserAgent": { "type": "boolean" },
+              "storeLanguage": { "type": "boolean" }
+            }
+          }
+        }
+      },
+      "Init": {
+        "type": "object",
+        "required": ["jurisdiction", "location", "translations"],
+        "properties": {
+          "jurisdiction": { "$ref": "#/components/schemas/Jurisdiction" },
+          "location": { "$ref": "#/components/schemas/Location" },
+          "policy": { "$ref": "#/components/schemas/Policy" },
+          "policyDecision": {
+            "type": "object",
+            "required": ["policyId", "fingerprint", "matchedBy", "jurisdiction"],
+            "properties": {
+              "policyId": { "type": "string" },
+              "fingerprint": { "type": "string" },
+              "matchedBy": { "type": "string", "enum": ["region", "country", "fallback", "default"] },
+              "jurisdiction": { "$ref": "#/components/schemas/Jurisdiction" }
+            }
+          },
+          "policySnapshotToken": { "type": "string", "description": "Present when a snapshot secret is configured and a policy applied. Send it back on the consent write." },
+          "translations": {
+            "type": "object",
+            "required": ["language", "translations"],
+            "properties": {
+              "language": { "type": "string" },
+              "translations": { "type": "object", "description": "Notice strings by section." }
+            }
+          }
+        }
+      },
+      "ConsentRequest": {
+        "type": "object",
+        "required": ["domain", "givenAt"],
+        "properties": {
+          "subjectId": { "type": "string" },
+          "externalId": { "type": "string" },
+          "domain": { "type": "string" },
+          "categories": { "type": "array", "items": { "type": "string" } },
+          "policyType": { "type": "string", "description": "Defaults to cookie_banner." },
+          "policyId": { "type": "string", "description": "A stored policy record id." },
+          "policyHash": { "type": "string" },
+          "uiSource": { "type": "string", "enum": ["banner", "dialog", "widget", "api"] },
+          "action": { "type": "string", "enum": ["accept_all", "reject_all", "opt_out", "custom"] },
+          "tcString": { "type": "string" },
+          "givenAt": { "type": "string", "format": "date-time" },
+          "policySnapshotToken": { "type": "string" },
+          "documentSnapshotToken": { "type": "string", "description": "Proof of the legal document release shown, for legal document types." },
+          "metadata": { "type": "object" }
+        }
+      },
+      "Consent": {
+        "type": "object",
+        "required": ["id", "subjectId", "policyId", "givenAt"],
+        "properties": {
+          "id": { "type": "string" },
+          "subjectId": { "type": "string" },
+          "policyId": { "type": "string", "description": "The stored policy record id." },
+          "packId": { "type": "string", "description": "The configured policy pack that applied, when one did." },
+          "givenAt": { "type": "string", "format": "date-time" },
+          "validUntil": { "type": "string", "format": "date-time" },
+          "action": { "type": "string" },
+          "duplicate": { "type": "boolean" }
+        }
+      },
+      "Subject": {
+        "type": "object",
+        "required": ["id", "createdAt", "updatedAt"],
+        "properties": {
+          "id": { "type": "string" },
+          "externalId": { "type": "string" },
+          "identityProvider": { "type": "string" },
+          "createdAt": { "type": "string", "format": "date-time" },
+          "updatedAt": { "type": "string", "format": "date-time" },
+          "consents": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["id", "type", "isLatestPolicy", "givenAt"],
+              "properties": {
+                "id": { "type": "string" },
+                "type": { "type": "string" },
+                "policyId": { "type": "string" },
+                "policyVersion": { "type": "string" },
+                "isLatestPolicy": { "type": "boolean" },
+                "givenAt": { "type": "string", "format": "date-time" },
+                "validUntil": { "type": "string", "format": "date-time" },
+                "action": { "type": "string" }
+              }
+            }
+          }
+        }
+      },
+      "Status": {
+        "type": "object",
+        "required": ["version", "timestamp", "client"],
+        "properties": {
+          "version": { "type": "string" },
+          "timestamp": { "type": "string", "format": "date-time" },
+          "client": {
+            "type": "object",
+            "required": ["region"],
+            "properties": {
+              "ip": { "type": "string" },
+              "userAgent": { "type": "string" },
+              "acceptLanguage": { "type": "string" },
+              "region": { "$ref": "#/components/schemas/Location" }
+            }
+          }
+        }
+      }
+    }
+  }
+}
