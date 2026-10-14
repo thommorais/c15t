@@ -17,9 +17,9 @@ type eraseResult struct {
 	Consents int `json:"consents"`
 }
 
-// eraseSubject anonymises every subject linked to an externalId, one per
-// device and identity provider. The externalId comes in the body so it never
-// reaches the request log's URI.
+// eraseSubject anonymises or deletes, per the configured mode, every subject
+// linked to an externalId, one per device and identity provider. The
+// externalId comes in the body so it never reaches the request log's URI.
 func (h *Handler) eraseSubject(c *Ctx, body eraseRequest) (eraseResult, error) {
 	if body.ExternalID == "" {
 		return eraseResult{}, BadRequest(codeInputValidationFailed, "externalId is required")
@@ -34,6 +34,11 @@ func (h *Handler) eraseSubject(c *Ctx, body eraseRequest) (eraseResult, error) {
 			return err
 		}
 
+		eraseRecord := scrubRecord
+		if h.cfg.ErasureMode == erasure.Delete {
+			eraseRecord = func(tx *scope, record *core.Record) error { return tx.Delete(record) }
+		}
+
 		erased := make([]string, 0, len(subjects))
 		for _, subject := range subjects {
 			for _, collection := range []string{"consent", "auditLog"} {
@@ -42,7 +47,7 @@ func (h *Handler) eraseSubject(c *Ctx, body eraseRequest) (eraseResult, error) {
 					return err
 				}
 				for _, row := range rows {
-					if err := scrubRecord(tx, row); err != nil {
+					if err := eraseRecord(tx, row); err != nil {
 						return err
 					}
 				}
@@ -52,7 +57,7 @@ func (h *Handler) eraseSubject(c *Ctx, body eraseRequest) (eraseResult, error) {
 			}
 
 			subject.Set("erasedAt", types.NowDateTime())
-			if err := scrubRecord(tx, subject); err != nil {
+			if err := eraseRecord(tx, subject); err != nil {
 				return err
 			}
 			erased = append(erased, subject.Id)
@@ -63,17 +68,21 @@ func (h *Handler) eraseSubject(c *Ctx, body eraseRequest) (eraseResult, error) {
 			return nil
 		}
 
+		// A deleted subject's id would point at nothing, so delete mode records
+		// only how much was removed.
+		changes := map[string]any{"subjects": erased, "consents": result.Consents}
+		if h.cfg.ErasureMode == erasure.Delete {
+			changes["subjects"] = result.Subjects
+		}
+
 		entry, err := tx.New("auditLog")
 		if err != nil {
 			return err
 		}
 		entry.Set("entityType", "erasure")
 		entry.Set("entityId", core.GenerateDefaultRandomId())
-		entry.Set("actionType", "anonymise")
-		entry.Set("changes", map[string]any{
-			"subjects": erased,
-			"consents": result.Consents,
-		})
+		entry.Set("actionType", string(h.cfg.ErasureMode))
+		entry.Set("changes", changes)
 		return tx.Save(entry)
 	})
 	if err != nil {

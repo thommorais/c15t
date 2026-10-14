@@ -117,3 +117,25 @@ func TestClassified(t *testing.T) {
 		t.Error("a field nobody classified must report false")
 	}
 }
+
+func TestParseMode(t *testing.T) {
+	tests := []struct {
+		raw     string
+		want    Mode
+		wantErr bool
+	}{
+		{raw: "", want: Anonymise},
+		{raw: "anonymise", want: Anonymise},
+		{raw: "DELETE", want: Delete},
+		{raw: " delete ", want: Delete},
+		{raw: "anonymize", want: Anonymise},
+		{raw: "purge", wantErr: true},
+	}
+
+	for _, tt := range tests {
+		got, err := ParseMode(tt.raw)
+		if (err != nil) != tt.wantErr || got != tt.want {
+			t.Errorf("ParseMode(%q) = %q, %v; want %q, error %v", tt.raw, got, err, tt.want, tt.wantErr)
+		}
+	}
+}

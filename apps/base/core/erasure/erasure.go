@@ -4,10 +4,34 @@
 package erasure
 
 import (
+	"fmt"
 	"sort"
+	"strings"
 
 	"thom/core/consent"
 )
+
+// Mode is what erasure does with a visitor's rows. Anonymise keeps each
+// consent as proof with nothing that names the visitor; Delete removes the
+// rows, for a client whose counsel requires it.
+type Mode string
+
+const (
+	Anonymise Mode = "anonymise"
+	Delete    Mode = "delete"
+)
+
+// ParseMode reads a configured mode. Empty is Anonymise, and the US spelling
+// is accepted.
+func ParseMode(raw string) (Mode, error) {
+	switch strings.ToLower(strings.TrimSpace(raw)) {
+	case "", "anonymise", "anonymize":
+		return Anonymise, nil
+	case "delete":
+		return Delete, nil
+	}
+	return "", fmt.Errorf("%q is not an erasure mode: use anonymise or delete", raw)
+}
 
 type rule int
 

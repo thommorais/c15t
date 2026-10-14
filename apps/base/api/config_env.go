@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"thom/core/erasure"
 	"thom/core/ratelimit"
 )
 
@@ -29,6 +30,12 @@ func ConfigFromEnv(getenv func(string) string) (Config, error) {
 		cfg.Messages = messages
 	}
 	cfg.Messages.DefaultProfile = getenv("C15T_I18N_DEFAULT_PROFILE")
+
+	mode, err := erasure.ParseMode(getenv("C15T_ERASURE_MODE"))
+	if err != nil {
+		return Config{}, fmt.Errorf("C15T_ERASURE_MODE: %w", err)
+	}
+	cfg.ErasureMode = mode
 
 	headers, err := parseHeaderNames("C15T_IP_HEADERS", getenv("C15T_IP_HEADERS"))
 	if err != nil {

@@ -6,6 +6,8 @@ import (
 	"strings"
 	"testing"
 	"testing/fstest"
+
+	"thom/core/erasure"
 )
 
 func file(body string) *fstest.MapFile {
@@ -99,5 +101,21 @@ func TestConfigFromEnvRefusesAMissingMessagesDirectory(t *testing.T) {
 	}))
 	if err == nil || !strings.Contains(err.Error(), "C15T_I18N_DIR") {
 		t.Fatalf("err = %v, want one naming C15T_I18N_DIR", err)
+	}
+}
+
+func TestConfigFromEnvReadsTheErasureMode(t *testing.T) {
+	got, err := ConfigFromEnv(envFrom(nil))
+	if err != nil || got.ErasureMode != erasure.Anonymise {
+		t.Fatalf("default = %q, %v; want anonymise", got.ErasureMode, err)
+	}
+
+	got, err = ConfigFromEnv(envFrom(map[string]string{"C15T_ERASURE_MODE": "delete"}))
+	if err != nil || got.ErasureMode != erasure.Delete {
+		t.Fatalf("delete = %q, %v", got.ErasureMode, err)
+	}
+
+	if _, err := ConfigFromEnv(envFrom(map[string]string{"C15T_ERASURE_MODE": "purge"})); err == nil || !strings.Contains(err.Error(), "C15T_ERASURE_MODE") {
+		t.Fatalf("err = %v, want one naming C15T_ERASURE_MODE", err)
 	}
 }

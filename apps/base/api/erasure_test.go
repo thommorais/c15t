@@ -41,8 +41,13 @@ type erasureFixture struct {
 
 func newErasureFixture(t *testing.T) erasureFixture {
 	t.Helper()
+	return newErasureFixtureWith(t, api.DefaultConfig())
+}
 
-	h := newHarness(t, api.DefaultConfig())
+func newErasureFixtureWith(t *testing.T, cfg api.Config) erasureFixture {
+	t.Helper()
+
+	h := newHarness(t, cfg)
 	f := erasureFixture{h: h, key: h.key()}
 	f.visitor = auth(f.key, "cf-ipcountry", "DE", "X-Forwarded-For", "203.0.113.7", "User-Agent", "TestAgent/1.0")
 
@@ -222,6 +227,49 @@ func TestAnErasedSubjectCannotBeLinkedAgain(t *testing.T) {
 		rec := f.h.do(http.MethodPatch, "/api/c15t/subjects/"+f.direct, `{"externalId":"user-42"}`, auth(key))
 		if rec.Code != http.StatusConflict || decode(t, rec)["code"] != "SUBJECT_ERASED" {
 			t.Errorf("%s key: status = %d, want 409 SUBJECT_ERASED: %s", name, rec.Code, rec.Body.String())
+		}
+	}
+}
+
+func TestEraseInDeleteMode(t *testing.T) {
+	cfg := api.DefaultConfig()
+	cfg.ErasureMode = erasure.Delete
+	f := newErasureFixtureWith(t, cfg)
+
+	got := f.erase(t, `{"externalId":"user-42"}`)
+	if got["subjects"] != 2.0 || got["consents"] != 2.0 {
+		t.Errorf("response = %v, want 2 subjects and 2 consents", got)
+	}
+
+	for _, id := range []string{f.direct, f.linked} {
+		if _, err := f.h.app.FindRecordById("subject", id); err == nil {
+			t.Errorf("subject %s survived a hard delete", id)
+		}
+		if rows := f.rows(t, "consent", "subject", id); len(rows) != 0 {
+			t.Errorf("consents for %s = %d, want none", id, len(rows))
+		}
+		if rows := f.rows(t, "auditLog", "subject", id); len(rows) != 0 {
+			t.Errorf("audit rows for %s = %d, want none", id, len(rows))
+		}
+
+		rec := f.h.do(http.MethodPatch, "/api/c15t/subjects/"+id, `{"externalId":"user-42"}`, auth(f.key))
+		if rec.Code != http.StatusNotFound {
+			t.Errorf("relinking a deleted subject: status = %d, want 404", rec.Code)
+		}
+	}
+
+	if rows := f.rows(t, "consent", "subject", f.other); len(rows) != 1 {
+		t.Error("another visitor's consent was deleted")
+	}
+
+	entries, err := f.h.app.FindRecordsByFilter("auditLog", "entityType = 'erasure'", "", 0, 0)
+	if err != nil || len(entries) != 1 {
+		t.Fatalf("erasure audit entries = %d (%v), want 1", len(entries), err)
+	}
+	raw, _ := json.Marshal(entries[0].PublicExport())
+	for _, leaked := range []string{"user-42", f.direct, f.linked} {
+		if strings.Contains(string(raw), leaked) {
+			t.Errorf("the erasure entry holds %q: %s", leaked, raw)
 		}
 	}
 }

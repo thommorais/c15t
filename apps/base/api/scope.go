@@ -132,6 +132,14 @@ func (s *scope) Save(record *core.Record) error {
 	return s.app.Save(record)
 }
 
+// Delete refuses a record that is not stamped for this tenant, as Save does.
+func (s *scope) Delete(record *core.Record) error {
+	if !s.skip(record.Collection().Name) && record.GetString("tenantId") != s.tenant {
+		return errNotOwned
+	}
+	return s.app.Delete(record)
+}
+
 // Tx runs fn with a scope bound to the transaction, so work inside a
 // transaction cannot escape tenant scoping either.
 func (s *scope) Tx(fn func(tx *scope) error) error {

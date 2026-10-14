@@ -156,3 +156,36 @@ func TestScopeSaveRefusesARecordFromAnotherTenant(t *testing.T) {
 		t.Error("a deployment with no tenant owns its database and must not be refused")
 	}
 }
+
+func TestScopeDeleteRefusesARecordFromAnotherTenant(t *testing.T) {
+	app, err := tests.NewTestApp(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(app.Cleanup)
+	if err := app.RunAppMigrations(); err != nil {
+		t.Fatal(err)
+	}
+
+	other := &scope{app: app, tenant: "other"}
+	theirs, err := other.New("domain")
+	if err != nil {
+		t.Fatal(err)
+	}
+	theirs.Set("name", "example.com")
+	if err := other.Save(theirs); err != nil {
+		t.Fatal(err)
+	}
+
+	acme := &scope{app: app, tenant: "acme"}
+	if err := acme.Delete(theirs); !errors.Is(err, errNotOwned) {
+		t.Errorf("Delete = %v, want errNotOwned", err)
+	}
+	if _, err := app.FindRecordById("domain", theirs.Id); err != nil {
+		t.Errorf("another tenant's record was deleted: %v", err)
+	}
+
+	if err := other.Delete(theirs); err != nil {
+		t.Errorf("a tenant must delete its own record: %v", err)
+	}
+}

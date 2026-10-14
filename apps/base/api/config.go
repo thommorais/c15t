@@ -5,6 +5,7 @@ import (
 	"net/netip"
 	"time"
 
+	"thom/core/erasure"
 	"thom/core/i18n"
 	"thom/core/policy"
 	"thom/core/ratelimit"
@@ -18,6 +19,9 @@ type Config struct {
 
 	PolicyPacks []policy.Config
 	IABEnabled  bool
+
+	// ErasureMode is what an erasure request does with a visitor's rows.
+	ErasureMode erasure.Mode
 
 	// Messages replace bundled notice strings per profile. Empty serves the
 	// bundle unchanged.
@@ -67,6 +71,7 @@ type Config struct {
 
 func DefaultConfig() Config {
 	return Config{
+		ErasureMode: erasure.Anonymise,
 		CheckRate:   ratelimit.Rule{Limit: 30, Window: time.Minute},
 		WriteRate:   ratelimit.Rule{Limit: 60, Window: time.Minute},
 		DefaultRate: ratelimit.Rule{Limit: 300, Window: time.Minute},
