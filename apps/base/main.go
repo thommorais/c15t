@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"fmt"
 	"log"
 	"os"
@@ -26,6 +27,7 @@ func main() {
 	})
 
 	app.RootCmd.AddCommand(newAPIKeyCmd(app))
+	app.RootCmd.AddCommand(newOperatorCmd(app))
 
 	app.OnServe().BindFunc(func(se *core.ServeEvent) error {
 		cfg, err := api.ConfigFromEnv(os.Getenv)
@@ -101,6 +103,39 @@ func newAPIKeyCmd(app core.App) *cobra.Command {
 	cmd.Flags().StringVar(&env, "env", "live", "live or test")
 	cmd.Flags().StringVar(&scope, "scope", "secret", "publishable or secret")
 	cmd.Flags().StringVar(&origins, "origins", "", "comma separated origins a publishable key may be used from")
+
+	return cmd
+}
+
+// newOperatorCmd reads the password from the first line of stdin so it stays
+// out of shell history and the process list.
+func newOperatorCmd(app core.App) *cobra.Command {
+	var email, tenant string
+
+	cmd := &cobra.Command{
+		Use:   "operator:create",
+		Short: "Create a dashboard operator; the password is read from stdin",
+		RunE: func(cmd *cobra.Command, _ []string) error {
+			line, err := bufio.NewReader(cmd.InOrStdin()).ReadString('\n')
+			if err != nil && line == "" {
+				return fmt.Errorf("pipe the password on stdin")
+			}
+			password := strings.TrimRight(line, "\r\n")
+
+			if err := app.Bootstrap(); err != nil {
+				return err
+			}
+			if err := api.CreateOperator(app, email, password, tenant); err != nil {
+				return err
+			}
+
+			fmt.Printf("operator %s created for tenant %q\n", email, tenant)
+			return nil
+		},
+	}
+
+	cmd.Flags().StringVar(&email, "email", "", "operator email")
+	cmd.Flags().StringVar(&tenant, "tenant", os.Getenv("C15T_TENANT_ID"), "tenant the operator reads; defaults to C15T_TENANT_ID")
 
 	return cmd
 }
