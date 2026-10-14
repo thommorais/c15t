@@ -308,3 +308,21 @@ func TestNamedPresetsFixTheirModel(t *testing.T) {
 		})
 	}
 }
+
+func TestEuropePresetsCoverGibraltar(t *testing.T) {
+	for _, preset := range []Config{PresetEuropeOptIn(), PresetEuropeIAB()} {
+		t.Run(preset.ID, func(t *testing.T) {
+			got, err := Resolve(Request{
+				Policies:    []Config{preset, PresetWorldNoBanner()},
+				CountryCode: ptr("GI"),
+				IABEnabled:  true,
+			})
+			if err != nil {
+				t.Fatalf("Resolve: %v", err)
+			}
+			if got == nil || got.Policy.ID != preset.ID {
+				t.Errorf("GI resolved to %v, want %s: Gibraltar has its own cookie-consent law", got, preset.ID)
+			}
+		})
+	}
+}

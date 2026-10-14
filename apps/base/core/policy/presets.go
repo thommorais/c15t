@@ -18,9 +18,11 @@ func fullProof() *ProofConfig {
 	}
 }
 
+// europe adds Gibraltar to the EEA and UK: it has its own cookie-consent law
+// and is in neither.
 func europe() Config {
 	return Config{
-		Match: MatchMerge(MatchIAB(), MatchFallback()),
+		Match: MatchMerge(MatchIAB(), MatchCountries([]string{"GI"}), MatchFallback()),
 		Consent: &ConsentConfig{
 			ExpiryDays: ptrOf(365),
 		},
