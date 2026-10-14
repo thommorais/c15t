@@ -199,6 +199,24 @@ func TestInspectErrors(t *testing.T) {
 			}},
 			wantErr: "ui.banner.layout contains 'accept' which is not in allowedActions []",
 		},
+		{
+			name: "expiryDays zero",
+			policies: []Config{{
+				ID:      "a",
+				Match:   MatchCountries([]string{"DE"}),
+				Consent: &ConsentConfig{ExpiryDays: ptr(0)},
+			}},
+			wantErr: "Policy 'a' sets consent.expiryDays to 0",
+		},
+		{
+			name: "expiryDays negative",
+			policies: []Config{{
+				ID:      "a",
+				Match:   MatchCountries([]string{"DE"}),
+				Consent: &ConsentConfig{ExpiryDays: ptr(-30)},
+			}},
+			wantErr: "Policy 'a' sets consent.expiryDays to -30",
+		},
 	}
 
 	for _, tt := range tests {

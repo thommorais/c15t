@@ -125,6 +125,15 @@ func collectErrors(policies []Config, iabEnabled bool) []string {
 			errs = append(errs, fmt.Sprintf(
 				"Policy '%s' has no matcher. Add countries or regions, or set match.isDefault=true.", id))
 		}
+
+		// Unset is the one way to say a consent never expires. A 0 read as "no
+		// expiry" here and "expired at once" by the reference must not reach a
+		// visitor as either.
+		if p.Consent != nil && p.Consent.ExpiryDays != nil && *p.Consent.ExpiryDays < 1 {
+			errs = append(errs, fmt.Sprintf(
+				"Policy '%s' sets consent.expiryDays to %d. Use 1 or more days, or leave it unset for no expiry.",
+				id, *p.Consent.ExpiryDays))
+		}
 	}
 
 	return errs
