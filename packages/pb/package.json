@@ -1,0 +1,39 @@
+{
+	"name": "@thom/pb",
+	"version": "0.1.0",
+	"private": true,
+	"sideEffects": false,
+	"exports": {
+		"./client": "./src/client.ts",
+		"./filter-builder": "./src/filter-builder.ts",
+		"./realtime": "./src/realtime.ts",
+		"./store": "./src/store.ts"
+	},
+	"scripts": {
+		"check-types": "tsc --noEmit",
+		"lint": "oxlint ./src",
+		"format": "oxfmt ./src",
+		"test": "vitest",
+		"test:run": "vitest run",
+		"test:watch": "vitest --watch"
+	},
+	"dependencies": {
+		"@thom/safe-return": "workspace:*",
+		"@thom/try-catch": "workspace:*"
+	},
+	"devDependencies": {
+		"@testing-library/dom": "catalog:",
+		"@testing-library/react": "catalog:",
+		"@thom/typescript-config": "workspace:*",
+		"@types/react": "catalog:",
+		"@types/react-dom": "catalog:",
+		"happy-dom": "catalog:",
+		"react": "catalog:",
+		"react-dom": "catalog:",
+		"typescript": "catalog:",
+		"vitest": "catalog:"
+	},
+	"peerDependencies": {
+		"react": "^19"
+	}
+}
