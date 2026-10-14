@@ -160,3 +160,27 @@ func TestConfigFromEnvReadsTheTrustedProxies(t *testing.T) {
 		}
 	}
 }
+
+func TestConfigFromEnvRequiresTheSnapshotTokenOnceASecretIsSet(t *testing.T) {
+	tests := []struct {
+		name string
+		env  map[string]string
+		want bool
+	}{
+		{name: "no secret", env: nil, want: false},
+		{name: "secret set", env: map[string]string{"C15T_SNAPSHOT_SECRET": "s3cret"}, want: true},
+		{name: "secret set, opted out", env: map[string]string{"C15T_SNAPSHOT_SECRET": "s3cret", "C15T_SNAPSHOT_REQUIRED": "false"}, want: false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := ConfigFromEnv(envFrom(tt.env))
+			if err != nil {
+				t.Fatal(err)
+			}
+			if got.SnapshotRequired != tt.want {
+				t.Errorf("SnapshotRequired = %v, want %v", got.SnapshotRequired, tt.want)
+			}
+		})
+	}
+}

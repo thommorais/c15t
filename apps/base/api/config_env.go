@@ -77,6 +77,12 @@ func ConfigFromEnv(getenv func(string) string) (Config, error) {
 		cfg.SnapshotTTL = ttl
 	}
 
+	// A configured secret means writes must prove what the visitor was shown,
+	// as the reference does; C15T_SNAPSHOT_REQUIRED=false opts out.
+	if getenv("C15T_SNAPSHOT_REQUIRED") == "" {
+		cfg.SnapshotRequired = cfg.SnapshotSecret != ""
+	}
+
 	if cfg.SnapshotRequired && cfg.SnapshotSecret == "" {
 		return Config{}, fmt.Errorf("C15T_SNAPSHOT_REQUIRED needs C15T_SNAPSHOT_SECRET")
 	}

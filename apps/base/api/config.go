@@ -46,7 +46,8 @@ type Config struct {
 
 	// Snapshot tokens are off until a secret is configured. SnapshotRequired
 	// rejects a write without a valid token; otherwise a failure falls back to
-	// resolving the policy for the request as it arrives.
+	// resolving the policy for the request as it arrives. ConfigFromEnv turns
+	// it on with the secret unless C15T_SNAPSHOT_REQUIRED says otherwise.
 	SnapshotSecret   string
 	SnapshotIssuer   string
 	SnapshotAudience string
