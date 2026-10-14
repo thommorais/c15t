@@ -2,6 +2,7 @@ package api_test
 
 import (
 	"net/http"
+	"net/url"
 	"strings"
 	"testing"
 	"time"
@@ -48,7 +49,7 @@ func TestRequestLogKeepsNoIdentifiers(t *testing.T) {
 
 	logs := waitForLogs(t, h, func(logs []*core.Log) bool {
 		for _, l := range logs {
-			if l.Data["url"] == "/api/health" {
+			if l.Data["url"] == "/api/health" || l.Data["route"] == "GET /api/health" {
 				return true
 			}
 		}
@@ -81,5 +82,38 @@ func TestRequestLogKeepsNoIdentifiers(t *testing.T) {
 		if !found {
 			t.Errorf("no request log for %s; got %v", want, routes)
 		}
+	}
+}
+
+func TestDashboardReadsLeaveNoIdentifiersInTheLog(t *testing.T) {
+	h := newHarness(t, api.DefaultConfig())
+	h.app.Settings().Logs.MaxDays = 5
+	token := seedOperator(t, h, "ops@acme.example", "acme")
+
+	h.do(http.MethodGet, "/api/collections/subject/records?filter="+url.QueryEscape("externalId='user-42'"), "",
+		map[string]string{"Authorization": token, "User-Agent": "TestAgent/1.0", "X-Forwarded-For": "203.0.113.7"})
+	h.do(http.MethodGet, "/api/health", "", nil)
+
+	logs := waitForLogs(t, h, func(logs []*core.Log) bool {
+		for _, l := range logs {
+			if l.Data["route"] == "GET /api/health" || l.Data["url"] == "/api/health" {
+				return true
+			}
+		}
+		return false
+	})
+
+	found := false
+	for _, l := range logs {
+		raw, _ := l.Data.MarshalJSON()
+		for _, leaked := range []string{"user-42", "203.0.113", "TestAgent", "ops@acme.example"} {
+			if strings.Contains(string(raw), leaked) {
+				t.Errorf("a log row holds %q: %s", leaked, raw)
+			}
+		}
+		found = found || l.Data["route"] == "GET /api/collections/{collection}/records"
+	}
+	if !found {
+		t.Error("the dashboard read left no request log at all")
 	}
 }

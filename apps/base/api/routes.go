@@ -75,9 +75,10 @@ func Register(app core.App, se *core.ServeEvent, cfg Config) {
 		)
 	}
 
+	se.Router.Unbind(apis.DefaultActivityLoggerMiddlewareId)
+	se.Router.Bind(requestLog())
+
 	g := se.Router.Group("/api/c15t")
-	g.Unbind(apis.DefaultActivityLoggerMiddlewareId)
-	g.Bind(requestLog())
 	g.GET("/spec.json", serveSpec)
 	g.GET("/init", handle(h, apikey.ScopePublishable, h.init))
 	g.POST("/consent", handle(h, apikey.ScopePublishable, h.recordConsent))
