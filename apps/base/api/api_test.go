@@ -591,7 +591,7 @@ func TestBrazilGetsTheOptInBannerByDefault(t *testing.T) {
 
 func TestBrazilOptOutPresetCanReplaceTheDefault(t *testing.T) {
 	cfg := api.DefaultConfig()
-	cfg.PolicyPacks = []policy.Config{policy.PresetEurope(policy.ModelOptIn), policy.PresetBrazilOptOut(), policy.PresetWorldNoBanner()}
+	cfg.PolicyPacks = []policy.Config{policy.PresetEuropeOptIn(), policy.PresetBrazilOptOut(), policy.PresetWorldNoBanner()}
 
 	if warnings, err := api.ValidateConfig(cfg); err != nil || len(warnings) != 0 {
 		t.Fatalf("ValidateConfig: warnings = %v, err = %v", warnings, err)

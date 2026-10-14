@@ -78,8 +78,8 @@ func DefaultConfig() Config {
 		DefaultRate: ratelimit.Rule{Limit: 300, Window: time.Minute},
 
 		PolicyPacks: []policy.Config{
-			policy.PresetEurope(policy.ModelOptIn),
-			policy.PresetCalifornia(policy.ModelOptOut),
+			policy.PresetEuropeOptIn(),
+			policy.PresetCaliforniaOptOut(),
 			policy.PresetQuebec(),
 			policy.PresetBrazilOptIn(),
 			policy.PresetWorldNoBanner(),

@@ -18,58 +18,69 @@ func fullProof() *ProofConfig {
 	}
 }
 
-// PresetEurope matches the EEA plus the UK and doubles as the fallback policy
-// for requests with unknown geo.
-func PresetEurope(model Model) Config {
-	c := Config{
-		ID:    "europe_opt_in",
+func europe() Config {
+	return Config{
 		Match: MatchMerge(MatchIAB(), MatchFallback()),
 		Consent: &ConsentConfig{
-			Model:      ptrOf(model),
 			ExpiryDays: ptrOf(365),
 		},
 		Proof: fullProof(),
 	}
+}
 
-	if model == ModelIAB {
-		c.ID = "europe_iab"
-		c.Consent.Categories = []string{CategoryWildcard}
-		return c
-	}
-
+// PresetEuropeOptIn matches the EEA plus the UK and doubles as the fallback
+// policy for requests with unknown geo. Europe has no opt-out preset: the GDPR
+// needs a choice before optional processing.
+func PresetEuropeOptIn() Config {
+	c := europe()
+	c.ID = "europe_opt_in"
+	c.Consent.Model = ptrOf(ModelOptIn)
 	c.UI = &UIConfig{
 		Mode:   ptrOf(UIModeBanner),
 		Banner: splitRowSurface(),
 		Dialog: splitRowSurface(),
 	}
-
 	return c
 }
 
-func PresetCalifornia(model Model) Config {
-	c := Config{
-		ID:    "california_opt_in",
+// PresetEuropeIAB is the European preset under the IAB TCF, whose surface is
+// fixed by TCF mode, so it carries no UI.
+func PresetEuropeIAB() Config {
+	c := europe()
+	c.ID = "europe_iab"
+	c.Consent.Model = ptrOf(ModelIAB)
+	c.Consent.Categories = []string{CategoryWildcard}
+	return c
+}
+
+func california() Config {
+	return Config{
 		Match: MatchRegions([]Region{{Country: "US", Region: "CA"}}),
 		Consent: &ConsentConfig{
-			Model:      ptrOf(model),
 			ExpiryDays: ptrOf(365),
 			GPC:        ptrOf(true),
 		},
 		Proof: fullProof(),
 	}
+}
 
-	if model == ModelOptOut {
-		c.ID = "california_opt_out"
-		c.UI = &UIConfig{Mode: ptrOf(UIModeNone)}
-		return c
-	}
-
+func PresetCaliforniaOptIn() Config {
+	c := california()
+	c.ID = "california_opt_in"
+	c.Consent.Model = ptrOf(ModelOptIn)
 	c.UI = &UIConfig{
 		Mode:   ptrOf(UIModeBanner),
 		Banner: splitRowSurface(),
 		Dialog: splitRowSurface(),
 	}
+	return c
+}
 
+func PresetCaliforniaOptOut() Config {
+	c := california()
+	c.ID = "california_opt_out"
+	c.Consent.Model = ptrOf(ModelOptOut)
+	c.UI = &UIConfig{Mode: ptrOf(UIModeNone)}
 	return c
 }
 

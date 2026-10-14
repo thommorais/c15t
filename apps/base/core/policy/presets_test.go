@@ -4,8 +4,8 @@ import "testing"
 
 func standardPack() []Config {
 	return []Config{
-		PresetEurope(ModelOptIn),
-		PresetCalifornia(ModelOptOut),
+		PresetEuropeOptIn(),
+		PresetCaliforniaOptOut(),
 		PresetWorldNoBanner(),
 	}
 }
@@ -14,13 +14,13 @@ func TestPresetPackIsValid(t *testing.T) {
 	packs := map[string][]Config{
 		"standard": standardPack(),
 		"with quebec": {
-			PresetEurope(ModelOptIn),
+			PresetEuropeOptIn(),
 			PresetQuebec(),
-			PresetCalifornia(ModelOptOut),
+			PresetCaliforniaOptOut(),
 			PresetWorldNoBanner(),
 		},
 		"iab": {
-			PresetEurope(ModelIAB),
+			PresetEuropeIAB(),
 			PresetWorldNoBanner(),
 		},
 	}
@@ -135,7 +135,7 @@ func TestPresetCaliforniaEnablesGPC(t *testing.T) {
 
 func TestPresetEuropeIABDropsUI(t *testing.T) {
 	got, err := Resolve(Request{
-		Policies:    []Config{PresetEurope(ModelIAB), PresetWorldNoBanner()},
+		Policies:    []Config{PresetEuropeIAB(), PresetWorldNoBanner()},
 		CountryCode: ptr("DE"),
 		IABEnabled:  true,
 	})
@@ -172,7 +172,7 @@ func resolveBrazil(t *testing.T, preset Config) *Decision {
 	t.Helper()
 
 	got, err := Resolve(Request{
-		Policies:    []Config{PresetEurope(ModelOptIn), preset, PresetWorldNoBanner()},
+		Policies:    []Config{PresetEuropeOptIn(), preset, PresetWorldNoBanner()},
 		CountryCode: ptr("BR"),
 	})
 	if err != nil {
@@ -187,7 +187,7 @@ func resolveBrazil(t *testing.T, preset Config) *Decision {
 func TestBrazilPresetsAreValidAlongsideTheDefaults(t *testing.T) {
 	for name, preset := range map[string]Config{"opt-in": PresetBrazilOptIn(), "opt-out": PresetBrazilOptOut()} {
 		t.Run(name, func(t *testing.T) {
-			pack := []Config{PresetEurope(ModelOptIn), PresetCalifornia(ModelOptOut), PresetQuebec(), preset, PresetWorldNoBanner()}
+			pack := []Config{PresetEuropeOptIn(), PresetCaliforniaOptOut(), PresetQuebec(), preset, PresetWorldNoBanner()}
 			if got := Inspect(pack, false); len(got.Errors) != 0 || len(got.Warnings) != 0 {
 				t.Errorf("errors = %v, warnings = %v, want a clean pack", got.Errors, got.Warnings)
 			}
@@ -283,4 +283,28 @@ func containsAction(actions []UIAction, want UIAction) bool {
 		}
 	}
 	return false
+}
+
+func TestNamedPresetsFixTheirModel(t *testing.T) {
+	tests := []struct {
+		preset Config
+		id     string
+		model  Model
+	}{
+		{PresetEuropeOptIn(), "europe_opt_in", ModelOptIn},
+		{PresetEuropeIAB(), "europe_iab", ModelIAB},
+		{PresetCaliforniaOptIn(), "california_opt_in", ModelOptIn},
+		{PresetCaliforniaOptOut(), "california_opt_out", ModelOptOut},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.id, func(t *testing.T) {
+			if tt.preset.ID != tt.id {
+				t.Errorf("id = %q, want %q", tt.preset.ID, tt.id)
+			}
+			if tt.preset.Consent == nil || tt.preset.Consent.Model == nil || *tt.preset.Consent.Model != tt.model {
+				t.Errorf("model = %v, want %q", tt.preset.Consent, tt.model)
+			}
+		})
+	}
 }
