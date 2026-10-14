@@ -89,6 +89,11 @@ var schema = map[string]map[string]rule{
 		"emailVisibility": keep, "verified": keep, "name": keep, "avatar": keep,
 		"created": keep, "updated": keep,
 	},
+	// Dashboard accounts for the deployment's staff, not visitors.
+	"operators": {
+		"id": keep, "password": keep, "tokenKey": keep, "email": keep,
+		"emailVisibility": keep, "verified": keep, "tenantId": keep,
+	},
 	"apiKey": {
 		"id": keep, "createdAt": keep, "updatedAt": keep,
 		"name": keep, "keyHash": keep, "env": keep, "scope": keep, "origins": keep,
