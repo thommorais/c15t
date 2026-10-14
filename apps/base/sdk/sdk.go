@@ -139,9 +139,6 @@ func (c *Client) RecordConsent(ctx context.Context, req ConsentRequest, geo GeoH
 	if req.Domain == "" {
 		return nil, errors.New("sdk: domain is required")
 	}
-	if req.SubjectID == "" && req.ExternalID == "" {
-		return nil, errors.New("sdk: subjectId or externalId is required")
-	}
 
 	if req.GivenAt == nil {
 		now := time.Now().UTC()

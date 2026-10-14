@@ -255,10 +255,6 @@ func TestRecordConsentClientValidation(t *testing.T) {
 			name: "missing domain",
 			req:  sdk.ConsentRequest{ExternalID: "x", Categories: []string{"necessary"}},
 		},
-		{
-			name: "missing subject and external id",
-			req:  sdk.ConsentRequest{Domain: "example.com", Categories: []string{"necessary"}},
-		},
 	}
 
 	for _, tt := range tests {
@@ -268,6 +264,21 @@ func TestRecordConsentClientValidation(t *testing.T) {
 				t.Error("expected a client-side rejection")
 			}
 		})
+	}
+}
+
+func TestRecordConsentForAnAnonymousVisitor(t *testing.T) {
+	client, _ := newServer(t)
+
+	got, err := client.RecordConsent(context.Background(), sdk.ConsentRequest{
+		Domain:     "example.com",
+		Categories: []string{"necessary"},
+	}, sdk.GeoHints{CountryCode: "DE"})
+	if err != nil {
+		t.Fatalf("RecordConsent: %v", err)
+	}
+	if got.SubjectID == "" {
+		t.Error("the new subject's id is missing")
 	}
 }
 

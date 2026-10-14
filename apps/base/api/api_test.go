@@ -731,11 +731,6 @@ func TestConsentValidation(t *testing.T) {
 			want: http.StatusBadRequest,
 		},
 		{
-			name: "missing subject and external id",
-			body: `{"domain":"example.com","categories":["necessary"]}`,
-			want: http.StatusBadRequest,
-		},
-		{
 			name: "unknown ui source",
 			body: `{"givenAt":"2026-03-01T12:00:00Z","externalId":"x","domain":"example.com","categories":["necessary"],"uiSource":"telepathy"}`,
 			want: http.StatusBadRequest,

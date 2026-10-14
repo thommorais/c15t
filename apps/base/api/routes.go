@@ -217,9 +217,6 @@ func (h *Handler) recordConsent(c *Ctx, body consentRequest) (Status, error) {
 	if body.Domain == "" {
 		return Status{}, BadRequest(codeInputValidationFailed, "domain is required")
 	}
-	if body.SubjectID == "" && body.ExternalID == "" {
-		return Status{}, BadRequest(codeInputValidationFailed, "subjectId or externalId is required")
-	}
 	if body.GivenAt == nil {
 		return Status{}, BadRequest(codeInputValidationFailed, "givenAt is required")
 	}

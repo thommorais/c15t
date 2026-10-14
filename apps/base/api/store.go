@@ -27,18 +27,27 @@ var (
 
 const initialPolicyVersion = "1.0.0"
 
+// findOrCreateSubject resolves the subject a write is for: the one named by
+// subjectId, else the one linked to externalId, else a new one. A write with
+// neither is an anonymous visitor, whose new subject id the client keeps for
+// its next write. Ids are always chosen here, never by the client.
 func (h *Handler) findOrCreateSubject(db *scope, body consentRequest) (*core.Record, error) {
 	if body.SubjectID != "" {
 		record, err := db.FindByID("subject", body.SubjectID)
 		if err != nil {
 			return nil, errors.Join(errInvalidInput, errors.New("unknown subjectId"))
 		}
+		if !record.GetDateTime("erasedAt").IsZero() {
+			return nil, Conflict(codeSubjectErased, "Subject was erased; write without a subjectId to start a new one")
+		}
 		return record, nil
 	}
 
-	existing, err := db.FindFirst("subject", "externalId = {:ext}", dbx.Params{"ext": body.ExternalID})
-	if err == nil && existing != nil {
-		return existing, nil
+	if body.ExternalID != "" {
+		existing, err := db.FindFirst("subject", "externalId = {:ext}", dbx.Params{"ext": body.ExternalID})
+		if err == nil && existing != nil {
+			return existing, nil
+		}
 	}
 
 	record, err := db.New("subject")
