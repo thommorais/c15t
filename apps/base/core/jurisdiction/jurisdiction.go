@@ -10,8 +10,11 @@ import (
 type Code string
 
 const (
-	UKGDPR  Code = "UK_GDPR"
-	GDPR    Code = "GDPR"
+	UKGDPR Code = "UK_GDPR"
+	GDPR   Code = "GDPR"
+	// GI is Gibraltar, whose GDPR is its own law, part of neither the EU's nor
+	// the UK's regime.
+	GI      Code = "GI"
 	CH      Code = "CH"
 	BR      Code = "BR"
 	PIPEDA  Code = "PIPEDA"
@@ -23,7 +26,7 @@ const (
 	None    Code = "NONE"
 )
 
-var Codes = []Code{UKGDPR, GDPR, CH, BR, PIPEDA, QCLaw25, AU, APPI, PIPA, CCPA, None}
+var Codes = []Code{UKGDPR, GDPR, GI, CH, BR, PIPEDA, QCLaw25, AU, APPI, PIPA, CCPA, None}
 
 func (c Code) Valid() bool {
 	return slices.Contains(Codes, c)
@@ -61,6 +64,8 @@ func Check(countryCode, regionCode string) Code {
 	switch {
 	case country == "GB":
 		return UKGDPR
+	case country == "GI":
+		return GI
 	case slices.Contains(euCountries, country), slices.Contains(eeaCountries, country):
 		return GDPR
 	case country == "CH":

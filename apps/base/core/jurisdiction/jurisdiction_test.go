@@ -27,6 +27,7 @@ func TestCheck(t *testing.T) {
 		{name: "alberta prefixed region is pipeda", country: "CA", region: "CA-AB", want: PIPEDA},
 
 		{name: "uk is uk gdpr", country: "GB", want: UKGDPR},
+		{name: "gibraltar has its own regime", country: "GI", want: GI},
 		{name: "germany is gdpr", country: "DE", want: GDPR},
 		{name: "france is gdpr", country: "FR", want: GDPR},
 		{name: "norway is gdpr via eea", country: "NO", want: GDPR},
