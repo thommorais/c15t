@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/pocketbase/dbx"
+	"github.com/pocketbase/pocketbase/apis"
 	"github.com/pocketbase/pocketbase/core"
 
 	"thom/core/apikey"
@@ -75,6 +76,8 @@ func Register(app core.App, se *core.ServeEvent, cfg Config) {
 	}
 
 	g := se.Router.Group("/api/c15t")
+	g.Unbind(apis.DefaultActivityLoggerMiddlewareId)
+	g.Bind(requestLog())
 	g.GET("/init", handle(h, apikey.ScopePublishable, h.init))
 	g.POST("/consent", handle(h, apikey.ScopePublishable, h.recordConsent))
 	g.GET("/consent/{subjectId}", handle(h, apikey.ScopeSecret, h.listConsent))
