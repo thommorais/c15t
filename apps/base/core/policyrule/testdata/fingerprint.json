@@ -1,0 +1,7776 @@
+{
+	"pairs": [
+		{
+			"left": "a",
+			"right": "a",
+			"sign": 0
+		},
+		{
+			"left": "a",
+			"right": "A",
+			"sign": -1
+		},
+		{
+			"left": "a",
+			"right": "b",
+			"sign": -1
+		},
+		{
+			"left": "a",
+			"right": "B",
+			"sign": -1
+		},
+		{
+			"left": "a",
+			"right": "ab",
+			"sign": -1
+		},
+		{
+			"left": "a",
+			"right": "aB",
+			"sign": -1
+		},
+		{
+			"left": "a",
+			"right": "Ab",
+			"sign": -1
+		},
+		{
+			"left": "a",
+			"right": "AB",
+			"sign": -1
+		},
+		{
+			"left": "a",
+			"right": "abc",
+			"sign": -1
+		},
+		{
+			"left": "a",
+			"right": "a_b",
+			"sign": -1
+		},
+		{
+			"left": "a",
+			"right": "a-b",
+			"sign": -1
+		},
+		{
+			"left": "a",
+			"right": "a.b",
+			"sign": -1
+		},
+		{
+			"left": "a",
+			"right": "a b",
+			"sign": -1
+		},
+		{
+			"left": "a",
+			"right": "_",
+			"sign": 1
+		},
+		{
+			"left": "a",
+			"right": "-",
+			"sign": 1
+		},
+		{
+			"left": "a",
+			"right": " ",
+			"sign": 1
+		},
+		{
+			"left": "a",
+			"right": "0",
+			"sign": 1
+		},
+		{
+			"left": "a",
+			"right": "9",
+			"sign": 1
+		},
+		{
+			"left": "a",
+			"right": "z",
+			"sign": -1
+		},
+		{
+			"left": "a",
+			"right": "Z",
+			"sign": -1
+		},
+		{
+			"left": "a",
+			"right": "a0",
+			"sign": -1
+		},
+		{
+			"left": "a",
+			"right": "a9",
+			"sign": -1
+		},
+		{
+			"left": "a",
+			"right": "aa",
+			"sign": -1
+		},
+		{
+			"left": "a",
+			"right": "a~",
+			"sign": -1
+		},
+		{
+			"left": "a",
+			"right": "a$",
+			"sign": -1
+		},
+		{
+			"left": "a",
+			"right": "$",
+			"sign": 1
+		},
+		{
+			"left": "a",
+			"right": "~",
+			"sign": 1
+		},
+		{
+			"left": "a",
+			"right": "id",
+			"sign": -1
+		},
+		{
+			"left": "a",
+			"right": "Id",
+			"sign": -1
+		},
+		{
+			"left": "a",
+			"right": "ID",
+			"sign": -1
+		},
+		{
+			"left": "a",
+			"right": "iD",
+			"sign": -1
+		},
+		{
+			"left": "a",
+			"right": "choiceMs",
+			"sign": -1
+		},
+		{
+			"left": "a",
+			"right": "choicems",
+			"sign": -1
+		},
+		{
+			"left": "a",
+			"right": "copyRevision",
+			"sign": -1
+		},
+		{
+			"left": "a",
+			"right": "scopeMode",
+			"sign": -1
+		},
+		{
+			"left": "a",
+			"right": "storeIp",
+			"sign": -1
+		},
+		{
+			"left": "a",
+			"right": "storeIP",
+			"sign": -1
+		},
+		{
+			"left": "a",
+			"right": "e",
+			"sign": -1
+		},
+		{
+			"left": "a",
+			"right": "f",
+			"sign": -1
+		},
+		{
+			"left": "A",
+			"right": "a",
+			"sign": 1
+		},
+		{
+			"left": "A",
+			"right": "A",
+			"sign": 0
+		},
+		{
+			"left": "A",
+			"right": "b",
+			"sign": -1
+		},
+		{
+			"left": "A",
+			"right": "B",
+			"sign": -1
+		},
+		{
+			"left": "A",
+			"right": "ab",
+			"sign": -1
+		},
+		{
+			"left": "A",
+			"right": "aB",
+			"sign": -1
+		},
+		{
+			"left": "A",
+			"right": "Ab",
+			"sign": -1
+		},
+		{
+			"left": "A",
+			"right": "AB",
+			"sign": -1
+		},
+		{
+			"left": "A",
+			"right": "abc",
+			"sign": -1
+		},
+		{
+			"left": "A",
+			"right": "a_b",
+			"sign": -1
+		},
+		{
+			"left": "A",
+			"right": "a-b",
+			"sign": -1
+		},
+		{
+			"left": "A",
+			"right": "a.b",
+			"sign": -1
+		},
+		{
+			"left": "A",
+			"right": "a b",
+			"sign": -1
+		},
+		{
+			"left": "A",
+			"right": "_",
+			"sign": 1
+		},
+		{
+			"left": "A",
+			"right": "-",
+			"sign": 1
+		},
+		{
+			"left": "A",
+			"right": " ",
+			"sign": 1
+		},
+		{
+			"left": "A",
+			"right": "0",
+			"sign": 1
+		},
+		{
+			"left": "A",
+			"right": "9",
+			"sign": 1
+		},
+		{
+			"left": "A",
+			"right": "z",
+			"sign": -1
+		},
+		{
+			"left": "A",
+			"right": "Z",
+			"sign": -1
+		},
+		{
+			"left": "A",
+			"right": "a0",
+			"sign": -1
+		},
+		{
+			"left": "A",
+			"right": "a9",
+			"sign": -1
+		},
+		{
+			"left": "A",
+			"right": "aa",
+			"sign": -1
+		},
+		{
+			"left": "A",
+			"right": "a~",
+			"sign": -1
+		},
+		{
+			"left": "A",
+			"right": "a$",
+			"sign": -1
+		},
+		{
+			"left": "A",
+			"right": "$",
+			"sign": 1
+		},
+		{
+			"left": "A",
+			"right": "~",
+			"sign": 1
+		},
+		{
+			"left": "A",
+			"right": "id",
+			"sign": -1
+		},
+		{
+			"left": "A",
+			"right": "Id",
+			"sign": -1
+		},
+		{
+			"left": "A",
+			"right": "ID",
+			"sign": -1
+		},
+		{
+			"left": "A",
+			"right": "iD",
+			"sign": -1
+		},
+		{
+			"left": "A",
+			"right": "choiceMs",
+			"sign": -1
+		},
+		{
+			"left": "A",
+			"right": "choicems",
+			"sign": -1
+		},
+		{
+			"left": "A",
+			"right": "copyRevision",
+			"sign": -1
+		},
+		{
+			"left": "A",
+			"right": "scopeMode",
+			"sign": -1
+		},
+		{
+			"left": "A",
+			"right": "storeIp",
+			"sign": -1
+		},
+		{
+			"left": "A",
+			"right": "storeIP",
+			"sign": -1
+		},
+		{
+			"left": "A",
+			"right": "e",
+			"sign": -1
+		},
+		{
+			"left": "A",
+			"right": "f",
+			"sign": -1
+		},
+		{
+			"left": "b",
+			"right": "a",
+			"sign": 1
+		},
+		{
+			"left": "b",
+			"right": "A",
+			"sign": 1
+		},
+		{
+			"left": "b",
+			"right": "b",
+			"sign": 0
+		},
+		{
+			"left": "b",
+			"right": "B",
+			"sign": -1
+		},
+		{
+			"left": "b",
+			"right": "ab",
+			"sign": 1
+		},
+		{
+			"left": "b",
+			"right": "aB",
+			"sign": 1
+		},
+		{
+			"left": "b",
+			"right": "Ab",
+			"sign": 1
+		},
+		{
+			"left": "b",
+			"right": "AB",
+			"sign": 1
+		},
+		{
+			"left": "b",
+			"right": "abc",
+			"sign": 1
+		},
+		{
+			"left": "b",
+			"right": "a_b",
+			"sign": 1
+		},
+		{
+			"left": "b",
+			"right": "a-b",
+			"sign": 1
+		},
+		{
+			"left": "b",
+			"right": "a.b",
+			"sign": 1
+		},
+		{
+			"left": "b",
+			"right": "a b",
+			"sign": 1
+		},
+		{
+			"left": "b",
+			"right": "_",
+			"sign": 1
+		},
+		{
+			"left": "b",
+			"right": "-",
+			"sign": 1
+		},
+		{
+			"left": "b",
+			"right": " ",
+			"sign": 1
+		},
+		{
+			"left": "b",
+			"right": "0",
+			"sign": 1
+		},
+		{
+			"left": "b",
+			"right": "9",
+			"sign": 1
+		},
+		{
+			"left": "b",
+			"right": "z",
+			"sign": -1
+		},
+		{
+			"left": "b",
+			"right": "Z",
+			"sign": -1
+		},
+		{
+			"left": "b",
+			"right": "a0",
+			"sign": 1
+		},
+		{
+			"left": "b",
+			"right": "a9",
+			"sign": 1
+		},
+		{
+			"left": "b",
+			"right": "aa",
+			"sign": 1
+		},
+		{
+			"left": "b",
+			"right": "a~",
+			"sign": 1
+		},
+		{
+			"left": "b",
+			"right": "a$",
+			"sign": 1
+		},
+		{
+			"left": "b",
+			"right": "$",
+			"sign": 1
+		},
+		{
+			"left": "b",
+			"right": "~",
+			"sign": 1
+		},
+		{
+			"left": "b",
+			"right": "id",
+			"sign": -1
+		},
+		{
+			"left": "b",
+			"right": "Id",
+			"sign": -1
+		},
+		{
+			"left": "b",
+			"right": "ID",
+			"sign": -1
+		},
+		{
+			"left": "b",
+			"right": "iD",
+			"sign": -1
+		},
+		{
+			"left": "b",
+			"right": "choiceMs",
+			"sign": -1
+		},
+		{
+			"left": "b",
+			"right": "choicems",
+			"sign": -1
+		},
+		{
+			"left": "b",
+			"right": "copyRevision",
+			"sign": -1
+		},
+		{
+			"left": "b",
+			"right": "scopeMode",
+			"sign": -1
+		},
+		{
+			"left": "b",
+			"right": "storeIp",
+			"sign": -1
+		},
+		{
+			"left": "b",
+			"right": "storeIP",
+			"sign": -1
+		},
+		{
+			"left": "b",
+			"right": "e",
+			"sign": -1
+		},
+		{
+			"left": "b",
+			"right": "f",
+			"sign": -1
+		},
+		{
+			"left": "B",
+			"right": "a",
+			"sign": 1
+		},
+		{
+			"left": "B",
+			"right": "A",
+			"sign": 1
+		},
+		{
+			"left": "B",
+			"right": "b",
+			"sign": 1
+		},
+		{
+			"left": "B",
+			"right": "B",
+			"sign": 0
+		},
+		{
+			"left": "B",
+			"right": "ab",
+			"sign": 1
+		},
+		{
+			"left": "B",
+			"right": "aB",
+			"sign": 1
+		},
+		{
+			"left": "B",
+			"right": "Ab",
+			"sign": 1
+		},
+		{
+			"left": "B",
+			"right": "AB",
+			"sign": 1
+		},
+		{
+			"left": "B",
+			"right": "abc",
+			"sign": 1
+		},
+		{
+			"left": "B",
+			"right": "a_b",
+			"sign": 1
+		},
+		{
+			"left": "B",
+			"right": "a-b",
+			"sign": 1
+		},
+		{
+			"left": "B",
+			"right": "a.b",
+			"sign": 1
+		},
+		{
+			"left": "B",
+			"right": "a b",
+			"sign": 1
+		},
+		{
+			"left": "B",
+			"right": "_",
+			"sign": 1
+		},
+		{
+			"left": "B",
+			"right": "-",
+			"sign": 1
+		},
+		{
+			"left": "B",
+			"right": " ",
+			"sign": 1
+		},
+		{
+			"left": "B",
+			"right": "0",
+			"sign": 1
+		},
+		{
+			"left": "B",
+			"right": "9",
+			"sign": 1
+		},
+		{
+			"left": "B",
+			"right": "z",
+			"sign": -1
+		},
+		{
+			"left": "B",
+			"right": "Z",
+			"sign": -1
+		},
+		{
+			"left": "B",
+			"right": "a0",
+			"sign": 1
+		},
+		{
+			"left": "B",
+			"right": "a9",
+			"sign": 1
+		},
+		{
+			"left": "B",
+			"right": "aa",
+			"sign": 1
+		},
+		{
+			"left": "B",
+			"right": "a~",
+			"sign": 1
+		},
+		{
+			"left": "B",
+			"right": "a$",
+			"sign": 1
+		},
+		{
+			"left": "B",
+			"right": "$",
+			"sign": 1
+		},
+		{
+			"left": "B",
+			"right": "~",
+			"sign": 1
+		},
+		{
+			"left": "B",
+			"right": "id",
+			"sign": -1
+		},
+		{
+			"left": "B",
+			"right": "Id",
+			"sign": -1
+		},
+		{
+			"left": "B",
+			"right": "ID",
+			"sign": -1
+		},
+		{
+			"left": "B",
+			"right": "iD",
+			"sign": -1
+		},
+		{
+			"left": "B",
+			"right": "choiceMs",
+			"sign": -1
+		},
+		{
+			"left": "B",
+			"right": "choicems",
+			"sign": -1
+		},
+		{
+			"left": "B",
+			"right": "copyRevision",
+			"sign": -1
+		},
+		{
+			"left": "B",
+			"right": "scopeMode",
+			"sign": -1
+		},
+		{
+			"left": "B",
+			"right": "storeIp",
+			"sign": -1
+		},
+		{
+			"left": "B",
+			"right": "storeIP",
+			"sign": -1
+		},
+		{
+			"left": "B",
+			"right": "e",
+			"sign": -1
+		},
+		{
+			"left": "B",
+			"right": "f",
+			"sign": -1
+		},
+		{
+			"left": "ab",
+			"right": "a",
+			"sign": 1
+		},
+		{
+			"left": "ab",
+			"right": "A",
+			"sign": 1
+		},
+		{
+			"left": "ab",
+			"right": "b",
+			"sign": -1
+		},
+		{
+			"left": "ab",
+			"right": "B",
+			"sign": -1
+		},
+		{
+			"left": "ab",
+			"right": "ab",
+			"sign": 0
+		},
+		{
+			"left": "ab",
+			"right": "aB",
+			"sign": -1
+		},
+		{
+			"left": "ab",
+			"right": "Ab",
+			"sign": -1
+		},
+		{
+			"left": "ab",
+			"right": "AB",
+			"sign": -1
+		},
+		{
+			"left": "ab",
+			"right": "abc",
+			"sign": -1
+		},
+		{
+			"left": "ab",
+			"right": "a_b",
+			"sign": 1
+		},
+		{
+			"left": "ab",
+			"right": "a-b",
+			"sign": 1
+		},
+		{
+			"left": "ab",
+			"right": "a.b",
+			"sign": 1
+		},
+		{
+			"left": "ab",
+			"right": "a b",
+			"sign": 1
+		},
+		{
+			"left": "ab",
+			"right": "_",
+			"sign": 1
+		},
+		{
+			"left": "ab",
+			"right": "-",
+			"sign": 1
+		},
+		{
+			"left": "ab",
+			"right": " ",
+			"sign": 1
+		},
+		{
+			"left": "ab",
+			"right": "0",
+			"sign": 1
+		},
+		{
+			"left": "ab",
+			"right": "9",
+			"sign": 1
+		},
+		{
+			"left": "ab",
+			"right": "z",
+			"sign": -1
+		},
+		{
+			"left": "ab",
+			"right": "Z",
+			"sign": -1
+		},
+		{
+			"left": "ab",
+			"right": "a0",
+			"sign": 1
+		},
+		{
+			"left": "ab",
+			"right": "a9",
+			"sign": 1
+		},
+		{
+			"left": "ab",
+			"right": "aa",
+			"sign": 1
+		},
+		{
+			"left": "ab",
+			"right": "a~",
+			"sign": 1
+		},
+		{
+			"left": "ab",
+			"right": "a$",
+			"sign": 1
+		},
+		{
+			"left": "ab",
+			"right": "$",
+			"sign": 1
+		},
+		{
+			"left": "ab",
+			"right": "~",
+			"sign": 1
+		},
+		{
+			"left": "ab",
+			"right": "id",
+			"sign": -1
+		},
+		{
+			"left": "ab",
+			"right": "Id",
+			"sign": -1
+		},
+		{
+			"left": "ab",
+			"right": "ID",
+			"sign": -1
+		},
+		{
+			"left": "ab",
+			"right": "iD",
+			"sign": -1
+		},
+		{
+			"left": "ab",
+			"right": "choiceMs",
+			"sign": -1
+		},
+		{
+			"left": "ab",
+			"right": "choicems",
+			"sign": -1
+		},
+		{
+			"left": "ab",
+			"right": "copyRevision",
+			"sign": -1
+		},
+		{
+			"left": "ab",
+			"right": "scopeMode",
+			"sign": -1
+		},
+		{
+			"left": "ab",
+			"right": "storeIp",
+			"sign": -1
+		},
+		{
+			"left": "ab",
+			"right": "storeIP",
+			"sign": -1
+		},
+		{
+			"left": "ab",
+			"right": "e",
+			"sign": -1
+		},
+		{
+			"left": "ab",
+			"right": "f",
+			"sign": -1
+		},
+		{
+			"left": "aB",
+			"right": "a",
+			"sign": 1
+		},
+		{
+			"left": "aB",
+			"right": "A",
+			"sign": 1
+		},
+		{
+			"left": "aB",
+			"right": "b",
+			"sign": -1
+		},
+		{
+			"left": "aB",
+			"right": "B",
+			"sign": -1
+		},
+		{
+			"left": "aB",
+			"right": "ab",
+			"sign": 1
+		},
+		{
+			"left": "aB",
+			"right": "aB",
+			"sign": 0
+		},
+		{
+			"left": "aB",
+			"right": "Ab",
+			"sign": -1
+		},
+		{
+			"left": "aB",
+			"right": "AB",
+			"sign": -1
+		},
+		{
+			"left": "aB",
+			"right": "abc",
+			"sign": -1
+		},
+		{
+			"left": "aB",
+			"right": "a_b",
+			"sign": 1
+		},
+		{
+			"left": "aB",
+			"right": "a-b",
+			"sign": 1
+		},
+		{
+			"left": "aB",
+			"right": "a.b",
+			"sign": 1
+		},
+		{
+			"left": "aB",
+			"right": "a b",
+			"sign": 1
+		},
+		{
+			"left": "aB",
+			"right": "_",
+			"sign": 1
+		},
+		{
+			"left": "aB",
+			"right": "-",
+			"sign": 1
+		},
+		{
+			"left": "aB",
+			"right": " ",
+			"sign": 1
+		},
+		{
+			"left": "aB",
+			"right": "0",
+			"sign": 1
+		},
+		{
+			"left": "aB",
+			"right": "9",
+			"sign": 1
+		},
+		{
+			"left": "aB",
+			"right": "z",
+			"sign": -1
+		},
+		{
+			"left": "aB",
+			"right": "Z",
+			"sign": -1
+		},
+		{
+			"left": "aB",
+			"right": "a0",
+			"sign": 1
+		},
+		{
+			"left": "aB",
+			"right": "a9",
+			"sign": 1
+		},
+		{
+			"left": "aB",
+			"right": "aa",
+			"sign": 1
+		},
+		{
+			"left": "aB",
+			"right": "a~",
+			"sign": 1
+		},
+		{
+			"left": "aB",
+			"right": "a$",
+			"sign": 1
+		},
+		{
+			"left": "aB",
+			"right": "$",
+			"sign": 1
+		},
+		{
+			"left": "aB",
+			"right": "~",
+			"sign": 1
+		},
+		{
+			"left": "aB",
+			"right": "id",
+			"sign": -1
+		},
+		{
+			"left": "aB",
+			"right": "Id",
+			"sign": -1
+		},
+		{
+			"left": "aB",
+			"right": "ID",
+			"sign": -1
+		},
+		{
+			"left": "aB",
+			"right": "iD",
+			"sign": -1
+		},
+		{
+			"left": "aB",
+			"right": "choiceMs",
+			"sign": -1
+		},
+		{
+			"left": "aB",
+			"right": "choicems",
+			"sign": -1
+		},
+		{
+			"left": "aB",
+			"right": "copyRevision",
+			"sign": -1
+		},
+		{
+			"left": "aB",
+			"right": "scopeMode",
+			"sign": -1
+		},
+		{
+			"left": "aB",
+			"right": "storeIp",
+			"sign": -1
+		},
+		{
+			"left": "aB",
+			"right": "storeIP",
+			"sign": -1
+		},
+		{
+			"left": "aB",
+			"right": "e",
+			"sign": -1
+		},
+		{
+			"left": "aB",
+			"right": "f",
+			"sign": -1
+		},
+		{
+			"left": "Ab",
+			"right": "a",
+			"sign": 1
+		},
+		{
+			"left": "Ab",
+			"right": "A",
+			"sign": 1
+		},
+		{
+			"left": "Ab",
+			"right": "b",
+			"sign": -1
+		},
+		{
+			"left": "Ab",
+			"right": "B",
+			"sign": -1
+		},
+		{
+			"left": "Ab",
+			"right": "ab",
+			"sign": 1
+		},
+		{
+			"left": "Ab",
+			"right": "aB",
+			"sign": 1
+		},
+		{
+			"left": "Ab",
+			"right": "Ab",
+			"sign": 0
+		},
+		{
+			"left": "Ab",
+			"right": "AB",
+			"sign": -1
+		},
+		{
+			"left": "Ab",
+			"right": "abc",
+			"sign": -1
+		},
+		{
+			"left": "Ab",
+			"right": "a_b",
+			"sign": 1
+		},
+		{
+			"left": "Ab",
+			"right": "a-b",
+			"sign": 1
+		},
+		{
+			"left": "Ab",
+			"right": "a.b",
+			"sign": 1
+		},
+		{
+			"left": "Ab",
+			"right": "a b",
+			"sign": 1
+		},
+		{
+			"left": "Ab",
+			"right": "_",
+			"sign": 1
+		},
+		{
+			"left": "Ab",
+			"right": "-",
+			"sign": 1
+		},
+		{
+			"left": "Ab",
+			"right": " ",
+			"sign": 1
+		},
+		{
+			"left": "Ab",
+			"right": "0",
+			"sign": 1
+		},
+		{
+			"left": "Ab",
+			"right": "9",
+			"sign": 1
+		},
+		{
+			"left": "Ab",
+			"right": "z",
+			"sign": -1
+		},
+		{
+			"left": "Ab",
+			"right": "Z",
+			"sign": -1
+		},
+		{
+			"left": "Ab",
+			"right": "a0",
+			"sign": 1
+		},
+		{
+			"left": "Ab",
+			"right": "a9",
+			"sign": 1
+		},
+		{
+			"left": "Ab",
+			"right": "aa",
+			"sign": 1
+		},
+		{
+			"left": "Ab",
+			"right": "a~",
+			"sign": 1
+		},
+		{
+			"left": "Ab",
+			"right": "a$",
+			"sign": 1
+		},
+		{
+			"left": "Ab",
+			"right": "$",
+			"sign": 1
+		},
+		{
+			"left": "Ab",
+			"right": "~",
+			"sign": 1
+		},
+		{
+			"left": "Ab",
+			"right": "id",
+			"sign": -1
+		},
+		{
+			"left": "Ab",
+			"right": "Id",
+			"sign": -1
+		},
+		{
+			"left": "Ab",
+			"right": "ID",
+			"sign": -1
+		},
+		{
+			"left": "Ab",
+			"right": "iD",
+			"sign": -1
+		},
+		{
+			"left": "Ab",
+			"right": "choiceMs",
+			"sign": -1
+		},
+		{
+			"left": "Ab",
+			"right": "choicems",
+			"sign": -1
+		},
+		{
+			"left": "Ab",
+			"right": "copyRevision",
+			"sign": -1
+		},
+		{
+			"left": "Ab",
+			"right": "scopeMode",
+			"sign": -1
+		},
+		{
+			"left": "Ab",
+			"right": "storeIp",
+			"sign": -1
+		},
+		{
+			"left": "Ab",
+			"right": "storeIP",
+			"sign": -1
+		},
+		{
+			"left": "Ab",
+			"right": "e",
+			"sign": -1
+		},
+		{
+			"left": "Ab",
+			"right": "f",
+			"sign": -1
+		},
+		{
+			"left": "AB",
+			"right": "a",
+			"sign": 1
+		},
+		{
+			"left": "AB",
+			"right": "A",
+			"sign": 1
+		},
+		{
+			"left": "AB",
+			"right": "b",
+			"sign": -1
+		},
+		{
+			"left": "AB",
+			"right": "B",
+			"sign": -1
+		},
+		{
+			"left": "AB",
+			"right": "ab",
+			"sign": 1
+		},
+		{
+			"left": "AB",
+			"right": "aB",
+			"sign": 1
+		},
+		{
+			"left": "AB",
+			"right": "Ab",
+			"sign": 1
+		},
+		{
+			"left": "AB",
+			"right": "AB",
+			"sign": 0
+		},
+		{
+			"left": "AB",
+			"right": "abc",
+			"sign": -1
+		},
+		{
+			"left": "AB",
+			"right": "a_b",
+			"sign": 1
+		},
+		{
+			"left": "AB",
+			"right": "a-b",
+			"sign": 1
+		},
+		{
+			"left": "AB",
+			"right": "a.b",
+			"sign": 1
+		},
+		{
+			"left": "AB",
+			"right": "a b",
+			"sign": 1
+		},
+		{
+			"left": "AB",
+			"right": "_",
+			"sign": 1
+		},
+		{
+			"left": "AB",
+			"right": "-",
+			"sign": 1
+		},
+		{
+			"left": "AB",
+			"right": " ",
+			"sign": 1
+		},
+		{
+			"left": "AB",
+			"right": "0",
+			"sign": 1
+		},
+		{
+			"left": "AB",
+			"right": "9",
+			"sign": 1
+		},
+		{
+			"left": "AB",
+			"right": "z",
+			"sign": -1
+		},
+		{
+			"left": "AB",
+			"right": "Z",
+			"sign": -1
+		},
+		{
+			"left": "AB",
+			"right": "a0",
+			"sign": 1
+		},
+		{
+			"left": "AB",
+			"right": "a9",
+			"sign": 1
+		},
+		{
+			"left": "AB",
+			"right": "aa",
+			"sign": 1
+		},
+		{
+			"left": "AB",
+			"right": "a~",
+			"sign": 1
+		},
+		{
+			"left": "AB",
+			"right": "a$",
+			"sign": 1
+		},
+		{
+			"left": "AB",
+			"right": "$",
+			"sign": 1
+		},
+		{
+			"left": "AB",
+			"right": "~",
+			"sign": 1
+		},
+		{
+			"left": "AB",
+			"right": "id",
+			"sign": -1
+		},
+		{
+			"left": "AB",
+			"right": "Id",
+			"sign": -1
+		},
+		{
+			"left": "AB",
+			"right": "ID",
+			"sign": -1
+		},
+		{
+			"left": "AB",
+			"right": "iD",
+			"sign": -1
+		},
+		{
+			"left": "AB",
+			"right": "choiceMs",
+			"sign": -1
+		},
+		{
+			"left": "AB",
+			"right": "choicems",
+			"sign": -1
+		},
+		{
+			"left": "AB",
+			"right": "copyRevision",
+			"sign": -1
+		},
+		{
+			"left": "AB",
+			"right": "scopeMode",
+			"sign": -1
+		},
+		{
+			"left": "AB",
+			"right": "storeIp",
+			"sign": -1
+		},
+		{
+			"left": "AB",
+			"right": "storeIP",
+			"sign": -1
+		},
+		{
+			"left": "AB",
+			"right": "e",
+			"sign": -1
+		},
+		{
+			"left": "AB",
+			"right": "f",
+			"sign": -1
+		},
+		{
+			"left": "abc",
+			"right": "a",
+			"sign": 1
+		},
+		{
+			"left": "abc",
+			"right": "A",
+			"sign": 1
+		},
+		{
+			"left": "abc",
+			"right": "b",
+			"sign": -1
+		},
+		{
+			"left": "abc",
+			"right": "B",
+			"sign": -1
+		},
+		{
+			"left": "abc",
+			"right": "ab",
+			"sign": 1
+		},
+		{
+			"left": "abc",
+			"right": "aB",
+			"sign": 1
+		},
+		{
+			"left": "abc",
+			"right": "Ab",
+			"sign": 1
+		},
+		{
+			"left": "abc",
+			"right": "AB",
+			"sign": 1
+		},
+		{
+			"left": "abc",
+			"right": "abc",
+			"sign": 0
+		},
+		{
+			"left": "abc",
+			"right": "a_b",
+			"sign": 1
+		},
+		{
+			"left": "abc",
+			"right": "a-b",
+			"sign": 1
+		},
+		{
+			"left": "abc",
+			"right": "a.b",
+			"sign": 1
+		},
+		{
+			"left": "abc",
+			"right": "a b",
+			"sign": 1
+		},
+		{
+			"left": "abc",
+			"right": "_",
+			"sign": 1
+		},
+		{
+			"left": "abc",
+			"right": "-",
+			"sign": 1
+		},
+		{
+			"left": "abc",
+			"right": " ",
+			"sign": 1
+		},
+		{
+			"left": "abc",
+			"right": "0",
+			"sign": 1
+		},
+		{
+			"left": "abc",
+			"right": "9",
+			"sign": 1
+		},
+		{
+			"left": "abc",
+			"right": "z",
+			"sign": -1
+		},
+		{
+			"left": "abc",
+			"right": "Z",
+			"sign": -1
+		},
+		{
+			"left": "abc",
+			"right": "a0",
+			"sign": 1
+		},
+		{
+			"left": "abc",
+			"right": "a9",
+			"sign": 1
+		},
+		{
+			"left": "abc",
+			"right": "aa",
+			"sign": 1
+		},
+		{
+			"left": "abc",
+			"right": "a~",
+			"sign": 1
+		},
+		{
+			"left": "abc",
+			"right": "a$",
+			"sign": 1
+		},
+		{
+			"left": "abc",
+			"right": "$",
+			"sign": 1
+		},
+		{
+			"left": "abc",
+			"right": "~",
+			"sign": 1
+		},
+		{
+			"left": "abc",
+			"right": "id",
+			"sign": -1
+		},
+		{
+			"left": "abc",
+			"right": "Id",
+			"sign": -1
+		},
+		{
+			"left": "abc",
+			"right": "ID",
+			"sign": -1
+		},
+		{
+			"left": "abc",
+			"right": "iD",
+			"sign": -1
+		},
+		{
+			"left": "abc",
+			"right": "choiceMs",
+			"sign": -1
+		},
+		{
+			"left": "abc",
+			"right": "choicems",
+			"sign": -1
+		},
+		{
+			"left": "abc",
+			"right": "copyRevision",
+			"sign": -1
+		},
+		{
+			"left": "abc",
+			"right": "scopeMode",
+			"sign": -1
+		},
+		{
+			"left": "abc",
+			"right": "storeIp",
+			"sign": -1
+		},
+		{
+			"left": "abc",
+			"right": "storeIP",
+			"sign": -1
+		},
+		{
+			"left": "abc",
+			"right": "e",
+			"sign": -1
+		},
+		{
+			"left": "abc",
+			"right": "f",
+			"sign": -1
+		},
+		{
+			"left": "a_b",
+			"right": "a",
+			"sign": 1
+		},
+		{
+			"left": "a_b",
+			"right": "A",
+			"sign": 1
+		},
+		{
+			"left": "a_b",
+			"right": "b",
+			"sign": -1
+		},
+		{
+			"left": "a_b",
+			"right": "B",
+			"sign": -1
+		},
+		{
+			"left": "a_b",
+			"right": "ab",
+			"sign": -1
+		},
+		{
+			"left": "a_b",
+			"right": "aB",
+			"sign": -1
+		},
+		{
+			"left": "a_b",
+			"right": "Ab",
+			"sign": -1
+		},
+		{
+			"left": "a_b",
+			"right": "AB",
+			"sign": -1
+		},
+		{
+			"left": "a_b",
+			"right": "abc",
+			"sign": -1
+		},
+		{
+			"left": "a_b",
+			"right": "a_b",
+			"sign": 0
+		},
+		{
+			"left": "a_b",
+			"right": "a-b",
+			"sign": -1
+		},
+		{
+			"left": "a_b",
+			"right": "a.b",
+			"sign": -1
+		},
+		{
+			"left": "a_b",
+			"right": "a b",
+			"sign": 1
+		},
+		{
+			"left": "a_b",
+			"right": "_",
+			"sign": 1
+		},
+		{
+			"left": "a_b",
+			"right": "-",
+			"sign": 1
+		},
+		{
+			"left": "a_b",
+			"right": " ",
+			"sign": 1
+		},
+		{
+			"left": "a_b",
+			"right": "0",
+			"sign": 1
+		},
+		{
+			"left": "a_b",
+			"right": "9",
+			"sign": 1
+		},
+		{
+			"left": "a_b",
+			"right": "z",
+			"sign": -1
+		},
+		{
+			"left": "a_b",
+			"right": "Z",
+			"sign": -1
+		},
+		{
+			"left": "a_b",
+			"right": "a0",
+			"sign": -1
+		},
+		{
+			"left": "a_b",
+			"right": "a9",
+			"sign": -1
+		},
+		{
+			"left": "a_b",
+			"right": "aa",
+			"sign": -1
+		},
+		{
+			"left": "a_b",
+			"right": "a~",
+			"sign": -1
+		},
+		{
+			"left": "a_b",
+			"right": "a$",
+			"sign": -1
+		},
+		{
+			"left": "a_b",
+			"right": "$",
+			"sign": 1
+		},
+		{
+			"left": "a_b",
+			"right": "~",
+			"sign": 1
+		},
+		{
+			"left": "a_b",
+			"right": "id",
+			"sign": -1
+		},
+		{
+			"left": "a_b",
+			"right": "Id",
+			"sign": -1
+		},
+		{
+			"left": "a_b",
+			"right": "ID",
+			"sign": -1
+		},
+		{
+			"left": "a_b",
+			"right": "iD",
+			"sign": -1
+		},
+		{
+			"left": "a_b",
+			"right": "choiceMs",
+			"sign": -1
+		},
+		{
+			"left": "a_b",
+			"right": "choicems",
+			"sign": -1
+		},
+		{
+			"left": "a_b",
+			"right": "copyRevision",
+			"sign": -1
+		},
+		{
+			"left": "a_b",
+			"right": "scopeMode",
+			"sign": -1
+		},
+		{
+			"left": "a_b",
+			"right": "storeIp",
+			"sign": -1
+		},
+		{
+			"left": "a_b",
+			"right": "storeIP",
+			"sign": -1
+		},
+		{
+			"left": "a_b",
+			"right": "e",
+			"sign": -1
+		},
+		{
+			"left": "a_b",
+			"right": "f",
+			"sign": -1
+		},
+		{
+			"left": "a-b",
+			"right": "a",
+			"sign": 1
+		},
+		{
+			"left": "a-b",
+			"right": "A",
+			"sign": 1
+		},
+		{
+			"left": "a-b",
+			"right": "b",
+			"sign": -1
+		},
+		{
+			"left": "a-b",
+			"right": "B",
+			"sign": -1
+		},
+		{
+			"left": "a-b",
+			"right": "ab",
+			"sign": -1
+		},
+		{
+			"left": "a-b",
+			"right": "aB",
+			"sign": -1
+		},
+		{
+			"left": "a-b",
+			"right": "Ab",
+			"sign": -1
+		},
+		{
+			"left": "a-b",
+			"right": "AB",
+			"sign": -1
+		},
+		{
+			"left": "a-b",
+			"right": "abc",
+			"sign": -1
+		},
+		{
+			"left": "a-b",
+			"right": "a_b",
+			"sign": 1
+		},
+		{
+			"left": "a-b",
+			"right": "a-b",
+			"sign": 0
+		},
+		{
+			"left": "a-b",
+			"right": "a.b",
+			"sign": -1
+		},
+		{
+			"left": "a-b",
+			"right": "a b",
+			"sign": 1
+		},
+		{
+			"left": "a-b",
+			"right": "_",
+			"sign": 1
+		},
+		{
+			"left": "a-b",
+			"right": "-",
+			"sign": 1
+		},
+		{
+			"left": "a-b",
+			"right": " ",
+			"sign": 1
+		},
+		{
+			"left": "a-b",
+			"right": "0",
+			"sign": 1
+		},
+		{
+			"left": "a-b",
+			"right": "9",
+			"sign": 1
+		},
+		{
+			"left": "a-b",
+			"right": "z",
+			"sign": -1
+		},
+		{
+			"left": "a-b",
+			"right": "Z",
+			"sign": -1
+		},
+		{
+			"left": "a-b",
+			"right": "a0",
+			"sign": -1
+		},
+		{
+			"left": "a-b",
+			"right": "a9",
+			"sign": -1
+		},
+		{
+			"left": "a-b",
+			"right": "aa",
+			"sign": -1
+		},
+		{
+			"left": "a-b",
+			"right": "a~",
+			"sign": -1
+		},
+		{
+			"left": "a-b",
+			"right": "a$",
+			"sign": -1
+		},
+		{
+			"left": "a-b",
+			"right": "$",
+			"sign": 1
+		},
+		{
+			"left": "a-b",
+			"right": "~",
+			"sign": 1
+		},
+		{
+			"left": "a-b",
+			"right": "id",
+			"sign": -1
+		},
+		{
+			"left": "a-b",
+			"right": "Id",
+			"sign": -1
+		},
+		{
+			"left": "a-b",
+			"right": "ID",
+			"sign": -1
+		},
+		{
+			"left": "a-b",
+			"right": "iD",
+			"sign": -1
+		},
+		{
+			"left": "a-b",
+			"right": "choiceMs",
+			"sign": -1
+		},
+		{
+			"left": "a-b",
+			"right": "choicems",
+			"sign": -1
+		},
+		{
+			"left": "a-b",
+			"right": "copyRevision",
+			"sign": -1
+		},
+		{
+			"left": "a-b",
+			"right": "scopeMode",
+			"sign": -1
+		},
+		{
+			"left": "a-b",
+			"right": "storeIp",
+			"sign": -1
+		},
+		{
+			"left": "a-b",
+			"right": "storeIP",
+			"sign": -1
+		},
+		{
+			"left": "a-b",
+			"right": "e",
+			"sign": -1
+		},
+		{
+			"left": "a-b",
+			"right": "f",
+			"sign": -1
+		},
+		{
+			"left": "a.b",
+			"right": "a",
+			"sign": 1
+		},
+		{
+			"left": "a.b",
+			"right": "A",
+			"sign": 1
+		},
+		{
+			"left": "a.b",
+			"right": "b",
+			"sign": -1
+		},
+		{
+			"left": "a.b",
+			"right": "B",
+			"sign": -1
+		},
+		{
+			"left": "a.b",
+			"right": "ab",
+			"sign": -1
+		},
+		{
+			"left": "a.b",
+			"right": "aB",
+			"sign": -1
+		},
+		{
+			"left": "a.b",
+			"right": "Ab",
+			"sign": -1
+		},
+		{
+			"left": "a.b",
+			"right": "AB",
+			"sign": -1
+		},
+		{
+			"left": "a.b",
+			"right": "abc",
+			"sign": -1
+		},
+		{
+			"left": "a.b",
+			"right": "a_b",
+			"sign": 1
+		},
+		{
+			"left": "a.b",
+			"right": "a-b",
+			"sign": 1
+		},
+		{
+			"left": "a.b",
+			"right": "a.b",
+			"sign": 0
+		},
+		{
+			"left": "a.b",
+			"right": "a b",
+			"sign": 1
+		},
+		{
+			"left": "a.b",
+			"right": "_",
+			"sign": 1
+		},
+		{
+			"left": "a.b",
+			"right": "-",
+			"sign": 1
+		},
+		{
+			"left": "a.b",
+			"right": " ",
+			"sign": 1
+		},
+		{
+			"left": "a.b",
+			"right": "0",
+			"sign": 1
+		},
+		{
+			"left": "a.b",
+			"right": "9",
+			"sign": 1
+		},
+		{
+			"left": "a.b",
+			"right": "z",
+			"sign": -1
+		},
+		{
+			"left": "a.b",
+			"right": "Z",
+			"sign": -1
+		},
+		{
+			"left": "a.b",
+			"right": "a0",
+			"sign": -1
+		},
+		{
+			"left": "a.b",
+			"right": "a9",
+			"sign": -1
+		},
+		{
+			"left": "a.b",
+			"right": "aa",
+			"sign": -1
+		},
+		{
+			"left": "a.b",
+			"right": "a~",
+			"sign": -1
+		},
+		{
+			"left": "a.b",
+			"right": "a$",
+			"sign": -1
+		},
+		{
+			"left": "a.b",
+			"right": "$",
+			"sign": 1
+		},
+		{
+			"left": "a.b",
+			"right": "~",
+			"sign": 1
+		},
+		{
+			"left": "a.b",
+			"right": "id",
+			"sign": -1
+		},
+		{
+			"left": "a.b",
+			"right": "Id",
+			"sign": -1
+		},
+		{
+			"left": "a.b",
+			"right": "ID",
+			"sign": -1
+		},
+		{
+			"left": "a.b",
+			"right": "iD",
+			"sign": -1
+		},
+		{
+			"left": "a.b",
+			"right": "choiceMs",
+			"sign": -1
+		},
+		{
+			"left": "a.b",
+			"right": "choicems",
+			"sign": -1
+		},
+		{
+			"left": "a.b",
+			"right": "copyRevision",
+			"sign": -1
+		},
+		{
+			"left": "a.b",
+			"right": "scopeMode",
+			"sign": -1
+		},
+		{
+			"left": "a.b",
+			"right": "storeIp",
+			"sign": -1
+		},
+		{
+			"left": "a.b",
+			"right": "storeIP",
+			"sign": -1
+		},
+		{
+			"left": "a.b",
+			"right": "e",
+			"sign": -1
+		},
+		{
+			"left": "a.b",
+			"right": "f",
+			"sign": -1
+		},
+		{
+			"left": "a b",
+			"right": "a",
+			"sign": 1
+		},
+		{
+			"left": "a b",
+			"right": "A",
+			"sign": 1
+		},
+		{
+			"left": "a b",
+			"right": "b",
+			"sign": -1
+		},
+		{
+			"left": "a b",
+			"right": "B",
+			"sign": -1
+		},
+		{
+			"left": "a b",
+			"right": "ab",
+			"sign": -1
+		},
+		{
+			"left": "a b",
+			"right": "aB",
+			"sign": -1
+		},
+		{
+			"left": "a b",
+			"right": "Ab",
+			"sign": -1
+		},
+		{
+			"left": "a b",
+			"right": "AB",
+			"sign": -1
+		},
+		{
+			"left": "a b",
+			"right": "abc",
+			"sign": -1
+		},
+		{
+			"left": "a b",
+			"right": "a_b",
+			"sign": -1
+		},
+		{
+			"left": "a b",
+			"right": "a-b",
+			"sign": -1
+		},
+		{
+			"left": "a b",
+			"right": "a.b",
+			"sign": -1
+		},
+		{
+			"left": "a b",
+			"right": "a b",
+			"sign": 0
+		},
+		{
+			"left": "a b",
+			"right": "_",
+			"sign": 1
+		},
+		{
+			"left": "a b",
+			"right": "-",
+			"sign": 1
+		},
+		{
+			"left": "a b",
+			"right": " ",
+			"sign": 1
+		},
+		{
+			"left": "a b",
+			"right": "0",
+			"sign": 1
+		},
+		{
+			"left": "a b",
+			"right": "9",
+			"sign": 1
+		},
+		{
+			"left": "a b",
+			"right": "z",
+			"sign": -1
+		},
+		{
+			"left": "a b",
+			"right": "Z",
+			"sign": -1
+		},
+		{
+			"left": "a b",
+			"right": "a0",
+			"sign": -1
+		},
+		{
+			"left": "a b",
+			"right": "a9",
+			"sign": -1
+		},
+		{
+			"left": "a b",
+			"right": "aa",
+			"sign": -1
+		},
+		{
+			"left": "a b",
+			"right": "a~",
+			"sign": -1
+		},
+		{
+			"left": "a b",
+			"right": "a$",
+			"sign": -1
+		},
+		{
+			"left": "a b",
+			"right": "$",
+			"sign": 1
+		},
+		{
+			"left": "a b",
+			"right": "~",
+			"sign": 1
+		},
+		{
+			"left": "a b",
+			"right": "id",
+			"sign": -1
+		},
+		{
+			"left": "a b",
+			"right": "Id",
+			"sign": -1
+		},
+		{
+			"left": "a b",
+			"right": "ID",
+			"sign": -1
+		},
+		{
+			"left": "a b",
+			"right": "iD",
+			"sign": -1
+		},
+		{
+			"left": "a b",
+			"right": "choiceMs",
+			"sign": -1
+		},
+		{
+			"left": "a b",
+			"right": "choicems",
+			"sign": -1
+		},
+		{
+			"left": "a b",
+			"right": "copyRevision",
+			"sign": -1
+		},
+		{
+			"left": "a b",
+			"right": "scopeMode",
+			"sign": -1
+		},
+		{
+			"left": "a b",
+			"right": "storeIp",
+			"sign": -1
+		},
+		{
+			"left": "a b",
+			"right": "storeIP",
+			"sign": -1
+		},
+		{
+			"left": "a b",
+			"right": "e",
+			"sign": -1
+		},
+		{
+			"left": "a b",
+			"right": "f",
+			"sign": -1
+		},
+		{
+			"left": "_",
+			"right": "a",
+			"sign": -1
+		},
+		{
+			"left": "_",
+			"right": "A",
+			"sign": -1
+		},
+		{
+			"left": "_",
+			"right": "b",
+			"sign": -1
+		},
+		{
+			"left": "_",
+			"right": "B",
+			"sign": -1
+		},
+		{
+			"left": "_",
+			"right": "ab",
+			"sign": -1
+		},
+		{
+			"left": "_",
+			"right": "aB",
+			"sign": -1
+		},
+		{
+			"left": "_",
+			"right": "Ab",
+			"sign": -1
+		},
+		{
+			"left": "_",
+			"right": "AB",
+			"sign": -1
+		},
+		{
+			"left": "_",
+			"right": "abc",
+			"sign": -1
+		},
+		{
+			"left": "_",
+			"right": "a_b",
+			"sign": -1
+		},
+		{
+			"left": "_",
+			"right": "a-b",
+			"sign": -1
+		},
+		{
+			"left": "_",
+			"right": "a.b",
+			"sign": -1
+		},
+		{
+			"left": "_",
+			"right": "a b",
+			"sign": -1
+		},
+		{
+			"left": "_",
+			"right": "_",
+			"sign": 0
+		},
+		{
+			"left": "_",
+			"right": "-",
+			"sign": -1
+		},
+		{
+			"left": "_",
+			"right": " ",
+			"sign": 1
+		},
+		{
+			"left": "_",
+			"right": "0",
+			"sign": -1
+		},
+		{
+			"left": "_",
+			"right": "9",
+			"sign": -1
+		},
+		{
+			"left": "_",
+			"right": "z",
+			"sign": -1
+		},
+		{
+			"left": "_",
+			"right": "Z",
+			"sign": -1
+		},
+		{
+			"left": "_",
+			"right": "a0",
+			"sign": -1
+		},
+		{
+			"left": "_",
+			"right": "a9",
+			"sign": -1
+		},
+		{
+			"left": "_",
+			"right": "aa",
+			"sign": -1
+		},
+		{
+			"left": "_",
+			"right": "a~",
+			"sign": -1
+		},
+		{
+			"left": "_",
+			"right": "a$",
+			"sign": -1
+		},
+		{
+			"left": "_",
+			"right": "$",
+			"sign": -1
+		},
+		{
+			"left": "_",
+			"right": "~",
+			"sign": -1
+		},
+		{
+			"left": "_",
+			"right": "id",
+			"sign": -1
+		},
+		{
+			"left": "_",
+			"right": "Id",
+			"sign": -1
+		},
+		{
+			"left": "_",
+			"right": "ID",
+			"sign": -1
+		},
+		{
+			"left": "_",
+			"right": "iD",
+			"sign": -1
+		},
+		{
+			"left": "_",
+			"right": "choiceMs",
+			"sign": -1
+		},
+		{
+			"left": "_",
+			"right": "choicems",
+			"sign": -1
+		},
+		{
+			"left": "_",
+			"right": "copyRevision",
+			"sign": -1
+		},
+		{
+			"left": "_",
+			"right": "scopeMode",
+			"sign": -1
+		},
+		{
+			"left": "_",
+			"right": "storeIp",
+			"sign": -1
+		},
+		{
+			"left": "_",
+			"right": "storeIP",
+			"sign": -1
+		},
+		{
+			"left": "_",
+			"right": "e",
+			"sign": -1
+		},
+		{
+			"left": "_",
+			"right": "f",
+			"sign": -1
+		},
+		{
+			"left": "-",
+			"right": "a",
+			"sign": -1
+		},
+		{
+			"left": "-",
+			"right": "A",
+			"sign": -1
+		},
+		{
+			"left": "-",
+			"right": "b",
+			"sign": -1
+		},
+		{
+			"left": "-",
+			"right": "B",
+			"sign": -1
+		},
+		{
+			"left": "-",
+			"right": "ab",
+			"sign": -1
+		},
+		{
+			"left": "-",
+			"right": "aB",
+			"sign": -1
+		},
+		{
+			"left": "-",
+			"right": "Ab",
+			"sign": -1
+		},
+		{
+			"left": "-",
+			"right": "AB",
+			"sign": -1
+		},
+		{
+			"left": "-",
+			"right": "abc",
+			"sign": -1
+		},
+		{
+			"left": "-",
+			"right": "a_b",
+			"sign": -1
+		},
+		{
+			"left": "-",
+			"right": "a-b",
+			"sign": -1
+		},
+		{
+			"left": "-",
+			"right": "a.b",
+			"sign": -1
+		},
+		{
+			"left": "-",
+			"right": "a b",
+			"sign": -1
+		},
+		{
+			"left": "-",
+			"right": "_",
+			"sign": 1
+		},
+		{
+			"left": "-",
+			"right": "-",
+			"sign": 0
+		},
+		{
+			"left": "-",
+			"right": " ",
+			"sign": 1
+		},
+		{
+			"left": "-",
+			"right": "0",
+			"sign": -1
+		},
+		{
+			"left": "-",
+			"right": "9",
+			"sign": -1
+		},
+		{
+			"left": "-",
+			"right": "z",
+			"sign": -1
+		},
+		{
+			"left": "-",
+			"right": "Z",
+			"sign": -1
+		},
+		{
+			"left": "-",
+			"right": "a0",
+			"sign": -1
+		},
+		{
+			"left": "-",
+			"right": "a9",
+			"sign": -1
+		},
+		{
+			"left": "-",
+			"right": "aa",
+			"sign": -1
+		},
+		{
+			"left": "-",
+			"right": "a~",
+			"sign": -1
+		},
+		{
+			"left": "-",
+			"right": "a$",
+			"sign": -1
+		},
+		{
+			"left": "-",
+			"right": "$",
+			"sign": -1
+		},
+		{
+			"left": "-",
+			"right": "~",
+			"sign": -1
+		},
+		{
+			"left": "-",
+			"right": "id",
+			"sign": -1
+		},
+		{
+			"left": "-",
+			"right": "Id",
+			"sign": -1
+		},
+		{
+			"left": "-",
+			"right": "ID",
+			"sign": -1
+		},
+		{
+			"left": "-",
+			"right": "iD",
+			"sign": -1
+		},
+		{
+			"left": "-",
+			"right": "choiceMs",
+			"sign": -1
+		},
+		{
+			"left": "-",
+			"right": "choicems",
+			"sign": -1
+		},
+		{
+			"left": "-",
+			"right": "copyRevision",
+			"sign": -1
+		},
+		{
+			"left": "-",
+			"right": "scopeMode",
+			"sign": -1
+		},
+		{
+			"left": "-",
+			"right": "storeIp",
+			"sign": -1
+		},
+		{
+			"left": "-",
+			"right": "storeIP",
+			"sign": -1
+		},
+		{
+			"left": "-",
+			"right": "e",
+			"sign": -1
+		},
+		{
+			"left": "-",
+			"right": "f",
+			"sign": -1
+		},
+		{
+			"left": " ",
+			"right": "a",
+			"sign": -1
+		},
+		{
+			"left": " ",
+			"right": "A",
+			"sign": -1
+		},
+		{
+			"left": " ",
+			"right": "b",
+			"sign": -1
+		},
+		{
+			"left": " ",
+			"right": "B",
+			"sign": -1
+		},
+		{
+			"left": " ",
+			"right": "ab",
+			"sign": -1
+		},
+		{
+			"left": " ",
+			"right": "aB",
+			"sign": -1
+		},
+		{
+			"left": " ",
+			"right": "Ab",
+			"sign": -1
+		},
+		{
+			"left": " ",
+			"right": "AB",
+			"sign": -1
+		},
+		{
+			"left": " ",
+			"right": "abc",
+			"sign": -1
+		},
+		{
+			"left": " ",
+			"right": "a_b",
+			"sign": -1
+		},
+		{
+			"left": " ",
+			"right": "a-b",
+			"sign": -1
+		},
+		{
+			"left": " ",
+			"right": "a.b",
+			"sign": -1
+		},
+		{
+			"left": " ",
+			"right": "a b",
+			"sign": -1
+		},
+		{
+			"left": " ",
+			"right": "_",
+			"sign": -1
+		},
+		{
+			"left": " ",
+			"right": "-",
+			"sign": -1
+		},
+		{
+			"left": " ",
+			"right": " ",
+			"sign": 0
+		},
+		{
+			"left": " ",
+			"right": "0",
+			"sign": -1
+		},
+		{
+			"left": " ",
+			"right": "9",
+			"sign": -1
+		},
+		{
+			"left": " ",
+			"right": "z",
+			"sign": -1
+		},
+		{
+			"left": " ",
+			"right": "Z",
+			"sign": -1
+		},
+		{
+			"left": " ",
+			"right": "a0",
+			"sign": -1
+		},
+		{
+			"left": " ",
+			"right": "a9",
+			"sign": -1
+		},
+		{
+			"left": " ",
+			"right": "aa",
+			"sign": -1
+		},
+		{
+			"left": " ",
+			"right": "a~",
+			"sign": -1
+		},
+		{
+			"left": " ",
+			"right": "a$",
+			"sign": -1
+		},
+		{
+			"left": " ",
+			"right": "$",
+			"sign": -1
+		},
+		{
+			"left": " ",
+			"right": "~",
+			"sign": -1
+		},
+		{
+			"left": " ",
+			"right": "id",
+			"sign": -1
+		},
+		{
+			"left": " ",
+			"right": "Id",
+			"sign": -1
+		},
+		{
+			"left": " ",
+			"right": "ID",
+			"sign": -1
+		},
+		{
+			"left": " ",
+			"right": "iD",
+			"sign": -1
+		},
+		{
+			"left": " ",
+			"right": "choiceMs",
+			"sign": -1
+		},
+		{
+			"left": " ",
+			"right": "choicems",
+			"sign": -1
+		},
+		{
+			"left": " ",
+			"right": "copyRevision",
+			"sign": -1
+		},
+		{
+			"left": " ",
+			"right": "scopeMode",
+			"sign": -1
+		},
+		{
+			"left": " ",
+			"right": "storeIp",
+			"sign": -1
+		},
+		{
+			"left": " ",
+			"right": "storeIP",
+			"sign": -1
+		},
+		{
+			"left": " ",
+			"right": "e",
+			"sign": -1
+		},
+		{
+			"left": " ",
+			"right": "f",
+			"sign": -1
+		},
+		{
+			"left": "0",
+			"right": "a",
+			"sign": -1
+		},
+		{
+			"left": "0",
+			"right": "A",
+			"sign": -1
+		},
+		{
+			"left": "0",
+			"right": "b",
+			"sign": -1
+		},
+		{
+			"left": "0",
+			"right": "B",
+			"sign": -1
+		},
+		{
+			"left": "0",
+			"right": "ab",
+			"sign": -1
+		},
+		{
+			"left": "0",
+			"right": "aB",
+			"sign": -1
+		},
+		{
+			"left": "0",
+			"right": "Ab",
+			"sign": -1
+		},
+		{
+			"left": "0",
+			"right": "AB",
+			"sign": -1
+		},
+		{
+			"left": "0",
+			"right": "abc",
+			"sign": -1
+		},
+		{
+			"left": "0",
+			"right": "a_b",
+			"sign": -1
+		},
+		{
+			"left": "0",
+			"right": "a-b",
+			"sign": -1
+		},
+		{
+			"left": "0",
+			"right": "a.b",
+			"sign": -1
+		},
+		{
+			"left": "0",
+			"right": "a b",
+			"sign": -1
+		},
+		{
+			"left": "0",
+			"right": "_",
+			"sign": 1
+		},
+		{
+			"left": "0",
+			"right": "-",
+			"sign": 1
+		},
+		{
+			"left": "0",
+			"right": " ",
+			"sign": 1
+		},
+		{
+			"left": "0",
+			"right": "0",
+			"sign": 0
+		},
+		{
+			"left": "0",
+			"right": "9",
+			"sign": -1
+		},
+		{
+			"left": "0",
+			"right": "z",
+			"sign": -1
+		},
+		{
+			"left": "0",
+			"right": "Z",
+			"sign": -1
+		},
+		{
+			"left": "0",
+			"right": "a0",
+			"sign": -1
+		},
+		{
+			"left": "0",
+			"right": "a9",
+			"sign": -1
+		},
+		{
+			"left": "0",
+			"right": "aa",
+			"sign": -1
+		},
+		{
+			"left": "0",
+			"right": "a~",
+			"sign": -1
+		},
+		{
+			"left": "0",
+			"right": "a$",
+			"sign": -1
+		},
+		{
+			"left": "0",
+			"right": "$",
+			"sign": 1
+		},
+		{
+			"left": "0",
+			"right": "~",
+			"sign": 1
+		},
+		{
+			"left": "0",
+			"right": "id",
+			"sign": -1
+		},
+		{
+			"left": "0",
+			"right": "Id",
+			"sign": -1
+		},
+		{
+			"left": "0",
+			"right": "ID",
+			"sign": -1
+		},
+		{
+			"left": "0",
+			"right": "iD",
+			"sign": -1
+		},
+		{
+			"left": "0",
+			"right": "choiceMs",
+			"sign": -1
+		},
+		{
+			"left": "0",
+			"right": "choicems",
+			"sign": -1
+		},
+		{
+			"left": "0",
+			"right": "copyRevision",
+			"sign": -1
+		},
+		{
+			"left": "0",
+			"right": "scopeMode",
+			"sign": -1
+		},
+		{
+			"left": "0",
+			"right": "storeIp",
+			"sign": -1
+		},
+		{
+			"left": "0",
+			"right": "storeIP",
+			"sign": -1
+		},
+		{
+			"left": "0",
+			"right": "e",
+			"sign": -1
+		},
+		{
+			"left": "0",
+			"right": "f",
+			"sign": -1
+		},
+		{
+			"left": "9",
+			"right": "a",
+			"sign": -1
+		},
+		{
+			"left": "9",
+			"right": "A",
+			"sign": -1
+		},
+		{
+			"left": "9",
+			"right": "b",
+			"sign": -1
+		},
+		{
+			"left": "9",
+			"right": "B",
+			"sign": -1
+		},
+		{
+			"left": "9",
+			"right": "ab",
+			"sign": -1
+		},
+		{
+			"left": "9",
+			"right": "aB",
+			"sign": -1
+		},
+		{
+			"left": "9",
+			"right": "Ab",
+			"sign": -1
+		},
+		{
+			"left": "9",
+			"right": "AB",
+			"sign": -1
+		},
+		{
+			"left": "9",
+			"right": "abc",
+			"sign": -1
+		},
+		{
+			"left": "9",
+			"right": "a_b",
+			"sign": -1
+		},
+		{
+			"left": "9",
+			"right": "a-b",
+			"sign": -1
+		},
+		{
+			"left": "9",
+			"right": "a.b",
+			"sign": -1
+		},
+		{
+			"left": "9",
+			"right": "a b",
+			"sign": -1
+		},
+		{
+			"left": "9",
+			"right": "_",
+			"sign": 1
+		},
+		{
+			"left": "9",
+			"right": "-",
+			"sign": 1
+		},
+		{
+			"left": "9",
+			"right": " ",
+			"sign": 1
+		},
+		{
+			"left": "9",
+			"right": "0",
+			"sign": 1
+		},
+		{
+			"left": "9",
+			"right": "9",
+			"sign": 0
+		},
+		{
+			"left": "9",
+			"right": "z",
+			"sign": -1
+		},
+		{
+			"left": "9",
+			"right": "Z",
+			"sign": -1
+		},
+		{
+			"left": "9",
+			"right": "a0",
+			"sign": -1
+		},
+		{
+			"left": "9",
+			"right": "a9",
+			"sign": -1
+		},
+		{
+			"left": "9",
+			"right": "aa",
+			"sign": -1
+		},
+		{
+			"left": "9",
+			"right": "a~",
+			"sign": -1
+		},
+		{
+			"left": "9",
+			"right": "a$",
+			"sign": -1
+		},
+		{
+			"left": "9",
+			"right": "$",
+			"sign": 1
+		},
+		{
+			"left": "9",
+			"right": "~",
+			"sign": 1
+		},
+		{
+			"left": "9",
+			"right": "id",
+			"sign": -1
+		},
+		{
+			"left": "9",
+			"right": "Id",
+			"sign": -1
+		},
+		{
+			"left": "9",
+			"right": "ID",
+			"sign": -1
+		},
+		{
+			"left": "9",
+			"right": "iD",
+			"sign": -1
+		},
+		{
+			"left": "9",
+			"right": "choiceMs",
+			"sign": -1
+		},
+		{
+			"left": "9",
+			"right": "choicems",
+			"sign": -1
+		},
+		{
+			"left": "9",
+			"right": "copyRevision",
+			"sign": -1
+		},
+		{
+			"left": "9",
+			"right": "scopeMode",
+			"sign": -1
+		},
+		{
+			"left": "9",
+			"right": "storeIp",
+			"sign": -1
+		},
+		{
+			"left": "9",
+			"right": "storeIP",
+			"sign": -1
+		},
+		{
+			"left": "9",
+			"right": "e",
+			"sign": -1
+		},
+		{
+			"left": "9",
+			"right": "f",
+			"sign": -1
+		},
+		{
+			"left": "z",
+			"right": "a",
+			"sign": 1
+		},
+		{
+			"left": "z",
+			"right": "A",
+			"sign": 1
+		},
+		{
+			"left": "z",
+			"right": "b",
+			"sign": 1
+		},
+		{
+			"left": "z",
+			"right": "B",
+			"sign": 1
+		},
+		{
+			"left": "z",
+			"right": "ab",
+			"sign": 1
+		},
+		{
+			"left": "z",
+			"right": "aB",
+			"sign": 1
+		},
+		{
+			"left": "z",
+			"right": "Ab",
+			"sign": 1
+		},
+		{
+			"left": "z",
+			"right": "AB",
+			"sign": 1
+		},
+		{
+			"left": "z",
+			"right": "abc",
+			"sign": 1
+		},
+		{
+			"left": "z",
+			"right": "a_b",
+			"sign": 1
+		},
+		{
+			"left": "z",
+			"right": "a-b",
+			"sign": 1
+		},
+		{
+			"left": "z",
+			"right": "a.b",
+			"sign": 1
+		},
+		{
+			"left": "z",
+			"right": "a b",
+			"sign": 1
+		},
+		{
+			"left": "z",
+			"right": "_",
+			"sign": 1
+		},
+		{
+			"left": "z",
+			"right": "-",
+			"sign": 1
+		},
+		{
+			"left": "z",
+			"right": " ",
+			"sign": 1
+		},
+		{
+			"left": "z",
+			"right": "0",
+			"sign": 1
+		},
+		{
+			"left": "z",
+			"right": "9",
+			"sign": 1
+		},
+		{
+			"left": "z",
+			"right": "z",
+			"sign": 0
+		},
+		{
+			"left": "z",
+			"right": "Z",
+			"sign": -1
+		},
+		{
+			"left": "z",
+			"right": "a0",
+			"sign": 1
+		},
+		{
+			"left": "z",
+			"right": "a9",
+			"sign": 1
+		},
+		{
+			"left": "z",
+			"right": "aa",
+			"sign": 1
+		},
+		{
+			"left": "z",
+			"right": "a~",
+			"sign": 1
+		},
+		{
+			"left": "z",
+			"right": "a$",
+			"sign": 1
+		},
+		{
+			"left": "z",
+			"right": "$",
+			"sign": 1
+		},
+		{
+			"left": "z",
+			"right": "~",
+			"sign": 1
+		},
+		{
+			"left": "z",
+			"right": "id",
+			"sign": 1
+		},
+		{
+			"left": "z",
+			"right": "Id",
+			"sign": 1
+		},
+		{
+			"left": "z",
+			"right": "ID",
+			"sign": 1
+		},
+		{
+			"left": "z",
+			"right": "iD",
+			"sign": 1
+		},
+		{
+			"left": "z",
+			"right": "choiceMs",
+			"sign": 1
+		},
+		{
+			"left": "z",
+			"right": "choicems",
+			"sign": 1
+		},
+		{
+			"left": "z",
+			"right": "copyRevision",
+			"sign": 1
+		},
+		{
+			"left": "z",
+			"right": "scopeMode",
+			"sign": 1
+		},
+		{
+			"left": "z",
+			"right": "storeIp",
+			"sign": 1
+		},
+		{
+			"left": "z",
+			"right": "storeIP",
+			"sign": 1
+		},
+		{
+			"left": "z",
+			"right": "e",
+			"sign": 1
+		},
+		{
+			"left": "z",
+			"right": "f",
+			"sign": 1
+		},
+		{
+			"left": "Z",
+			"right": "a",
+			"sign": 1
+		},
+		{
+			"left": "Z",
+			"right": "A",
+			"sign": 1
+		},
+		{
+			"left": "Z",
+			"right": "b",
+			"sign": 1
+		},
+		{
+			"left": "Z",
+			"right": "B",
+			"sign": 1
+		},
+		{
+			"left": "Z",
+			"right": "ab",
+			"sign": 1
+		},
+		{
+			"left": "Z",
+			"right": "aB",
+			"sign": 1
+		},
+		{
+			"left": "Z",
+			"right": "Ab",
+			"sign": 1
+		},
+		{
+			"left": "Z",
+			"right": "AB",
+			"sign": 1
+		},
+		{
+			"left": "Z",
+			"right": "abc",
+			"sign": 1
+		},
+		{
+			"left": "Z",
+			"right": "a_b",
+			"sign": 1
+		},
+		{
+			"left": "Z",
+			"right": "a-b",
+			"sign": 1
+		},
+		{
+			"left": "Z",
+			"right": "a.b",
+			"sign": 1
+		},
+		{
+			"left": "Z",
+			"right": "a b",
+			"sign": 1
+		},
+		{
+			"left": "Z",
+			"right": "_",
+			"sign": 1
+		},
+		{
+			"left": "Z",
+			"right": "-",
+			"sign": 1
+		},
+		{
+			"left": "Z",
+			"right": " ",
+			"sign": 1
+		},
+		{
+			"left": "Z",
+			"right": "0",
+			"sign": 1
+		},
+		{
+			"left": "Z",
+			"right": "9",
+			"sign": 1
+		},
+		{
+			"left": "Z",
+			"right": "z",
+			"sign": 1
+		},
+		{
+			"left": "Z",
+			"right": "Z",
+			"sign": 0
+		},
+		{
+			"left": "Z",
+			"right": "a0",
+			"sign": 1
+		},
+		{
+			"left": "Z",
+			"right": "a9",
+			"sign": 1
+		},
+		{
+			"left": "Z",
+			"right": "aa",
+			"sign": 1
+		},
+		{
+			"left": "Z",
+			"right": "a~",
+			"sign": 1
+		},
+		{
+			"left": "Z",
+			"right": "a$",
+			"sign": 1
+		},
+		{
+			"left": "Z",
+			"right": "$",
+			"sign": 1
+		},
+		{
+			"left": "Z",
+			"right": "~",
+			"sign": 1
+		},
+		{
+			"left": "Z",
+			"right": "id",
+			"sign": 1
+		},
+		{
+			"left": "Z",
+			"right": "Id",
+			"sign": 1
+		},
+		{
+			"left": "Z",
+			"right": "ID",
+			"sign": 1
+		},
+		{
+			"left": "Z",
+			"right": "iD",
+			"sign": 1
+		},
+		{
+			"left": "Z",
+			"right": "choiceMs",
+			"sign": 1
+		},
+		{
+			"left": "Z",
+			"right": "choicems",
+			"sign": 1
+		},
+		{
+			"left": "Z",
+			"right": "copyRevision",
+			"sign": 1
+		},
+		{
+			"left": "Z",
+			"right": "scopeMode",
+			"sign": 1
+		},
+		{
+			"left": "Z",
+			"right": "storeIp",
+			"sign": 1
+		},
+		{
+			"left": "Z",
+			"right": "storeIP",
+			"sign": 1
+		},
+		{
+			"left": "Z",
+			"right": "e",
+			"sign": 1
+		},
+		{
+			"left": "Z",
+			"right": "f",
+			"sign": 1
+		},
+		{
+			"left": "a0",
+			"right": "a",
+			"sign": 1
+		},
+		{
+			"left": "a0",
+			"right": "A",
+			"sign": 1
+		},
+		{
+			"left": "a0",
+			"right": "b",
+			"sign": -1
+		},
+		{
+			"left": "a0",
+			"right": "B",
+			"sign": -1
+		},
+		{
+			"left": "a0",
+			"right": "ab",
+			"sign": -1
+		},
+		{
+			"left": "a0",
+			"right": "aB",
+			"sign": -1
+		},
+		{
+			"left": "a0",
+			"right": "Ab",
+			"sign": -1
+		},
+		{
+			"left": "a0",
+			"right": "AB",
+			"sign": -1
+		},
+		{
+			"left": "a0",
+			"right": "abc",
+			"sign": -1
+		},
+		{
+			"left": "a0",
+			"right": "a_b",
+			"sign": 1
+		},
+		{
+			"left": "a0",
+			"right": "a-b",
+			"sign": 1
+		},
+		{
+			"left": "a0",
+			"right": "a.b",
+			"sign": 1
+		},
+		{
+			"left": "a0",
+			"right": "a b",
+			"sign": 1
+		},
+		{
+			"left": "a0",
+			"right": "_",
+			"sign": 1
+		},
+		{
+			"left": "a0",
+			"right": "-",
+			"sign": 1
+		},
+		{
+			"left": "a0",
+			"right": " ",
+			"sign": 1
+		},
+		{
+			"left": "a0",
+			"right": "0",
+			"sign": 1
+		},
+		{
+			"left": "a0",
+			"right": "9",
+			"sign": 1
+		},
+		{
+			"left": "a0",
+			"right": "z",
+			"sign": -1
+		},
+		{
+			"left": "a0",
+			"right": "Z",
+			"sign": -1
+		},
+		{
+			"left": "a0",
+			"right": "a0",
+			"sign": 0
+		},
+		{
+			"left": "a0",
+			"right": "a9",
+			"sign": -1
+		},
+		{
+			"left": "a0",
+			"right": "aa",
+			"sign": -1
+		},
+		{
+			"left": "a0",
+			"right": "a~",
+			"sign": 1
+		},
+		{
+			"left": "a0",
+			"right": "a$",
+			"sign": 1
+		},
+		{
+			"left": "a0",
+			"right": "$",
+			"sign": 1
+		},
+		{
+			"left": "a0",
+			"right": "~",
+			"sign": 1
+		},
+		{
+			"left": "a0",
+			"right": "id",
+			"sign": -1
+		},
+		{
+			"left": "a0",
+			"right": "Id",
+			"sign": -1
+		},
+		{
+			"left": "a0",
+			"right": "ID",
+			"sign": -1
+		},
+		{
+			"left": "a0",
+			"right": "iD",
+			"sign": -1
+		},
+		{
+			"left": "a0",
+			"right": "choiceMs",
+			"sign": -1
+		},
+		{
+			"left": "a0",
+			"right": "choicems",
+			"sign": -1
+		},
+		{
+			"left": "a0",
+			"right": "copyRevision",
+			"sign": -1
+		},
+		{
+			"left": "a0",
+			"right": "scopeMode",
+			"sign": -1
+		},
+		{
+			"left": "a0",
+			"right": "storeIp",
+			"sign": -1
+		},
+		{
+			"left": "a0",
+			"right": "storeIP",
+			"sign": -1
+		},
+		{
+			"left": "a0",
+			"right": "e",
+			"sign": -1
+		},
+		{
+			"left": "a0",
+			"right": "f",
+			"sign": -1
+		},
+		{
+			"left": "a9",
+			"right": "a",
+			"sign": 1
+		},
+		{
+			"left": "a9",
+			"right": "A",
+			"sign": 1
+		},
+		{
+			"left": "a9",
+			"right": "b",
+			"sign": -1
+		},
+		{
+			"left": "a9",
+			"right": "B",
+			"sign": -1
+		},
+		{
+			"left": "a9",
+			"right": "ab",
+			"sign": -1
+		},
+		{
+			"left": "a9",
+			"right": "aB",
+			"sign": -1
+		},
+		{
+			"left": "a9",
+			"right": "Ab",
+			"sign": -1
+		},
+		{
+			"left": "a9",
+			"right": "AB",
+			"sign": -1
+		},
+		{
+			"left": "a9",
+			"right": "abc",
+			"sign": -1
+		},
+		{
+			"left": "a9",
+			"right": "a_b",
+			"sign": 1
+		},
+		{
+			"left": "a9",
+			"right": "a-b",
+			"sign": 1
+		},
+		{
+			"left": "a9",
+			"right": "a.b",
+			"sign": 1
+		},
+		{
+			"left": "a9",
+			"right": "a b",
+			"sign": 1
+		},
+		{
+			"left": "a9",
+			"right": "_",
+			"sign": 1
+		},
+		{
+			"left": "a9",
+			"right": "-",
+			"sign": 1
+		},
+		{
+			"left": "a9",
+			"right": " ",
+			"sign": 1
+		},
+		{
+			"left": "a9",
+			"right": "0",
+			"sign": 1
+		},
+		{
+			"left": "a9",
+			"right": "9",
+			"sign": 1
+		},
+		{
+			"left": "a9",
+			"right": "z",
+			"sign": -1
+		},
+		{
+			"left": "a9",
+			"right": "Z",
+			"sign": -1
+		},
+		{
+			"left": "a9",
+			"right": "a0",
+			"sign": 1
+		},
+		{
+			"left": "a9",
+			"right": "a9",
+			"sign": 0
+		},
+		{
+			"left": "a9",
+			"right": "aa",
+			"sign": -1
+		},
+		{
+			"left": "a9",
+			"right": "a~",
+			"sign": 1
+		},
+		{
+			"left": "a9",
+			"right": "a$",
+			"sign": 1
+		},
+		{
+			"left": "a9",
+			"right": "$",
+			"sign": 1
+		},
+		{
+			"left": "a9",
+			"right": "~",
+			"sign": 1
+		},
+		{
+			"left": "a9",
+			"right": "id",
+			"sign": -1
+		},
+		{
+			"left": "a9",
+			"right": "Id",
+			"sign": -1
+		},
+		{
+			"left": "a9",
+			"right": "ID",
+			"sign": -1
+		},
+		{
+			"left": "a9",
+			"right": "iD",
+			"sign": -1
+		},
+		{
+			"left": "a9",
+			"right": "choiceMs",
+			"sign": -1
+		},
+		{
+			"left": "a9",
+			"right": "choicems",
+			"sign": -1
+		},
+		{
+			"left": "a9",
+			"right": "copyRevision",
+			"sign": -1
+		},
+		{
+			"left": "a9",
+			"right": "scopeMode",
+			"sign": -1
+		},
+		{
+			"left": "a9",
+			"right": "storeIp",
+			"sign": -1
+		},
+		{
+			"left": "a9",
+			"right": "storeIP",
+			"sign": -1
+		},
+		{
+			"left": "a9",
+			"right": "e",
+			"sign": -1
+		},
+		{
+			"left": "a9",
+			"right": "f",
+			"sign": -1
+		},
+		{
+			"left": "aa",
+			"right": "a",
+			"sign": 1
+		},
+		{
+			"left": "aa",
+			"right": "A",
+			"sign": 1
+		},
+		{
+			"left": "aa",
+			"right": "b",
+			"sign": -1
+		},
+		{
+			"left": "aa",
+			"right": "B",
+			"sign": -1
+		},
+		{
+			"left": "aa",
+			"right": "ab",
+			"sign": -1
+		},
+		{
+			"left": "aa",
+			"right": "aB",
+			"sign": -1
+		},
+		{
+			"left": "aa",
+			"right": "Ab",
+			"sign": -1
+		},
+		{
+			"left": "aa",
+			"right": "AB",
+			"sign": -1
+		},
+		{
+			"left": "aa",
+			"right": "abc",
+			"sign": -1
+		},
+		{
+			"left": "aa",
+			"right": "a_b",
+			"sign": 1
+		},
+		{
+			"left": "aa",
+			"right": "a-b",
+			"sign": 1
+		},
+		{
+			"left": "aa",
+			"right": "a.b",
+			"sign": 1
+		},
+		{
+			"left": "aa",
+			"right": "a b",
+			"sign": 1
+		},
+		{
+			"left": "aa",
+			"right": "_",
+			"sign": 1
+		},
+		{
+			"left": "aa",
+			"right": "-",
+			"sign": 1
+		},
+		{
+			"left": "aa",
+			"right": " ",
+			"sign": 1
+		},
+		{
+			"left": "aa",
+			"right": "0",
+			"sign": 1
+		},
+		{
+			"left": "aa",
+			"right": "9",
+			"sign": 1
+		},
+		{
+			"left": "aa",
+			"right": "z",
+			"sign": -1
+		},
+		{
+			"left": "aa",
+			"right": "Z",
+			"sign": -1
+		},
+		{
+			"left": "aa",
+			"right": "a0",
+			"sign": 1
+		},
+		{
+			"left": "aa",
+			"right": "a9",
+			"sign": 1
+		},
+		{
+			"left": "aa",
+			"right": "aa",
+			"sign": 0
+		},
+		{
+			"left": "aa",
+			"right": "a~",
+			"sign": 1
+		},
+		{
+			"left": "aa",
+			"right": "a$",
+			"sign": 1
+		},
+		{
+			"left": "aa",
+			"right": "$",
+			"sign": 1
+		},
+		{
+			"left": "aa",
+			"right": "~",
+			"sign": 1
+		},
+		{
+			"left": "aa",
+			"right": "id",
+			"sign": -1
+		},
+		{
+			"left": "aa",
+			"right": "Id",
+			"sign": -1
+		},
+		{
+			"left": "aa",
+			"right": "ID",
+			"sign": -1
+		},
+		{
+			"left": "aa",
+			"right": "iD",
+			"sign": -1
+		},
+		{
+			"left": "aa",
+			"right": "choiceMs",
+			"sign": -1
+		},
+		{
+			"left": "aa",
+			"right": "choicems",
+			"sign": -1
+		},
+		{
+			"left": "aa",
+			"right": "copyRevision",
+			"sign": -1
+		},
+		{
+			"left": "aa",
+			"right": "scopeMode",
+			"sign": -1
+		},
+		{
+			"left": "aa",
+			"right": "storeIp",
+			"sign": -1
+		},
+		{
+			"left": "aa",
+			"right": "storeIP",
+			"sign": -1
+		},
+		{
+			"left": "aa",
+			"right": "e",
+			"sign": -1
+		},
+		{
+			"left": "aa",
+			"right": "f",
+			"sign": -1
+		},
+		{
+			"left": "a~",
+			"right": "a",
+			"sign": 1
+		},
+		{
+			"left": "a~",
+			"right": "A",
+			"sign": 1
+		},
+		{
+			"left": "a~",
+			"right": "b",
+			"sign": -1
+		},
+		{
+			"left": "a~",
+			"right": "B",
+			"sign": -1
+		},
+		{
+			"left": "a~",
+			"right": "ab",
+			"sign": -1
+		},
+		{
+			"left": "a~",
+			"right": "aB",
+			"sign": -1
+		},
+		{
+			"left": "a~",
+			"right": "Ab",
+			"sign": -1
+		},
+		{
+			"left": "a~",
+			"right": "AB",
+			"sign": -1
+		},
+		{
+			"left": "a~",
+			"right": "abc",
+			"sign": -1
+		},
+		{
+			"left": "a~",
+			"right": "a_b",
+			"sign": 1
+		},
+		{
+			"left": "a~",
+			"right": "a-b",
+			"sign": 1
+		},
+		{
+			"left": "a~",
+			"right": "a.b",
+			"sign": 1
+		},
+		{
+			"left": "a~",
+			"right": "a b",
+			"sign": 1
+		},
+		{
+			"left": "a~",
+			"right": "_",
+			"sign": 1
+		},
+		{
+			"left": "a~",
+			"right": "-",
+			"sign": 1
+		},
+		{
+			"left": "a~",
+			"right": " ",
+			"sign": 1
+		},
+		{
+			"left": "a~",
+			"right": "0",
+			"sign": 1
+		},
+		{
+			"left": "a~",
+			"right": "9",
+			"sign": 1
+		},
+		{
+			"left": "a~",
+			"right": "z",
+			"sign": -1
+		},
+		{
+			"left": "a~",
+			"right": "Z",
+			"sign": -1
+		},
+		{
+			"left": "a~",
+			"right": "a0",
+			"sign": -1
+		},
+		{
+			"left": "a~",
+			"right": "a9",
+			"sign": -1
+		},
+		{
+			"left": "a~",
+			"right": "aa",
+			"sign": -1
+		},
+		{
+			"left": "a~",
+			"right": "a~",
+			"sign": 0
+		},
+		{
+			"left": "a~",
+			"right": "a$",
+			"sign": -1
+		},
+		{
+			"left": "a~",
+			"right": "$",
+			"sign": 1
+		},
+		{
+			"left": "a~",
+			"right": "~",
+			"sign": 1
+		},
+		{
+			"left": "a~",
+			"right": "id",
+			"sign": -1
+		},
+		{
+			"left": "a~",
+			"right": "Id",
+			"sign": -1
+		},
+		{
+			"left": "a~",
+			"right": "ID",
+			"sign": -1
+		},
+		{
+			"left": "a~",
+			"right": "iD",
+			"sign": -1
+		},
+		{
+			"left": "a~",
+			"right": "choiceMs",
+			"sign": -1
+		},
+		{
+			"left": "a~",
+			"right": "choicems",
+			"sign": -1
+		},
+		{
+			"left": "a~",
+			"right": "copyRevision",
+			"sign": -1
+		},
+		{
+			"left": "a~",
+			"right": "scopeMode",
+			"sign": -1
+		},
+		{
+			"left": "a~",
+			"right": "storeIp",
+			"sign": -1
+		},
+		{
+			"left": "a~",
+			"right": "storeIP",
+			"sign": -1
+		},
+		{
+			"left": "a~",
+			"right": "e",
+			"sign": -1
+		},
+		{
+			"left": "a~",
+			"right": "f",
+			"sign": -1
+		},
+		{
+			"left": "a$",
+			"right": "a",
+			"sign": 1
+		},
+		{
+			"left": "a$",
+			"right": "A",
+			"sign": 1
+		},
+		{
+			"left": "a$",
+			"right": "b",
+			"sign": -1
+		},
+		{
+			"left": "a$",
+			"right": "B",
+			"sign": -1
+		},
+		{
+			"left": "a$",
+			"right": "ab",
+			"sign": -1
+		},
+		{
+			"left": "a$",
+			"right": "aB",
+			"sign": -1
+		},
+		{
+			"left": "a$",
+			"right": "Ab",
+			"sign": -1
+		},
+		{
+			"left": "a$",
+			"right": "AB",
+			"sign": -1
+		},
+		{
+			"left": "a$",
+			"right": "abc",
+			"sign": -1
+		},
+		{
+			"left": "a$",
+			"right": "a_b",
+			"sign": 1
+		},
+		{
+			"left": "a$",
+			"right": "a-b",
+			"sign": 1
+		},
+		{
+			"left": "a$",
+			"right": "a.b",
+			"sign": 1
+		},
+		{
+			"left": "a$",
+			"right": "a b",
+			"sign": 1
+		},
+		{
+			"left": "a$",
+			"right": "_",
+			"sign": 1
+		},
+		{
+			"left": "a$",
+			"right": "-",
+			"sign": 1
+		},
+		{
+			"left": "a$",
+			"right": " ",
+			"sign": 1
+		},
+		{
+			"left": "a$",
+			"right": "0",
+			"sign": 1
+		},
+		{
+			"left": "a$",
+			"right": "9",
+			"sign": 1
+		},
+		{
+			"left": "a$",
+			"right": "z",
+			"sign": -1
+		},
+		{
+			"left": "a$",
+			"right": "Z",
+			"sign": -1
+		},
+		{
+			"left": "a$",
+			"right": "a0",
+			"sign": -1
+		},
+		{
+			"left": "a$",
+			"right": "a9",
+			"sign": -1
+		},
+		{
+			"left": "a$",
+			"right": "aa",
+			"sign": -1
+		},
+		{
+			"left": "a$",
+			"right": "a~",
+			"sign": 1
+		},
+		{
+			"left": "a$",
+			"right": "a$",
+			"sign": 0
+		},
+		{
+			"left": "a$",
+			"right": "$",
+			"sign": 1
+		},
+		{
+			"left": "a$",
+			"right": "~",
+			"sign": 1
+		},
+		{
+			"left": "a$",
+			"right": "id",
+			"sign": -1
+		},
+		{
+			"left": "a$",
+			"right": "Id",
+			"sign": -1
+		},
+		{
+			"left": "a$",
+			"right": "ID",
+			"sign": -1
+		},
+		{
+			"left": "a$",
+			"right": "iD",
+			"sign": -1
+		},
+		{
+			"left": "a$",
+			"right": "choiceMs",
+			"sign": -1
+		},
+		{
+			"left": "a$",
+			"right": "choicems",
+			"sign": -1
+		},
+		{
+			"left": "a$",
+			"right": "copyRevision",
+			"sign": -1
+		},
+		{
+			"left": "a$",
+			"right": "scopeMode",
+			"sign": -1
+		},
+		{
+			"left": "a$",
+			"right": "storeIp",
+			"sign": -1
+		},
+		{
+			"left": "a$",
+			"right": "storeIP",
+			"sign": -1
+		},
+		{
+			"left": "a$",
+			"right": "e",
+			"sign": -1
+		},
+		{
+			"left": "a$",
+			"right": "f",
+			"sign": -1
+		},
+		{
+			"left": "$",
+			"right": "a",
+			"sign": -1
+		},
+		{
+			"left": "$",
+			"right": "A",
+			"sign": -1
+		},
+		{
+			"left": "$",
+			"right": "b",
+			"sign": -1
+		},
+		{
+			"left": "$",
+			"right": "B",
+			"sign": -1
+		},
+		{
+			"left": "$",
+			"right": "ab",
+			"sign": -1
+		},
+		{
+			"left": "$",
+			"right": "aB",
+			"sign": -1
+		},
+		{
+			"left": "$",
+			"right": "Ab",
+			"sign": -1
+		},
+		{
+			"left": "$",
+			"right": "AB",
+			"sign": -1
+		},
+		{
+			"left": "$",
+			"right": "abc",
+			"sign": -1
+		},
+		{
+			"left": "$",
+			"right": "a_b",
+			"sign": -1
+		},
+		{
+			"left": "$",
+			"right": "a-b",
+			"sign": -1
+		},
+		{
+			"left": "$",
+			"right": "a.b",
+			"sign": -1
+		},
+		{
+			"left": "$",
+			"right": "a b",
+			"sign": -1
+		},
+		{
+			"left": "$",
+			"right": "_",
+			"sign": 1
+		},
+		{
+			"left": "$",
+			"right": "-",
+			"sign": 1
+		},
+		{
+			"left": "$",
+			"right": " ",
+			"sign": 1
+		},
+		{
+			"left": "$",
+			"right": "0",
+			"sign": -1
+		},
+		{
+			"left": "$",
+			"right": "9",
+			"sign": -1
+		},
+		{
+			"left": "$",
+			"right": "z",
+			"sign": -1
+		},
+		{
+			"left": "$",
+			"right": "Z",
+			"sign": -1
+		},
+		{
+			"left": "$",
+			"right": "a0",
+			"sign": -1
+		},
+		{
+			"left": "$",
+			"right": "a9",
+			"sign": -1
+		},
+		{
+			"left": "$",
+			"right": "aa",
+			"sign": -1
+		},
+		{
+			"left": "$",
+			"right": "a~",
+			"sign": -1
+		},
+		{
+			"left": "$",
+			"right": "a$",
+			"sign": -1
+		},
+		{
+			"left": "$",
+			"right": "$",
+			"sign": 0
+		},
+		{
+			"left": "$",
+			"right": "~",
+			"sign": 1
+		},
+		{
+			"left": "$",
+			"right": "id",
+			"sign": -1
+		},
+		{
+			"left": "$",
+			"right": "Id",
+			"sign": -1
+		},
+		{
+			"left": "$",
+			"right": "ID",
+			"sign": -1
+		},
+		{
+			"left": "$",
+			"right": "iD",
+			"sign": -1
+		},
+		{
+			"left": "$",
+			"right": "choiceMs",
+			"sign": -1
+		},
+		{
+			"left": "$",
+			"right": "choicems",
+			"sign": -1
+		},
+		{
+			"left": "$",
+			"right": "copyRevision",
+			"sign": -1
+		},
+		{
+			"left": "$",
+			"right": "scopeMode",
+			"sign": -1
+		},
+		{
+			"left": "$",
+			"right": "storeIp",
+			"sign": -1
+		},
+		{
+			"left": "$",
+			"right": "storeIP",
+			"sign": -1
+		},
+		{
+			"left": "$",
+			"right": "e",
+			"sign": -1
+		},
+		{
+			"left": "$",
+			"right": "f",
+			"sign": -1
+		},
+		{
+			"left": "~",
+			"right": "a",
+			"sign": -1
+		},
+		{
+			"left": "~",
+			"right": "A",
+			"sign": -1
+		},
+		{
+			"left": "~",
+			"right": "b",
+			"sign": -1
+		},
+		{
+			"left": "~",
+			"right": "B",
+			"sign": -1
+		},
+		{
+			"left": "~",
+			"right": "ab",
+			"sign": -1
+		},
+		{
+			"left": "~",
+			"right": "aB",
+			"sign": -1
+		},
+		{
+			"left": "~",
+			"right": "Ab",
+			"sign": -1
+		},
+		{
+			"left": "~",
+			"right": "AB",
+			"sign": -1
+		},
+		{
+			"left": "~",
+			"right": "abc",
+			"sign": -1
+		},
+		{
+			"left": "~",
+			"right": "a_b",
+			"sign": -1
+		},
+		{
+			"left": "~",
+			"right": "a-b",
+			"sign": -1
+		},
+		{
+			"left": "~",
+			"right": "a.b",
+			"sign": -1
+		},
+		{
+			"left": "~",
+			"right": "a b",
+			"sign": -1
+		},
+		{
+			"left": "~",
+			"right": "_",
+			"sign": 1
+		},
+		{
+			"left": "~",
+			"right": "-",
+			"sign": 1
+		},
+		{
+			"left": "~",
+			"right": " ",
+			"sign": 1
+		},
+		{
+			"left": "~",
+			"right": "0",
+			"sign": -1
+		},
+		{
+			"left": "~",
+			"right": "9",
+			"sign": -1
+		},
+		{
+			"left": "~",
+			"right": "z",
+			"sign": -1
+		},
+		{
+			"left": "~",
+			"right": "Z",
+			"sign": -1
+		},
+		{
+			"left": "~",
+			"right": "a0",
+			"sign": -1
+		},
+		{
+			"left": "~",
+			"right": "a9",
+			"sign": -1
+		},
+		{
+			"left": "~",
+			"right": "aa",
+			"sign": -1
+		},
+		{
+			"left": "~",
+			"right": "a~",
+			"sign": -1
+		},
+		{
+			"left": "~",
+			"right": "a$",
+			"sign": -1
+		},
+		{
+			"left": "~",
+			"right": "$",
+			"sign": -1
+		},
+		{
+			"left": "~",
+			"right": "~",
+			"sign": 0
+		},
+		{
+			"left": "~",
+			"right": "id",
+			"sign": -1
+		},
+		{
+			"left": "~",
+			"right": "Id",
+			"sign": -1
+		},
+		{
+			"left": "~",
+			"right": "ID",
+			"sign": -1
+		},
+		{
+			"left": "~",
+			"right": "iD",
+			"sign": -1
+		},
+		{
+			"left": "~",
+			"right": "choiceMs",
+			"sign": -1
+		},
+		{
+			"left": "~",
+			"right": "choicems",
+			"sign": -1
+		},
+		{
+			"left": "~",
+			"right": "copyRevision",
+			"sign": -1
+		},
+		{
+			"left": "~",
+			"right": "scopeMode",
+			"sign": -1
+		},
+		{
+			"left": "~",
+			"right": "storeIp",
+			"sign": -1
+		},
+		{
+			"left": "~",
+			"right": "storeIP",
+			"sign": -1
+		},
+		{
+			"left": "~",
+			"right": "e",
+			"sign": -1
+		},
+		{
+			"left": "~",
+			"right": "f",
+			"sign": -1
+		},
+		{
+			"left": "id",
+			"right": "a",
+			"sign": 1
+		},
+		{
+			"left": "id",
+			"right": "A",
+			"sign": 1
+		},
+		{
+			"left": "id",
+			"right": "b",
+			"sign": 1
+		},
+		{
+			"left": "id",
+			"right": "B",
+			"sign": 1
+		},
+		{
+			"left": "id",
+			"right": "ab",
+			"sign": 1
+		},
+		{
+			"left": "id",
+			"right": "aB",
+			"sign": 1
+		},
+		{
+			"left": "id",
+			"right": "Ab",
+			"sign": 1
+		},
+		{
+			"left": "id",
+			"right": "AB",
+			"sign": 1
+		},
+		{
+			"left": "id",
+			"right": "abc",
+			"sign": 1
+		},
+		{
+			"left": "id",
+			"right": "a_b",
+			"sign": 1
+		},
+		{
+			"left": "id",
+			"right": "a-b",
+			"sign": 1
+		},
+		{
+			"left": "id",
+			"right": "a.b",
+			"sign": 1
+		},
+		{
+			"left": "id",
+			"right": "a b",
+			"sign": 1
+		},
+		{
+			"left": "id",
+			"right": "_",
+			"sign": 1
+		},
+		{
+			"left": "id",
+			"right": "-",
+			"sign": 1
+		},
+		{
+			"left": "id",
+			"right": " ",
+			"sign": 1
+		},
+		{
+			"left": "id",
+			"right": "0",
+			"sign": 1
+		},
+		{
+			"left": "id",
+			"right": "9",
+			"sign": 1
+		},
+		{
+			"left": "id",
+			"right": "z",
+			"sign": -1
+		},
+		{
+			"left": "id",
+			"right": "Z",
+			"sign": -1
+		},
+		{
+			"left": "id",
+			"right": "a0",
+			"sign": 1
+		},
+		{
+			"left": "id",
+			"right": "a9",
+			"sign": 1
+		},
+		{
+			"left": "id",
+			"right": "aa",
+			"sign": 1
+		},
+		{
+			"left": "id",
+			"right": "a~",
+			"sign": 1
+		},
+		{
+			"left": "id",
+			"right": "a$",
+			"sign": 1
+		},
+		{
+			"left": "id",
+			"right": "$",
+			"sign": 1
+		},
+		{
+			"left": "id",
+			"right": "~",
+			"sign": 1
+		},
+		{
+			"left": "id",
+			"right": "id",
+			"sign": 0
+		},
+		{
+			"left": "id",
+			"right": "Id",
+			"sign": -1
+		},
+		{
+			"left": "id",
+			"right": "ID",
+			"sign": -1
+		},
+		{
+			"left": "id",
+			"right": "iD",
+			"sign": -1
+		},
+		{
+			"left": "id",
+			"right": "choiceMs",
+			"sign": 1
+		},
+		{
+			"left": "id",
+			"right": "choicems",
+			"sign": 1
+		},
+		{
+			"left": "id",
+			"right": "copyRevision",
+			"sign": 1
+		},
+		{
+			"left": "id",
+			"right": "scopeMode",
+			"sign": -1
+		},
+		{
+			"left": "id",
+			"right": "storeIp",
+			"sign": -1
+		},
+		{
+			"left": "id",
+			"right": "storeIP",
+			"sign": -1
+		},
+		{
+			"left": "id",
+			"right": "e",
+			"sign": 1
+		},
+		{
+			"left": "id",
+			"right": "f",
+			"sign": 1
+		},
+		{
+			"left": "Id",
+			"right": "a",
+			"sign": 1
+		},
+		{
+			"left": "Id",
+			"right": "A",
+			"sign": 1
+		},
+		{
+			"left": "Id",
+			"right": "b",
+			"sign": 1
+		},
+		{
+			"left": "Id",
+			"right": "B",
+			"sign": 1
+		},
+		{
+			"left": "Id",
+			"right": "ab",
+			"sign": 1
+		},
+		{
+			"left": "Id",
+			"right": "aB",
+			"sign": 1
+		},
+		{
+			"left": "Id",
+			"right": "Ab",
+			"sign": 1
+		},
+		{
+			"left": "Id",
+			"right": "AB",
+			"sign": 1
+		},
+		{
+			"left": "Id",
+			"right": "abc",
+			"sign": 1
+		},
+		{
+			"left": "Id",
+			"right": "a_b",
+			"sign": 1
+		},
+		{
+			"left": "Id",
+			"right": "a-b",
+			"sign": 1
+		},
+		{
+			"left": "Id",
+			"right": "a.b",
+			"sign": 1
+		},
+		{
+			"left": "Id",
+			"right": "a b",
+			"sign": 1
+		},
+		{
+			"left": "Id",
+			"right": "_",
+			"sign": 1
+		},
+		{
+			"left": "Id",
+			"right": "-",
+			"sign": 1
+		},
+		{
+			"left": "Id",
+			"right": " ",
+			"sign": 1
+		},
+		{
+			"left": "Id",
+			"right": "0",
+			"sign": 1
+		},
+		{
+			"left": "Id",
+			"right": "9",
+			"sign": 1
+		},
+		{
+			"left": "Id",
+			"right": "z",
+			"sign": -1
+		},
+		{
+			"left": "Id",
+			"right": "Z",
+			"sign": -1
+		},
+		{
+			"left": "Id",
+			"right": "a0",
+			"sign": 1
+		},
+		{
+			"left": "Id",
+			"right": "a9",
+			"sign": 1
+		},
+		{
+			"left": "Id",
+			"right": "aa",
+			"sign": 1
+		},
+		{
+			"left": "Id",
+			"right": "a~",
+			"sign": 1
+		},
+		{
+			"left": "Id",
+			"right": "a$",
+			"sign": 1
+		},
+		{
+			"left": "Id",
+			"right": "$",
+			"sign": 1
+		},
+		{
+			"left": "Id",
+			"right": "~",
+			"sign": 1
+		},
+		{
+			"left": "Id",
+			"right": "id",
+			"sign": 1
+		},
+		{
+			"left": "Id",
+			"right": "Id",
+			"sign": 0
+		},
+		{
+			"left": "Id",
+			"right": "ID",
+			"sign": -1
+		},
+		{
+			"left": "Id",
+			"right": "iD",
+			"sign": 1
+		},
+		{
+			"left": "Id",
+			"right": "choiceMs",
+			"sign": 1
+		},
+		{
+			"left": "Id",
+			"right": "choicems",
+			"sign": 1
+		},
+		{
+			"left": "Id",
+			"right": "copyRevision",
+			"sign": 1
+		},
+		{
+			"left": "Id",
+			"right": "scopeMode",
+			"sign": -1
+		},
+		{
+			"left": "Id",
+			"right": "storeIp",
+			"sign": -1
+		},
+		{
+			"left": "Id",
+			"right": "storeIP",
+			"sign": -1
+		},
+		{
+			"left": "Id",
+			"right": "e",
+			"sign": 1
+		},
+		{
+			"left": "Id",
+			"right": "f",
+			"sign": 1
+		},
+		{
+			"left": "ID",
+			"right": "a",
+			"sign": 1
+		},
+		{
+			"left": "ID",
+			"right": "A",
+			"sign": 1
+		},
+		{
+			"left": "ID",
+			"right": "b",
+			"sign": 1
+		},
+		{
+			"left": "ID",
+			"right": "B",
+			"sign": 1
+		},
+		{
+			"left": "ID",
+			"right": "ab",
+			"sign": 1
+		},
+		{
+			"left": "ID",
+			"right": "aB",
+			"sign": 1
+		},
+		{
+			"left": "ID",
+			"right": "Ab",
+			"sign": 1
+		},
+		{
+			"left": "ID",
+			"right": "AB",
+			"sign": 1
+		},
+		{
+			"left": "ID",
+			"right": "abc",
+			"sign": 1
+		},
+		{
+			"left": "ID",
+			"right": "a_b",
+			"sign": 1
+		},
+		{
+			"left": "ID",
+			"right": "a-b",
+			"sign": 1
+		},
+		{
+			"left": "ID",
+			"right": "a.b",
+			"sign": 1
+		},
+		{
+			"left": "ID",
+			"right": "a b",
+			"sign": 1
+		},
+		{
+			"left": "ID",
+			"right": "_",
+			"sign": 1
+		},
+		{
+			"left": "ID",
+			"right": "-",
+			"sign": 1
+		},
+		{
+			"left": "ID",
+			"right": " ",
+			"sign": 1
+		},
+		{
+			"left": "ID",
+			"right": "0",
+			"sign": 1
+		},
+		{
+			"left": "ID",
+			"right": "9",
+			"sign": 1
+		},
+		{
+			"left": "ID",
+			"right": "z",
+			"sign": -1
+		},
+		{
+			"left": "ID",
+			"right": "Z",
+			"sign": -1
+		},
+		{
+			"left": "ID",
+			"right": "a0",
+			"sign": 1
+		},
+		{
+			"left": "ID",
+			"right": "a9",
+			"sign": 1
+		},
+		{
+			"left": "ID",
+			"right": "aa",
+			"sign": 1
+		},
+		{
+			"left": "ID",
+			"right": "a~",
+			"sign": 1
+		},
+		{
+			"left": "ID",
+			"right": "a$",
+			"sign": 1
+		},
+		{
+			"left": "ID",
+			"right": "$",
+			"sign": 1
+		},
+		{
+			"left": "ID",
+			"right": "~",
+			"sign": 1
+		},
+		{
+			"left": "ID",
+			"right": "id",
+			"sign": 1
+		},
+		{
+			"left": "ID",
+			"right": "Id",
+			"sign": 1
+		},
+		{
+			"left": "ID",
+			"right": "ID",
+			"sign": 0
+		},
+		{
+			"left": "ID",
+			"right": "iD",
+			"sign": 1
+		},
+		{
+			"left": "ID",
+			"right": "choiceMs",
+			"sign": 1
+		},
+		{
+			"left": "ID",
+			"right": "choicems",
+			"sign": 1
+		},
+		{
+			"left": "ID",
+			"right": "copyRevision",
+			"sign": 1
+		},
+		{
+			"left": "ID",
+			"right": "scopeMode",
+			"sign": -1
+		},
+		{
+			"left": "ID",
+			"right": "storeIp",
+			"sign": -1
+		},
+		{
+			"left": "ID",
+			"right": "storeIP",
+			"sign": -1
+		},
+		{
+			"left": "ID",
+			"right": "e",
+			"sign": 1
+		},
+		{
+			"left": "ID",
+			"right": "f",
+			"sign": 1
+		},
+		{
+			"left": "iD",
+			"right": "a",
+			"sign": 1
+		},
+		{
+			"left": "iD",
+			"right": "A",
+			"sign": 1
+		},
+		{
+			"left": "iD",
+			"right": "b",
+			"sign": 1
+		},
+		{
+			"left": "iD",
+			"right": "B",
+			"sign": 1
+		},
+		{
+			"left": "iD",
+			"right": "ab",
+			"sign": 1
+		},
+		{
+			"left": "iD",
+			"right": "aB",
+			"sign": 1
+		},
+		{
+			"left": "iD",
+			"right": "Ab",
+			"sign": 1
+		},
+		{
+			"left": "iD",
+			"right": "AB",
+			"sign": 1
+		},
+		{
+			"left": "iD",
+			"right": "abc",
+			"sign": 1
+		},
+		{
+			"left": "iD",
+			"right": "a_b",
+			"sign": 1
+		},
+		{
+			"left": "iD",
+			"right": "a-b",
+			"sign": 1
+		},
+		{
+			"left": "iD",
+			"right": "a.b",
+			"sign": 1
+		},
+		{
+			"left": "iD",
+			"right": "a b",
+			"sign": 1
+		},
+		{
+			"left": "iD",
+			"right": "_",
+			"sign": 1
+		},
+		{
+			"left": "iD",
+			"right": "-",
+			"sign": 1
+		},
+		{
+			"left": "iD",
+			"right": " ",
+			"sign": 1
+		},
+		{
+			"left": "iD",
+			"right": "0",
+			"sign": 1
+		},
+		{
+			"left": "iD",
+			"right": "9",
+			"sign": 1
+		},
+		{
+			"left": "iD",
+			"right": "z",
+			"sign": -1
+		},
+		{
+			"left": "iD",
+			"right": "Z",
+			"sign": -1
+		},
+		{
+			"left": "iD",
+			"right": "a0",
+			"sign": 1
+		},
+		{
+			"left": "iD",
+			"right": "a9",
+			"sign": 1
+		},
+		{
+			"left": "iD",
+			"right": "aa",
+			"sign": 1
+		},
+		{
+			"left": "iD",
+			"right": "a~",
+			"sign": 1
+		},
+		{
+			"left": "iD",
+			"right": "a$",
+			"sign": 1
+		},
+		{
+			"left": "iD",
+			"right": "$",
+			"sign": 1
+		},
+		{
+			"left": "iD",
+			"right": "~",
+			"sign": 1
+		},
+		{
+			"left": "iD",
+			"right": "id",
+			"sign": 1
+		},
+		{
+			"left": "iD",
+			"right": "Id",
+			"sign": -1
+		},
+		{
+			"left": "iD",
+			"right": "ID",
+			"sign": -1
+		},
+		{
+			"left": "iD",
+			"right": "iD",
+			"sign": 0
+		},
+		{
+			"left": "iD",
+			"right": "choiceMs",
+			"sign": 1
+		},
+		{
+			"left": "iD",
+			"right": "choicems",
+			"sign": 1
+		},
+		{
+			"left": "iD",
+			"right": "copyRevision",
+			"sign": 1
+		},
+		{
+			"left": "iD",
+			"right": "scopeMode",
+			"sign": -1
+		},
+		{
+			"left": "iD",
+			"right": "storeIp",
+			"sign": -1
+		},
+		{
+			"left": "iD",
+			"right": "storeIP",
+			"sign": -1
+		},
+		{
+			"left": "iD",
+			"right": "e",
+			"sign": 1
+		},
+		{
+			"left": "iD",
+			"right": "f",
+			"sign": 1
+		},
+		{
+			"left": "choiceMs",
+			"right": "a",
+			"sign": 1
+		},
+		{
+			"left": "choiceMs",
+			"right": "A",
+			"sign": 1
+		},
+		{
+			"left": "choiceMs",
+			"right": "b",
+			"sign": 1
+		},
+		{
+			"left": "choiceMs",
+			"right": "B",
+			"sign": 1
+		},
+		{
+			"left": "choiceMs",
+			"right": "ab",
+			"sign": 1
+		},
+		{
+			"left": "choiceMs",
+			"right": "aB",
+			"sign": 1
+		},
+		{
+			"left": "choiceMs",
+			"right": "Ab",
+			"sign": 1
+		},
+		{
+			"left": "choiceMs",
+			"right": "AB",
+			"sign": 1
+		},
+		{
+			"left": "choiceMs",
+			"right": "abc",
+			"sign": 1
+		},
+		{
+			"left": "choiceMs",
+			"right": "a_b",
+			"sign": 1
+		},
+		{
+			"left": "choiceMs",
+			"right": "a-b",
+			"sign": 1
+		},
+		{
+			"left": "choiceMs",
+			"right": "a.b",
+			"sign": 1
+		},
+		{
+			"left": "choiceMs",
+			"right": "a b",
+			"sign": 1
+		},
+		{
+			"left": "choiceMs",
+			"right": "_",
+			"sign": 1
+		},
+		{
+			"left": "choiceMs",
+			"right": "-",
+			"sign": 1
+		},
+		{
+			"left": "choiceMs",
+			"right": " ",
+			"sign": 1
+		},
+		{
+			"left": "choiceMs",
+			"right": "0",
+			"sign": 1
+		},
+		{
+			"left": "choiceMs",
+			"right": "9",
+			"sign": 1
+		},
+		{
+			"left": "choiceMs",
+			"right": "z",
+			"sign": -1
+		},
+		{
+			"left": "choiceMs",
+			"right": "Z",
+			"sign": -1
+		},
+		{
+			"left": "choiceMs",
+			"right": "a0",
+			"sign": 1
+		},
+		{
+			"left": "choiceMs",
+			"right": "a9",
+			"sign": 1
+		},
+		{
+			"left": "choiceMs",
+			"right": "aa",
+			"sign": 1
+		},
+		{
+			"left": "choiceMs",
+			"right": "a~",
+			"sign": 1
+		},
+		{
+			"left": "choiceMs",
+			"right": "a$",
+			"sign": 1
+		},
+		{
+			"left": "choiceMs",
+			"right": "$",
+			"sign": 1
+		},
+		{
+			"left": "choiceMs",
+			"right": "~",
+			"sign": 1
+		},
+		{
+			"left": "choiceMs",
+			"right": "id",
+			"sign": -1
+		},
+		{
+			"left": "choiceMs",
+			"right": "Id",
+			"sign": -1
+		},
+		{
+			"left": "choiceMs",
+			"right": "ID",
+			"sign": -1
+		},
+		{
+			"left": "choiceMs",
+			"right": "iD",
+			"sign": -1
+		},
+		{
+			"left": "choiceMs",
+			"right": "choiceMs",
+			"sign": 0
+		},
+		{
+			"left": "choiceMs",
+			"right": "choicems",
+			"sign": 1
+		},
+		{
+			"left": "choiceMs",
+			"right": "copyRevision",
+			"sign": -1
+		},
+		{
+			"left": "choiceMs",
+			"right": "scopeMode",
+			"sign": -1
+		},
+		{
+			"left": "choiceMs",
+			"right": "storeIp",
+			"sign": -1
+		},
+		{
+			"left": "choiceMs",
+			"right": "storeIP",
+			"sign": -1
+		},
+		{
+			"left": "choiceMs",
+			"right": "e",
+			"sign": -1
+		},
+		{
+			"left": "choiceMs",
+			"right": "f",
+			"sign": -1
+		},
+		{
+			"left": "choicems",
+			"right": "a",
+			"sign": 1
+		},
+		{
+			"left": "choicems",
+			"right": "A",
+			"sign": 1
+		},
+		{
+			"left": "choicems",
+			"right": "b",
+			"sign": 1
+		},
+		{
+			"left": "choicems",
+			"right": "B",
+			"sign": 1
+		},
+		{
+			"left": "choicems",
+			"right": "ab",
+			"sign": 1
+		},
+		{
+			"left": "choicems",
+			"right": "aB",
+			"sign": 1
+		},
+		{
+			"left": "choicems",
+			"right": "Ab",
+			"sign": 1
+		},
+		{
+			"left": "choicems",
+			"right": "AB",
+			"sign": 1
+		},
+		{
+			"left": "choicems",
+			"right": "abc",
+			"sign": 1
+		},
+		{
+			"left": "choicems",
+			"right": "a_b",
+			"sign": 1
+		},
+		{
+			"left": "choicems",
+			"right": "a-b",
+			"sign": 1
+		},
+		{
+			"left": "choicems",
+			"right": "a.b",
+			"sign": 1
+		},
+		{
+			"left": "choicems",
+			"right": "a b",
+			"sign": 1
+		},
+		{
+			"left": "choicems",
+			"right": "_",
+			"sign": 1
+		},
+		{
+			"left": "choicems",
+			"right": "-",
+			"sign": 1
+		},
+		{
+			"left": "choicems",
+			"right": " ",
+			"sign": 1
+		},
+		{
+			"left": "choicems",
+			"right": "0",
+			"sign": 1
+		},
+		{
+			"left": "choicems",
+			"right": "9",
+			"sign": 1
+		},
+		{
+			"left": "choicems",
+			"right": "z",
+			"sign": -1
+		},
+		{
+			"left": "choicems",
+			"right": "Z",
+			"sign": -1
+		},
+		{
+			"left": "choicems",
+			"right": "a0",
+			"sign": 1
+		},
+		{
+			"left": "choicems",
+			"right": "a9",
+			"sign": 1
+		},
+		{
+			"left": "choicems",
+			"right": "aa",
+			"sign": 1
+		},
+		{
+			"left": "choicems",
+			"right": "a~",
+			"sign": 1
+		},
+		{
+			"left": "choicems",
+			"right": "a$",
+			"sign": 1
+		},
+		{
+			"left": "choicems",
+			"right": "$",
+			"sign": 1
+		},
+		{
+			"left": "choicems",
+			"right": "~",
+			"sign": 1
+		},
+		{
+			"left": "choicems",
+			"right": "id",
+			"sign": -1
+		},
+		{
+			"left": "choicems",
+			"right": "Id",
+			"sign": -1
+		},
+		{
+			"left": "choicems",
+			"right": "ID",
+			"sign": -1
+		},
+		{
+			"left": "choicems",
+			"right": "iD",
+			"sign": -1
+		},
+		{
+			"left": "choicems",
+			"right": "choiceMs",
+			"sign": -1
+		},
+		{
+			"left": "choicems",
+			"right": "choicems",
+			"sign": 0
+		},
+		{
+			"left": "choicems",
+			"right": "copyRevision",
+			"sign": -1
+		},
+		{
+			"left": "choicems",
+			"right": "scopeMode",
+			"sign": -1
+		},
+		{
+			"left": "choicems",
+			"right": "storeIp",
+			"sign": -1
+		},
+		{
+			"left": "choicems",
+			"right": "storeIP",
+			"sign": -1
+		},
+		{
+			"left": "choicems",
+			"right": "e",
+			"sign": -1
+		},
+		{
+			"left": "choicems",
+			"right": "f",
+			"sign": -1
+		},
+		{
+			"left": "copyRevision",
+			"right": "a",
+			"sign": 1
+		},
+		{
+			"left": "copyRevision",
+			"right": "A",
+			"sign": 1
+		},
+		{
+			"left": "copyRevision",
+			"right": "b",
+			"sign": 1
+		},
+		{
+			"left": "copyRevision",
+			"right": "B",
+			"sign": 1
+		},
+		{
+			"left": "copyRevision",
+			"right": "ab",
+			"sign": 1
+		},
+		{
+			"left": "copyRevision",
+			"right": "aB",
+			"sign": 1
+		},
+		{
+			"left": "copyRevision",
+			"right": "Ab",
+			"sign": 1
+		},
+		{
+			"left": "copyRevision",
+			"right": "AB",
+			"sign": 1
+		},
+		{
+			"left": "copyRevision",
+			"right": "abc",
+			"sign": 1
+		},
+		{
+			"left": "copyRevision",
+			"right": "a_b",
+			"sign": 1
+		},
+		{
+			"left": "copyRevision",
+			"right": "a-b",
+			"sign": 1
+		},
+		{
+			"left": "copyRevision",
+			"right": "a.b",
+			"sign": 1
+		},
+		{
+			"left": "copyRevision",
+			"right": "a b",
+			"sign": 1
+		},
+		{
+			"left": "copyRevision",
+			"right": "_",
+			"sign": 1
+		},
+		{
+			"left": "copyRevision",
+			"right": "-",
+			"sign": 1
+		},
+		{
+			"left": "copyRevision",
+			"right": " ",
+			"sign": 1
+		},
+		{
+			"left": "copyRevision",
+			"right": "0",
+			"sign": 1
+		},
+		{
+			"left": "copyRevision",
+			"right": "9",
+			"sign": 1
+		},
+		{
+			"left": "copyRevision",
+			"right": "z",
+			"sign": -1
+		},
+		{
+			"left": "copyRevision",
+			"right": "Z",
+			"sign": -1
+		},
+		{
+			"left": "copyRevision",
+			"right": "a0",
+			"sign": 1
+		},
+		{
+			"left": "copyRevision",
+			"right": "a9",
+			"sign": 1
+		},
+		{
+			"left": "copyRevision",
+			"right": "aa",
+			"sign": 1
+		},
+		{
+			"left": "copyRevision",
+			"right": "a~",
+			"sign": 1
+		},
+		{
+			"left": "copyRevision",
+			"right": "a$",
+			"sign": 1
+		},
+		{
+			"left": "copyRevision",
+			"right": "$",
+			"sign": 1
+		},
+		{
+			"left": "copyRevision",
+			"right": "~",
+			"sign": 1
+		},
+		{
+			"left": "copyRevision",
+			"right": "id",
+			"sign": -1
+		},
+		{
+			"left": "copyRevision",
+			"right": "Id",
+			"sign": -1
+		},
+		{
+			"left": "copyRevision",
+			"right": "ID",
+			"sign": -1
+		},
+		{
+			"left": "copyRevision",
+			"right": "iD",
+			"sign": -1
+		},
+		{
+			"left": "copyRevision",
+			"right": "choiceMs",
+			"sign": 1
+		},
+		{
+			"left": "copyRevision",
+			"right": "choicems",
+			"sign": 1
+		},
+		{
+			"left": "copyRevision",
+			"right": "copyRevision",
+			"sign": 0
+		},
+		{
+			"left": "copyRevision",
+			"right": "scopeMode",
+			"sign": -1
+		},
+		{
+			"left": "copyRevision",
+			"right": "storeIp",
+			"sign": -1
+		},
+		{
+			"left": "copyRevision",
+			"right": "storeIP",
+			"sign": -1
+		},
+		{
+			"left": "copyRevision",
+			"right": "e",
+			"sign": -1
+		},
+		{
+			"left": "copyRevision",
+			"right": "f",
+			"sign": -1
+		},
+		{
+			"left": "scopeMode",
+			"right": "a",
+			"sign": 1
+		},
+		{
+			"left": "scopeMode",
+			"right": "A",
+			"sign": 1
+		},
+		{
+			"left": "scopeMode",
+			"right": "b",
+			"sign": 1
+		},
+		{
+			"left": "scopeMode",
+			"right": "B",
+			"sign": 1
+		},
+		{
+			"left": "scopeMode",
+			"right": "ab",
+			"sign": 1
+		},
+		{
+			"left": "scopeMode",
+			"right": "aB",
+			"sign": 1
+		},
+		{
+			"left": "scopeMode",
+			"right": "Ab",
+			"sign": 1
+		},
+		{
+			"left": "scopeMode",
+			"right": "AB",
+			"sign": 1
+		},
+		{
+			"left": "scopeMode",
+			"right": "abc",
+			"sign": 1
+		},
+		{
+			"left": "scopeMode",
+			"right": "a_b",
+			"sign": 1
+		},
+		{
+			"left": "scopeMode",
+			"right": "a-b",
+			"sign": 1
+		},
+		{
+			"left": "scopeMode",
+			"right": "a.b",
+			"sign": 1
+		},
+		{
+			"left": "scopeMode",
+			"right": "a b",
+			"sign": 1
+		},
+		{
+			"left": "scopeMode",
+			"right": "_",
+			"sign": 1
+		},
+		{
+			"left": "scopeMode",
+			"right": "-",
+			"sign": 1
+		},
+		{
+			"left": "scopeMode",
+			"right": " ",
+			"sign": 1
+		},
+		{
+			"left": "scopeMode",
+			"right": "0",
+			"sign": 1
+		},
+		{
+			"left": "scopeMode",
+			"right": "9",
+			"sign": 1
+		},
+		{
+			"left": "scopeMode",
+			"right": "z",
+			"sign": -1
+		},
+		{
+			"left": "scopeMode",
+			"right": "Z",
+			"sign": -1
+		},
+		{
+			"left": "scopeMode",
+			"right": "a0",
+			"sign": 1
+		},
+		{
+			"left": "scopeMode",
+			"right": "a9",
+			"sign": 1
+		},
+		{
+			"left": "scopeMode",
+			"right": "aa",
+			"sign": 1
+		},
+		{
+			"left": "scopeMode",
+			"right": "a~",
+			"sign": 1
+		},
+		{
+			"left": "scopeMode",
+			"right": "a$",
+			"sign": 1
+		},
+		{
+			"left": "scopeMode",
+			"right": "$",
+			"sign": 1
+		},
+		{
+			"left": "scopeMode",
+			"right": "~",
+			"sign": 1
+		},
+		{
+			"left": "scopeMode",
+			"right": "id",
+			"sign": 1
+		},
+		{
+			"left": "scopeMode",
+			"right": "Id",
+			"sign": 1
+		},
+		{
+			"left": "scopeMode",
+			"right": "ID",
+			"sign": 1
+		},
+		{
+			"left": "scopeMode",
+			"right": "iD",
+			"sign": 1
+		},
+		{
+			"left": "scopeMode",
+			"right": "choiceMs",
+			"sign": 1
+		},
+		{
+			"left": "scopeMode",
+			"right": "choicems",
+			"sign": 1
+		},
+		{
+			"left": "scopeMode",
+			"right": "copyRevision",
+			"sign": 1
+		},
+		{
+			"left": "scopeMode",
+			"right": "scopeMode",
+			"sign": 0
+		},
+		{
+			"left": "scopeMode",
+			"right": "storeIp",
+			"sign": -1
+		},
+		{
+			"left": "scopeMode",
+			"right": "storeIP",
+			"sign": -1
+		},
+		{
+			"left": "scopeMode",
+			"right": "e",
+			"sign": 1
+		},
+		{
+			"left": "scopeMode",
+			"right": "f",
+			"sign": 1
+		},
+		{
+			"left": "storeIp",
+			"right": "a",
+			"sign": 1
+		},
+		{
+			"left": "storeIp",
+			"right": "A",
+			"sign": 1
+		},
+		{
+			"left": "storeIp",
+			"right": "b",
+			"sign": 1
+		},
+		{
+			"left": "storeIp",
+			"right": "B",
+			"sign": 1
+		},
+		{
+			"left": "storeIp",
+			"right": "ab",
+			"sign": 1
+		},
+		{
+			"left": "storeIp",
+			"right": "aB",
+			"sign": 1
+		},
+		{
+			"left": "storeIp",
+			"right": "Ab",
+			"sign": 1
+		},
+		{
+			"left": "storeIp",
+			"right": "AB",
+			"sign": 1
+		},
+		{
+			"left": "storeIp",
+			"right": "abc",
+			"sign": 1
+		},
+		{
+			"left": "storeIp",
+			"right": "a_b",
+			"sign": 1
+		},
+		{
+			"left": "storeIp",
+			"right": "a-b",
+			"sign": 1
+		},
+		{
+			"left": "storeIp",
+			"right": "a.b",
+			"sign": 1
+		},
+		{
+			"left": "storeIp",
+			"right": "a b",
+			"sign": 1
+		},
+		{
+			"left": "storeIp",
+			"right": "_",
+			"sign": 1
+		},
+		{
+			"left": "storeIp",
+			"right": "-",
+			"sign": 1
+		},
+		{
+			"left": "storeIp",
+			"right": " ",
+			"sign": 1
+		},
+		{
+			"left": "storeIp",
+			"right": "0",
+			"sign": 1
+		},
+		{
+			"left": "storeIp",
+			"right": "9",
+			"sign": 1
+		},
+		{
+			"left": "storeIp",
+			"right": "z",
+			"sign": -1
+		},
+		{
+			"left": "storeIp",
+			"right": "Z",
+			"sign": -1
+		},
+		{
+			"left": "storeIp",
+			"right": "a0",
+			"sign": 1
+		},
+		{
+			"left": "storeIp",
+			"right": "a9",
+			"sign": 1
+		},
+		{
+			"left": "storeIp",
+			"right": "aa",
+			"sign": 1
+		},
+		{
+			"left": "storeIp",
+			"right": "a~",
+			"sign": 1
+		},
+		{
+			"left": "storeIp",
+			"right": "a$",
+			"sign": 1
+		},
+		{
+			"left": "storeIp",
+			"right": "$",
+			"sign": 1
+		},
+		{
+			"left": "storeIp",
+			"right": "~",
+			"sign": 1
+		},
+		{
+			"left": "storeIp",
+			"right": "id",
+			"sign": 1
+		},
+		{
+			"left": "storeIp",
+			"right": "Id",
+			"sign": 1
+		},
+		{
+			"left": "storeIp",
+			"right": "ID",
+			"sign": 1
+		},
+		{
+			"left": "storeIp",
+			"right": "iD",
+			"sign": 1
+		},
+		{
+			"left": "storeIp",
+			"right": "choiceMs",
+			"sign": 1
+		},
+		{
+			"left": "storeIp",
+			"right": "choicems",
+			"sign": 1
+		},
+		{
+			"left": "storeIp",
+			"right": "copyRevision",
+			"sign": 1
+		},
+		{
+			"left": "storeIp",
+			"right": "scopeMode",
+			"sign": 1
+		},
+		{
+			"left": "storeIp",
+			"right": "storeIp",
+			"sign": 0
+		},
+		{
+			"left": "storeIp",
+			"right": "storeIP",
+			"sign": -1
+		},
+		{
+			"left": "storeIp",
+			"right": "e",
+			"sign": 1
+		},
+		{
+			"left": "storeIp",
+			"right": "f",
+			"sign": 1
+		},
+		{
+			"left": "storeIP",
+			"right": "a",
+			"sign": 1
+		},
+		{
+			"left": "storeIP",
+			"right": "A",
+			"sign": 1
+		},
+		{
+			"left": "storeIP",
+			"right": "b",
+			"sign": 1
+		},
+		{
+			"left": "storeIP",
+			"right": "B",
+			"sign": 1
+		},
+		{
+			"left": "storeIP",
+			"right": "ab",
+			"sign": 1
+		},
+		{
+			"left": "storeIP",
+			"right": "aB",
+			"sign": 1
+		},
+		{
+			"left": "storeIP",
+			"right": "Ab",
+			"sign": 1
+		},
+		{
+			"left": "storeIP",
+			"right": "AB",
+			"sign": 1
+		},
+		{
+			"left": "storeIP",
+			"right": "abc",
+			"sign": 1
+		},
+		{
+			"left": "storeIP",
+			"right": "a_b",
+			"sign": 1
+		},
+		{
+			"left": "storeIP",
+			"right": "a-b",
+			"sign": 1
+		},
+		{
+			"left": "storeIP",
+			"right": "a.b",
+			"sign": 1
+		},
+		{
+			"left": "storeIP",
+			"right": "a b",
+			"sign": 1
+		},
+		{
+			"left": "storeIP",
+			"right": "_",
+			"sign": 1
+		},
+		{
+			"left": "storeIP",
+			"right": "-",
+			"sign": 1
+		},
+		{
+			"left": "storeIP",
+			"right": " ",
+			"sign": 1
+		},
+		{
+			"left": "storeIP",
+			"right": "0",
+			"sign": 1
+		},
+		{
+			"left": "storeIP",
+			"right": "9",
+			"sign": 1
+		},
+		{
+			"left": "storeIP",
+			"right": "z",
+			"sign": -1
+		},
+		{
+			"left": "storeIP",
+			"right": "Z",
+			"sign": -1
+		},
+		{
+			"left": "storeIP",
+			"right": "a0",
+			"sign": 1
+		},
+		{
+			"left": "storeIP",
+			"right": "a9",
+			"sign": 1
+		},
+		{
+			"left": "storeIP",
+			"right": "aa",
+			"sign": 1
+		},
+		{
+			"left": "storeIP",
+			"right": "a~",
+			"sign": 1
+		},
+		{
+			"left": "storeIP",
+			"right": "a$",
+			"sign": 1
+		},
+		{
+			"left": "storeIP",
+			"right": "$",
+			"sign": 1
+		},
+		{
+			"left": "storeIP",
+			"right": "~",
+			"sign": 1
+		},
+		{
+			"left": "storeIP",
+			"right": "id",
+			"sign": 1
+		},
+		{
+			"left": "storeIP",
+			"right": "Id",
+			"sign": 1
+		},
+		{
+			"left": "storeIP",
+			"right": "ID",
+			"sign": 1
+		},
+		{
+			"left": "storeIP",
+			"right": "iD",
+			"sign": 1
+		},
+		{
+			"left": "storeIP",
+			"right": "choiceMs",
+			"sign": 1
+		},
+		{
+			"left": "storeIP",
+			"right": "choicems",
+			"sign": 1
+		},
+		{
+			"left": "storeIP",
+			"right": "copyRevision",
+			"sign": 1
+		},
+		{
+			"left": "storeIP",
+			"right": "scopeMode",
+			"sign": 1
+		},
+		{
+			"left": "storeIP",
+			"right": "storeIp",
+			"sign": 1
+		},
+		{
+			"left": "storeIP",
+			"right": "storeIP",
+			"sign": 0
+		},
+		{
+			"left": "storeIP",
+			"right": "e",
+			"sign": 1
+		},
+		{
+			"left": "storeIP",
+			"right": "f",
+			"sign": 1
+		},
+		{
+			"left": "e",
+			"right": "a",
+			"sign": 1
+		},
+		{
+			"left": "e",
+			"right": "A",
+			"sign": 1
+		},
+		{
+			"left": "e",
+			"right": "b",
+			"sign": 1
+		},
+		{
+			"left": "e",
+			"right": "B",
+			"sign": 1
+		},
+		{
+			"left": "e",
+			"right": "ab",
+			"sign": 1
+		},
+		{
+			"left": "e",
+			"right": "aB",
+			"sign": 1
+		},
+		{
+			"left": "e",
+			"right": "Ab",
+			"sign": 1
+		},
+		{
+			"left": "e",
+			"right": "AB",
+			"sign": 1
+		},
+		{
+			"left": "e",
+			"right": "abc",
+			"sign": 1
+		},
+		{
+			"left": "e",
+			"right": "a_b",
+			"sign": 1
+		},
+		{
+			"left": "e",
+			"right": "a-b",
+			"sign": 1
+		},
+		{
+			"left": "e",
+			"right": "a.b",
+			"sign": 1
+		},
+		{
+			"left": "e",
+			"right": "a b",
+			"sign": 1
+		},
+		{
+			"left": "e",
+			"right": "_",
+			"sign": 1
+		},
+		{
+			"left": "e",
+			"right": "-",
+			"sign": 1
+		},
+		{
+			"left": "e",
+			"right": " ",
+			"sign": 1
+		},
+		{
+			"left": "e",
+			"right": "0",
+			"sign": 1
+		},
+		{
+			"left": "e",
+			"right": "9",
+			"sign": 1
+		},
+		{
+			"left": "e",
+			"right": "z",
+			"sign": -1
+		},
+		{
+			"left": "e",
+			"right": "Z",
+			"sign": -1
+		},
+		{
+			"left": "e",
+			"right": "a0",
+			"sign": 1
+		},
+		{
+			"left": "e",
+			"right": "a9",
+			"sign": 1
+		},
+		{
+			"left": "e",
+			"right": "aa",
+			"sign": 1
+		},
+		{
+			"left": "e",
+			"right": "a~",
+			"sign": 1
+		},
+		{
+			"left": "e",
+			"right": "a$",
+			"sign": 1
+		},
+		{
+			"left": "e",
+			"right": "$",
+			"sign": 1
+		},
+		{
+			"left": "e",
+			"right": "~",
+			"sign": 1
+		},
+		{
+			"left": "e",
+			"right": "id",
+			"sign": -1
+		},
+		{
+			"left": "e",
+			"right": "Id",
+			"sign": -1
+		},
+		{
+			"left": "e",
+			"right": "ID",
+			"sign": -1
+		},
+		{
+			"left": "e",
+			"right": "iD",
+			"sign": -1
+		},
+		{
+			"left": "e",
+			"right": "choiceMs",
+			"sign": 1
+		},
+		{
+			"left": "e",
+			"right": "choicems",
+			"sign": 1
+		},
+		{
+			"left": "e",
+			"right": "copyRevision",
+			"sign": 1
+		},
+		{
+			"left": "e",
+			"right": "scopeMode",
+			"sign": -1
+		},
+		{
+			"left": "e",
+			"right": "storeIp",
+			"sign": -1
+		},
+		{
+			"left": "e",
+			"right": "storeIP",
+			"sign": -1
+		},
+		{
+			"left": "e",
+			"right": "e",
+			"sign": 0
+		},
+		{
+			"left": "e",
+			"right": "f",
+			"sign": -1
+		},
+		{
+			"left": "f",
+			"right": "a",
+			"sign": 1
+		},
+		{
+			"left": "f",
+			"right": "A",
+			"sign": 1
+		},
+		{
+			"left": "f",
+			"right": "b",
+			"sign": 1
+		},
+		{
+			"left": "f",
+			"right": "B",
+			"sign": 1
+		},
+		{
+			"left": "f",
+			"right": "ab",
+			"sign": 1
+		},
+		{
+			"left": "f",
+			"right": "aB",
+			"sign": 1
+		},
+		{
+			"left": "f",
+			"right": "Ab",
+			"sign": 1
+		},
+		{
+			"left": "f",
+			"right": "AB",
+			"sign": 1
+		},
+		{
+			"left": "f",
+			"right": "abc",
+			"sign": 1
+		},
+		{
+			"left": "f",
+			"right": "a_b",
+			"sign": 1
+		},
+		{
+			"left": "f",
+			"right": "a-b",
+			"sign": 1
+		},
+		{
+			"left": "f",
+			"right": "a.b",
+			"sign": 1
+		},
+		{
+			"left": "f",
+			"right": "a b",
+			"sign": 1
+		},
+		{
+			"left": "f",
+			"right": "_",
+			"sign": 1
+		},
+		{
+			"left": "f",
+			"right": "-",
+			"sign": 1
+		},
+		{
+			"left": "f",
+			"right": " ",
+			"sign": 1
+		},
+		{
+			"left": "f",
+			"right": "0",
+			"sign": 1
+		},
+		{
+			"left": "f",
+			"right": "9",
+			"sign": 1
+		},
+		{
+			"left": "f",
+			"right": "z",
+			"sign": -1
+		},
+		{
+			"left": "f",
+			"right": "Z",
+			"sign": -1
+		},
+		{
+			"left": "f",
+			"right": "a0",
+			"sign": 1
+		},
+		{
+			"left": "f",
+			"right": "a9",
+			"sign": 1
+		},
+		{
+			"left": "f",
+			"right": "aa",
+			"sign": 1
+		},
+		{
+			"left": "f",
+			"right": "a~",
+			"sign": 1
+		},
+		{
+			"left": "f",
+			"right": "a$",
+			"sign": 1
+		},
+		{
+			"left": "f",
+			"right": "$",
+			"sign": 1
+		},
+		{
+			"left": "f",
+			"right": "~",
+			"sign": 1
+		},
+		{
+			"left": "f",
+			"right": "id",
+			"sign": -1
+		},
+		{
+			"left": "f",
+			"right": "Id",
+			"sign": -1
+		},
+		{
+			"left": "f",
+			"right": "ID",
+			"sign": -1
+		},
+		{
+			"left": "f",
+			"right": "iD",
+			"sign": -1
+		},
+		{
+			"left": "f",
+			"right": "choiceMs",
+			"sign": 1
+		},
+		{
+			"left": "f",
+			"right": "choicems",
+			"sign": 1
+		},
+		{
+			"left": "f",
+			"right": "copyRevision",
+			"sign": 1
+		},
+		{
+			"left": "f",
+			"right": "scopeMode",
+			"sign": -1
+		},
+		{
+			"left": "f",
+			"right": "storeIp",
+			"sign": -1
+		},
+		{
+			"left": "f",
+			"right": "storeIP",
+			"sign": -1
+		},
+		{
+			"left": "f",
+			"right": "e",
+			"sign": 1
+		},
+		{
+			"left": "f",
+			"right": "f",
+			"sign": 0
+		}
+	],
+	"vectors": [
+		{
+			"value": null,
+			"canonical": "null",
+			"fingerprint": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b"
+		},
+		{
+			"value": true,
+			"canonical": "true",
+			"fingerprint": "b5bea41b6c623f7c09f1bf24dcae58ebab3c0cdd90ad966bc43a45b44867e12b"
+		},
+		{
+			"value": false,
+			"canonical": "false",
+			"fingerprint": "fcbcf165908dd18a9e49f7ff27810176db8e9f63b4352213741664245224f8aa"
+		},
+		{
+			"value": 0,
+			"canonical": "0",
+			"fingerprint": "5feceb66ffc86f38d952786c6d696c79c2dbc239dd4e91b46729d73a27fb57e9"
+		},
+		{
+			"value": -1,
+			"canonical": "-1",
+			"fingerprint": "1bad6b8cf97131fceab8543e81f7757195fbb1d36b376ee994ad1cf17699c464"
+		},
+		{
+			"value": 1.5,
+			"canonical": "1.5",
+			"fingerprint": "9f29a130438b81170b92a42650f9a94291ecad60bd47af2a3886e75f7f728725"
+		},
+		{
+			"value": 31536000000,
+			"canonical": "31536000000",
+			"fingerprint": "7456b090dbe87103ad175d39b608717c14c2d9039a1836c720a9a35c8938aa90"
+		},
+		{
+			"value": 1e+21,
+			"canonical": "1e+21",
+			"fingerprint": "241c4643fa70b1dcde1205b71be4e3bebb17e9f880c8e1a33d0ead6c27271d3c"
+		},
+		{
+			"value": 0.000001,
+			"canonical": "0.000001",
+			"fingerprint": "159fb29a827ad04b260aa6c8ab6d8637f8f2b38af5c4f3cb49d6a21205e040f8"
+		},
+		{
+			"value": 1e-7,
+			"canonical": "1e-7",
+			"fingerprint": "5b33e02f2c5103a05d32f6ba9cb058294452bfbf393967f68bb30c1bdcbbab22"
+		},
+		{
+			"value": "",
+			"canonical": "\"\"",
+			"fingerprint": "12ae32cb1ec02d01eda3581b127c1fee3b0dc53572ed6baf239721a03d82e126"
+		},
+		{
+			"value": "plain",
+			"canonical": "\"plain\"",
+			"fingerprint": "945603a8f587786b463c3f94fce115c0fae88fac2728cc96ddf5981cf7f61741"
+		},
+		{
+			"value": "quote \" backslash \\ slash /",
+			"canonical": "\"quote \\\" backslash \\\\ slash /\"",
+			"fingerprint": "0bf8d8cac25a2ba37fc6ddcfeb6e43572799b87ebf390873fd7a7dd22447b0a1"
+		},
+		{
+			"value": "controls \b \f \n \r \t \u0001 \u001f",
+			"canonical": "\"controls \\b \\f \\n \\r \\t \\u0001 \\u001f\"",
+			"fingerprint": "4f17bdd82a0a599f4de5f68458615679168b6eae1ba07a1ce350cffd53491eca"
+		},
+		{
+			"value": "html < > &",
+			"canonical": "\"html < > &\"",
+			"fingerprint": "a577a1f8da2c9cc95f945ef52e733ac09f0e945a5fadf7ceb778345732c651cd"
+		},
+		{
+			"value": "separators    ",
+			"canonical": "\"separators    \"",
+			"fingerprint": "4381219b15df1d04a5b16e2b165d7abfe81563de8233e8eb39b925bc8aecf5b1"
+		},
+		{
+			"value": "unicode é 日本 😀",
+			"canonical": "\"unicode é 日本 😀\"",
+			"fingerprint": "0cca60d8e29f8acf54fa6711c9d9e345a600c5acb9defc6e13eb286a2d58344b"
+		},
+		{
+			"value": [],
+			"canonical": "[]",
+			"fingerprint": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+		},
+		{
+			"value": {},
+			"canonical": "{}",
+			"fingerprint": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+		},
+		{
+			"value": [
+				1,
+				"two",
+				null,
+				{
+					"b": 1,
+					"a": 2
+				}
+			],
+			"canonical": "[1,\"two\",null,{\"a\":2,\"b\":1}]",
+			"fingerprint": "7eef0047cc7415409bf7ae0bffa06daf33b9283d0f925d4dbc743bb5a8e8b8d3"
+		},
+		{
+			"value": {
+				"b": 1,
+				"a": 2,
+				"A": 3,
+				"_": 4,
+				"-": 5,
+				"a_b": 6,
+				"ab": 7,
+				"aB": 8
+			},
+			"canonical": "{\"_\":4,\"-\":5,\"a\":2,\"A\":3,\"a_b\":6,\"ab\":7,\"aB\":8,\"b\":1}",
+			"fingerprint": "d4b449a434b4a87710b2345f471890df123aa9202e55897b180ec0c86dcb3c1a"
+		},
+		{
+			"value": {
+				"nested": {
+					"z": [
+						{
+							"y": 1,
+							"x": null
+						}
+					],
+					"a": {}
+				},
+				"copyRevision": null
+			},
+			"canonical": "{\"copyRevision\":null,\"nested\":{\"a\":{},\"z\":[{\"x\":null,\"y\":1}]}}",
+			"fingerprint": "45c3740a42b5d2e7da8eae4770a6a6d53775f5fb964dfc784bafd8d444af041e"
+		},
+		{
+			"value": {
+				"actions": {
+					"allowed": [
+						"accept",
+						"reject"
+					],
+					"equivalent": [
+						[
+							"accept",
+							"reject"
+						]
+					],
+					"required": []
+				},
+				"copyRevision": null,
+				"domain": "policy",
+				"model": "opt-in",
+				"validity": {
+					"choiceMs": 31536000000,
+					"noticeMs": 31536000000
+				},
+				"version": 1
+			},
+			"canonical": "{\"actions\":{\"allowed\":[\"accept\",\"reject\"],\"equivalent\":[[\"accept\",\"reject\"]],\"required\":[]},\"copyRevision\":null,\"domain\":\"policy\",\"model\":\"opt-in\",\"validity\":{\"choiceMs\":31536000000,\"noticeMs\":31536000000},\"version\":1}",
+			"fingerprint": "dd858e22be326b2a58bdb0c7c0a53299c2fc5d9b3fa8e74a036fabf0abc255d5"
+		}
+	]
+}
