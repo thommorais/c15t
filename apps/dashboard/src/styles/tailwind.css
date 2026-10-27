@@ -4,10 +4,8 @@
 @source '..';
 @source '../../node_modules/@journ/bloom/dist';
 
-/* v4 and bloom both bind dark: to prefers-color-scheme, which ignores the toggle. */
 @custom-variant dark (&:where(.dark, .dark *));
 
-/* Bloom's roles take the midday values below, so its components match the rest of the app. */
 @theme {
 	--color-bloom-canvas: hsl(0 0% 100%);
 	--color-bloom-canvas-dark: hsl(0 0% 5%);
@@ -22,7 +20,6 @@
 	--font-bloom-display: var(--font-sans);
 }
 
-/* Ported from midday, which declares these as HSL triples in a v3 JS config. */
 @theme {
 	--color-background: hsl(0 0% 100%);
 	--color-foreground: hsl(0 0% 7%);
@@ -52,7 +49,6 @@
 	--color-input: hsl(240 5.9% 90%);
 	--color-ring: hsl(240 5.9% 10%);
 
-	/* Hardcoded as #878787 and #606060 throughout midday. */
 	--color-dim: #878787;
 	--color-dimmer: #606060;
 

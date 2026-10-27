@@ -28,7 +28,6 @@ const toAuthError = (cause: unknown): AuthError => {
 }
 
 const createAuthAdapter = (): AuthPort => {
-	// useSyncExternalStore compares by identity: a fresh object per read loops.
 	let key = ''
 	let session: Session = anonymous
 

@@ -11,7 +11,6 @@
 		/>
 		<title>c15t dashboard</title>
 		<script>
-			// Before first paint, so a dark system theme does not flash the light palette.
 			;(() => {
 				const dark = matchMedia('(prefers-color-scheme: dark)').matches
 				document.documentElement.classList.toggle('dark', dark)

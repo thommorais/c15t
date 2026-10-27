@@ -31,8 +31,6 @@ const toConsent = (record: ConsentRecord): Consent => ({
 	validUntil: toDate(record.validUntil),
 })
 
-// The collection rules scope every read to the operator's tenant, so the
-// list needs no tenant filter of its own.
 type Realtime = Pick<LiveSource<ConsentRecord, Consent>, 'client' | 'connection'>
 
 const createConsentsLive = ({ client, connection }: Realtime): Live<ConsentRecord, Consent, void> => ({
