@@ -1,10 +1,10 @@
 import { writeFileSync } from 'node:fs';
 
-import { compareCanonical } from '../../../../../vendor/c15t/packages/schema/src/shared/canonical-order';
 import {
+	compareCanonical,
 	createDeterministicFingerprintSync,
 	stableStringify,
-} from '../../../../../vendor/c15t/packages/schema/src/shared/policy-fingerprint';
+} from '@c15t/schema/types';
 
 const keys = [
 	'a', 'A', 'b', 'B', 'ab', 'aB', 'Ab', 'AB', 'abc', 'a_b', 'a-b', 'a.b', 'a b',

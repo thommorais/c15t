@@ -1,8 +1,8 @@
-Port of the c15t v3 policy rule model from `vendor/c15t/packages/schema`.
+Port of the c15t v3 policy rule model from `@c15t/schema`.
 
-`testdata/*.json` is generated from the vendored TypeScript. Do not edit it by
-hand. From this directory:
+`testdata/*.json` is generated from `@c15t/schema`. Do not edit it by hand.
+From `apps/base`:
 
 ```
-bun gen/fingerprint.ts testdata/fingerprint.json
+pnpm gen:policyrule
 ```

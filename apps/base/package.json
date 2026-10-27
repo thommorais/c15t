@@ -3,6 +3,10 @@
 	"version": "1.0.0",
 	"private": true,
 	"scripts": {
-		"dev": "go run main.go serve"
+		"dev": "go run main.go serve",
+		"gen:policyrule": "cd core/policyrule && bun gen/fingerprint.ts testdata/fingerprint.json && bun gen/rules.ts testdata/rules.json"
+	},
+	"devDependencies": {
+		"@c15t/schema": "workspace:*"
 	}
 }
