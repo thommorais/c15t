@@ -1,0 +1,19 @@
+{
+	"name": "@c15t/build",
+	"private": true,
+	"type": "module",
+	"description": "Build helpers the c15t packages share, from upstream's packages/shared and scripts.",
+	"exports": {
+		"./rslib-utils": "./rslib-utils.ts",
+		"./rslib-modules": "./rslib-modules.ts",
+		"./generate-distribution-css": "./generate-distribution-css.ts"
+	},
+	"dependencies": {
+		"@babel/parser": "7.28.5",
+		"@rsbuild/core": "1.7.5",
+		"@rsdoctor/rspack-plugin": "1.5.17",
+		"@rslib/core": "0.23.2",
+		"fast-glob": "3.3.3",
+		"typescript": "6.0.3"
+	}
+}

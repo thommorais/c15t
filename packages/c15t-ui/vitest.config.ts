@@ -1,0 +1,56 @@
+import { resolve } from 'node:path';
+
+import { baseConfig } from '@c15t/vitest-config/base';
+import { defineConfig, mergeConfig } from 'vitest/config';
+
+export default mergeConfig(
+	baseConfig,
+	defineConfig({
+		resolve: {
+			alias: [
+				{
+					find: '@c15t/translations/all',
+					replacement: resolve(__dirname, '../c15t-translations/src/all.ts'),
+				},
+				{
+					find: '@c15t/translations/en',
+					replacement: resolve(
+						__dirname,
+						'../c15t-translations/src/translations/en.ts'
+					),
+				},
+				{
+					find: '@c15t/translations',
+					replacement: resolve(__dirname, '../c15t-translations/src/index.ts'),
+				},
+				{
+					find: '@c15t/core/surface-actions',
+					replacement: resolve(
+						__dirname,
+						'../c15t-core/dist/surface-actions/index.js'
+					),
+				},
+				{
+					find: '@c15t/core',
+					replacement: resolve(__dirname, '../c15t-core/dist/index.js'),
+				},
+				{ find: '~', replacement: resolve(__dirname, './src') },
+			],
+		},
+		test: {
+			coverage: {
+				thresholds: {
+					branches: 45,
+					functions: 65,
+					lines: 45,
+					statements: 45,
+				},
+			},
+			environment: 'jsdom',
+			include: [
+				'src/**/__tests__/**/*.test.ts',
+				'src/**/__tests__/**/*.test.tsx',
+			],
+		},
+	})
+);

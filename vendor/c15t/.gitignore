@@ -1,7 +1,0 @@
-dist-types
-coverage
-coverage.json
-.turbo
-*.tsbuildinfo
-.vitest-attachments/
-__screenshots__/

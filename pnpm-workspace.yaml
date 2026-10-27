@@ -1,9 +1,6 @@
 packages:
   - 'apps/*'
   - 'packages/*'
-  - 'vendor/c15t'
-  - 'vendor/c15t/packages/*'
-  - 'vendor/c15t/internals/*'
 catalog:
   '@testing-library/dom': '^10.4.2'
   '@testing-library/react': '^16.3.3'

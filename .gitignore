@@ -51,3 +51,11 @@ apps/base/.gocache/
 .nx/cache
 .nx/workspace-data
 .nx/migrate-runs
+
+# c15t packages
+packages/c15t-*/dist-types
+packages/c15t-*/coverage
+packages/c15t-*/coverage.json
+packages/c15t-*/.vitest-attachments/
+packages/c15t-*/**/__screenshots__/
+*.tsbuildinfo
