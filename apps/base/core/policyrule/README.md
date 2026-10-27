@@ -1,6 +1,6 @@
 Port of the c15t v3 policy rule model from `@c15t/schema`.
 
-`testdata/*.json` is generated from `@c15t/schema`. Do not edit it by hand.
+`presets.json` and `testdata/*.json` are generated from `@c15t/schema`. Do not edit them by hand.
 From `apps/base`:
 
 ```

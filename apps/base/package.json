@@ -4,7 +4,7 @@
 	"private": true,
 	"scripts": {
 		"dev": "go run main.go serve",
-		"gen:policyrule": "cd core/policyrule && bun gen/fingerprint.ts testdata/fingerprint.json && bun gen/rules.ts testdata/rules.json"
+		"gen:policyrule": "cd core/policyrule && bun gen/fingerprint.ts testdata/fingerprint.json && bun gen/rules.ts testdata/rules.json && bun gen/presets.ts presets.json"
 	},
 	"devDependencies": {
 		"@c15t/schema": "workspace:*"

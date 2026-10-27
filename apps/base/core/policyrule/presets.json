@@ -1,0 +1,2529 @@
+{
+	"presets": {
+		"australiaOptIn": {
+			"id": "australia_opt_in",
+			"match": {
+				"countries": [
+					"AU"
+				]
+			},
+			"model": "opt-in",
+			"prompt": "choice",
+			"review": {
+				"assumptions": [
+					"Optional categories stay denied until an explicit choice. Use this workflow for consent-based processing; other lawful bases and exemptions need their own configuration.",
+					"This country matcher does not determine territorial scope, sensitive-data rules, child protections, recipient-specific consent or cross-border transfer requirements.",
+					"Use opt-in for consent-based processing. Australian Privacy Principles also permit eligible expected nonsensitive processing with notice and refusal; see australiaOptOut.",
+					"365-day choice and notice validity are independent c15t product defaults, not legal requirements.",
+					"A refusal in the requested scope suppresses automatic choice prompts, including after policy changes or grant expiry. New, changed or expired opt-in purposes remain denied until the user opens preferences and grants them.",
+					"Equivalent default prominence for accept and reject is a c15t product invariant.",
+					"The controller owns processing facts, legal basis, copy and legal review; this preset is starter configuration."
+				],
+				"reviewBy": "2026-12-15",
+				"reviewedOn": "2026-09-08",
+				"sources": [
+					"https://www.oaic.gov.au/privacy/privacy-guidance-for-organisations-and-government-agencies/organisations/tracking-pixels-and-privacy-obligations"
+				],
+				"status": "reviewed"
+			},
+			"validity": {
+				"choiceDays": 365
+			}
+		},
+		"australiaOptOut": {
+			"i18n": {
+				"messageProfile": "preferences"
+			},
+			"id": "australia_opt_out",
+			"match": {
+				"countries": [
+					"AU"
+				]
+			},
+			"model": "opt-out",
+			"prompt": "none",
+			"review": {
+				"assumptions": [
+					"Only for processing whose reviewed basis permits it before a consent choice. This preset does not establish that basis.",
+					"Supply required information before processing and persistent refusal controls. A no-prompt setting does not remove those duties.",
+					"APP necessity, notice and purpose limits still apply. Expected nonsensitive direct marketing can use the APP 7 opt-out route; sensitive and unexpected third-party uses need separate consent/basis review.",
+					"365-day choice and notice validity are independent c15t product defaults, not legal requirements.",
+					"A refusal in the requested scope suppresses automatic choice prompts, including after policy changes or grant expiry. New, changed or expired opt-in purposes remain denied until the user opens preferences and grants them.",
+					"Equivalent default prominence for accept and reject is a c15t product invariant.",
+					"The controller owns processing facts, legal basis, copy and legal review; this preset is starter configuration."
+				],
+				"reviewBy": "2026-12-15",
+				"reviewedOn": "2026-09-08",
+				"sources": [
+					"https://www.oaic.gov.au/privacy/privacy-guidance-for-organisations-and-government-agencies/organisations/tracking-pixels-and-privacy-obligations",
+					"https://www.oaic.gov.au/privacy/australian-privacy-principles/australian-privacy-principles-guidelines/chapter-7-app-7-direct-marketing"
+				],
+				"status": "reviewed"
+			},
+			"validity": {
+				"choiceDays": 365
+			}
+		},
+		"brazilOptIn": {
+			"id": "brazil_opt_in",
+			"match": {
+				"countries": [
+					"BR"
+				]
+			},
+			"model": "opt-in",
+			"prompt": "choice",
+			"review": {
+				"assumptions": [
+					"Optional categories stay denied until an explicit choice. Use this workflow for consent-based processing; other lawful bases and exemptions need their own configuration.",
+					"This country matcher does not determine territorial scope, sensitive-data rules, child protections, recipient-specific consent or cross-border transfer requirements.",
+					"ANPD cookie guidance recommends consent for uses such as advertising and behavioral profiling; other legal bases need their own assessment. This preset uses consent for optional categories.",
+					"Keep consent-based cookies off until choice, disclose specific purposes, make rejection readily available and support withdrawal.",
+					"365-day choice and notice validity are independent c15t product defaults, not legal requirements.",
+					"A refusal in the requested scope suppresses automatic choice prompts, including after policy changes or grant expiry. New, changed or expired opt-in purposes remain denied until the user opens preferences and grants them.",
+					"Equivalent default prominence for accept and reject is a c15t product invariant.",
+					"The controller owns processing facts, legal basis, copy and legal review; this preset is starter configuration."
+				],
+				"reviewBy": "2026-12-15",
+				"reviewedOn": "2026-09-08",
+				"sources": [
+					"https://www.gov.br/anpd/pt-br/centrais-de-conteudo/materiais-educativos-e-publicacoes/guia-orientativo-cookies-e-protecao-de-dados-pessoais.pdf/@@display-file/file"
+				],
+				"status": "reviewed"
+			},
+			"validity": {
+				"choiceDays": 365
+			}
+		},
+		"bruneiOptIn": {
+			"id": "brunei_opt_in",
+			"match": {
+				"countries": [
+					"BN"
+				]
+			},
+			"model": "opt-in",
+			"prompt": "choice",
+			"review": {
+				"assumptions": [
+					"Optional categories stay denied until an explicit choice. Use this workflow for consent-based processing; other lawful bases and exemptions need their own configuration.",
+					"This country matcher does not determine territorial scope, sensitive-data rules, child protections, recipient-specific consent or cross-border transfer requirements.",
+					"The PDPO permits consent, specified deemed-consent routes and exceptions. This preset uses explicit consent for optional processing.",
+					"Nonpersonal processing and assessed exceptions can avoid consent requests. Personal-data ad targeting requires consent under PDPC cookie guidance.",
+					"Deemed consent by notification requires an assessment and a reasonable opportunity to opt out; it excludes sending direct marketing messages. Dismissing a notice does not implement that route.",
+					"The host must notify purposes and honor withdrawal under sections 13 and 17.",
+					"365-day choice and notice validity are independent c15t product defaults, not legal requirements.",
+					"A refusal in the requested scope suppresses automatic choice prompts, including after policy changes or grant expiry. New, changed or expired opt-in purposes remain denied until the user opens preferences and grants them.",
+					"Equivalent default prominence for accept and reject is a c15t product invariant.",
+					"The controller owns processing facts, legal basis, copy and legal review; this preset is starter configuration."
+				],
+				"reviewBy": "2026-12-15",
+				"reviewedOn": "2026-09-08",
+				"sources": [
+					"https://pdp.aiti.gov.bn/media/tndpduml/s-1_2025-e.pdf"
+				],
+				"status": "reviewed"
+			},
+			"validity": {
+				"choiceDays": 365
+			}
+		},
+		"californiaOptIn": {
+			"id": "california_opt_in",
+			"match": {
+				"regions": [
+					{
+						"country": "US",
+						"region": "CA"
+					}
+				]
+			},
+			"model": "opt-in",
+			"privacySignals": {
+				"gpc": {
+					"denyCategories": [
+						"marketing",
+						"measurement"
+					]
+				}
+			},
+			"prompt": "choice",
+			"proof": {
+				"storeIp": true,
+				"storeLanguage": true,
+				"storeUserAgent": true
+			},
+			"review": {
+				"assumptions": [
+					"The referenced GPC specification is the W3C Working Draft of 11 June 2026, not a final Recommendation.",
+					"A user-enabled GPC signal is honored as an opt-out of sale and sharing; it never creates consent.",
+					"Mapping GPC to marketing and measurement is a conservative product default and must be checked against actual processing purposes. Not all measurement is sale or sharing.",
+					"Removing the browser signal is not a withdrawal of a recorded opt-out.",
+					"Opt-in is an optional deployment choice. It does not establish a general California opt-in mandate.",
+					"365-day choice and notice validity are independent c15t product defaults, not legal requirements.",
+					"A refusal in the requested scope suppresses automatic choice prompts, including after policy changes or grant expiry. New, changed or expired opt-in purposes remain denied until the user opens preferences and grants them.",
+					"Equivalent default prominence for accept and reject is a c15t product invariant.",
+					"The controller owns processing facts, legal basis, copy and legal review; this preset is starter configuration."
+				],
+				"reviewBy": "2026-12-15",
+				"reviewedOn": "2026-09-08",
+				"sources": [
+					"https://oag.ca.gov/privacy/ccpa",
+					"https://www.w3.org/TR/2026/WD-gpc-20260611/"
+				],
+				"status": "reviewed"
+			},
+			"validity": {
+				"choiceDays": 365,
+				"noticeDays": 365
+			},
+			"legacyMaterial": {
+				"input": {
+					"consent": {
+						"expiryDays": 365,
+						"gpc": true,
+						"scopeMode": "permissive"
+					},
+					"model": "opt-in",
+					"proof": {
+						"storeIp": true,
+						"storeLanguage": true,
+						"storeUserAgent": true
+					},
+					"ui": {
+						"banner": {
+							"allowedActions": [
+								"accept",
+								"reject",
+								"customize"
+							],
+							"direction": "row",
+							"layout": [
+								[
+									"reject",
+									"accept"
+								],
+								[
+									"customize"
+								]
+							],
+							"primaryActions": [
+								"customize"
+							]
+						},
+						"dialog": {
+							"allowedActions": [
+								"accept",
+								"reject",
+								"customize"
+							],
+							"direction": "row",
+							"layout": [
+								[
+									"reject",
+									"accept"
+								],
+								[
+									"customize"
+								]
+							],
+							"primaryActions": [
+								"customize"
+							]
+						},
+						"mode": "banner"
+					}
+				},
+				"policyFingerprint": "d53c71dde91e3b9600ef910f284726d8b9b5e5d97989b355e016d013b6a12b69"
+			}
+		},
+		"californiaOptOut": {
+			"id": "california_opt_out",
+			"match": {
+				"regions": [
+					{
+						"country": "US",
+						"region": "CA"
+					}
+				]
+			},
+			"model": "opt-out",
+			"privacySignals": {
+				"gpc": {
+					"denyCategories": [
+						"marketing",
+						"measurement"
+					]
+				}
+			},
+			"prompt": "none",
+			"proof": {
+				"storeIp": true,
+				"storeLanguage": true,
+				"storeUserAgent": true
+			},
+			"review": {
+				"assumptions": [
+					"The referenced GPC specification is the W3C Working Draft of 11 June 2026, not a final Recommendation.",
+					"A user-enabled GPC signal is honored as an opt-out of sale and sharing; it never creates consent.",
+					"Mapping GPC to marketing and measurement is a conservative product default and must be checked against actual processing purposes. Not all measurement is sale or sharing.",
+					"Removing the browser signal is not a withdrawal of a recorded opt-out.",
+					"No first-layer prompt. Disclosure, preferences and the opt-out right stay reachable without a visible banner.",
+					"365-day choice and notice validity are independent c15t product defaults, not legal requirements.",
+					"A refusal in the requested scope suppresses automatic choice prompts, including after policy changes or grant expiry. New, changed or expired opt-in purposes remain denied until the user opens preferences and grants them.",
+					"Equivalent default prominence for accept and reject is a c15t product invariant.",
+					"The controller owns processing facts, legal basis, copy and legal review; this preset is starter configuration."
+				],
+				"reviewBy": "2026-12-15",
+				"reviewedOn": "2026-09-08",
+				"sources": [
+					"https://oag.ca.gov/privacy/ccpa",
+					"https://www.w3.org/TR/2026/WD-gpc-20260611/"
+				],
+				"status": "reviewed"
+			},
+			"validity": {
+				"choiceDays": 365,
+				"noticeDays": 365
+			},
+			"rights": [
+				"preferences"
+			],
+			"legacyMaterial": {
+				"input": {
+					"consent": {
+						"expiryDays": 365,
+						"gpc": true,
+						"scopeMode": "permissive"
+					},
+					"model": "opt-out",
+					"proof": {
+						"storeIp": true,
+						"storeLanguage": true,
+						"storeUserAgent": true
+					},
+					"ui": {
+						"mode": "none"
+					}
+				},
+				"policyFingerprint": "2add89cb0c497ef5bccaef815bae6277006e37bdc10d4d0e6b1f494aa754c087"
+			}
+		},
+		"canadaOptIn": {
+			"i18n": {
+				"messageProfile": "preferences"
+			},
+			"id": "canada_opt_in",
+			"match": {
+				"regions": [
+					{
+						"country": "CA",
+						"region": "AB"
+					},
+					{
+						"country": "CA",
+						"region": "BC"
+					},
+					{
+						"country": "CA",
+						"region": "MB"
+					},
+					{
+						"country": "CA",
+						"region": "NB"
+					},
+					{
+						"country": "CA",
+						"region": "NL"
+					},
+					{
+						"country": "CA",
+						"region": "NS"
+					},
+					{
+						"country": "CA",
+						"region": "NT"
+					},
+					{
+						"country": "CA",
+						"region": "NU"
+					},
+					{
+						"country": "CA",
+						"region": "ON"
+					},
+					{
+						"country": "CA",
+						"region": "PE"
+					},
+					{
+						"country": "CA",
+						"region": "SK"
+					},
+					{
+						"country": "CA",
+						"region": "YT"
+					}
+				]
+			},
+			"model": "opt-in",
+			"prompt": "choice",
+			"review": {
+				"assumptions": [
+					"Only for processing whose reviewed basis permits it before a consent choice. This preset does not establish that basis.",
+					"Supply required information before processing and persistent refusal controls. A no-prompt setting does not remove those duties.",
+					"For nonsensitive processing meeting meaningful-consent requirements. The OPC permits opt-out behavioral advertising only with prominent purposes and parties at or before collection, immediate persistent refusal and minimized retention.",
+					"Sensitive, unexpected or significantly risky processing requires a separate express-consent assessment. The host must establish federal or provincial applicability.",
+					"Quebec is excluded. A missing province must not select this opt-out profile.",
+					"365-day choice and notice validity are independent c15t product defaults, not legal requirements.",
+					"A refusal in the requested scope suppresses automatic choice prompts, including after policy changes or grant expiry. New, changed or expired opt-in purposes remain denied until the user opens preferences and grants them.",
+					"Equivalent default prominence for accept and reject is a c15t product invariant.",
+					"The controller owns processing facts, legal basis, copy and legal review; this preset is starter configuration."
+				],
+				"reviewBy": "2026-12-15",
+				"reviewedOn": "2026-09-08",
+				"sources": [
+					"https://www.priv.gc.ca/en/privacy-topics/technology/online-privacy-tracking-cookies/tracking-and-ads/gl_ba_1112/"
+				],
+				"status": "reviewed"
+			},
+			"validity": {
+				"choiceDays": 365,
+				"noticeDays": 365
+			}
+		},
+		"canadaOptOut": {
+			"i18n": {
+				"messageProfile": "preferences"
+			},
+			"id": "canada_opt_out",
+			"match": {
+				"regions": [
+					{
+						"country": "CA",
+						"region": "AB"
+					},
+					{
+						"country": "CA",
+						"region": "BC"
+					},
+					{
+						"country": "CA",
+						"region": "MB"
+					},
+					{
+						"country": "CA",
+						"region": "NB"
+					},
+					{
+						"country": "CA",
+						"region": "NL"
+					},
+					{
+						"country": "CA",
+						"region": "NS"
+					},
+					{
+						"country": "CA",
+						"region": "NT"
+					},
+					{
+						"country": "CA",
+						"region": "NU"
+					},
+					{
+						"country": "CA",
+						"region": "ON"
+					},
+					{
+						"country": "CA",
+						"region": "PE"
+					},
+					{
+						"country": "CA",
+						"region": "SK"
+					},
+					{
+						"country": "CA",
+						"region": "YT"
+					}
+				]
+			},
+			"model": "opt-out",
+			"prompt": "notice",
+			"review": {
+				"assumptions": [
+					"Only for processing whose reviewed basis permits it before a consent choice. This preset does not establish that basis.",
+					"Supply required information before processing and persistent refusal controls. A no-prompt setting does not remove those duties.",
+					"For nonsensitive processing meeting meaningful-consent requirements. The OPC permits opt-out behavioral advertising only with prominent purposes and parties at or before collection, immediate persistent refusal and minimized retention.",
+					"Sensitive, unexpected or significantly risky processing requires a separate express-consent assessment. The host must establish federal or provincial applicability.",
+					"Quebec is excluded. A missing province must not select this opt-out profile.",
+					"365-day choice and notice validity are independent c15t product defaults, not legal requirements.",
+					"A refusal in the requested scope suppresses automatic choice prompts, including after policy changes or grant expiry. New, changed or expired opt-in purposes remain denied until the user opens preferences and grants them.",
+					"Equivalent default prominence for accept and reject is a c15t product invariant.",
+					"The controller owns processing facts, legal basis, copy and legal review; this preset is starter configuration."
+				],
+				"reviewBy": "2026-12-15",
+				"reviewedOn": "2026-09-08",
+				"sources": [
+					"https://www.priv.gc.ca/en/privacy-topics/technology/online-privacy-tracking-cookies/tracking-and-ads/gl_ba_1112/"
+				],
+				"status": "reviewed"
+			},
+			"validity": {
+				"choiceDays": 365,
+				"noticeDays": 365
+			}
+		},
+		"chinaOptIn": {
+			"id": "china_opt_in",
+			"match": {
+				"countries": [
+					"CN"
+				]
+			},
+			"model": "opt-in",
+			"prompt": "choice",
+			"review": {
+				"assumptions": [
+					"Optional categories stay denied until an explicit choice. Use this workflow for consent-based processing; other lawful bases and exemptions need their own configuration.",
+					"This country matcher does not determine territorial scope, sensitive-data rules, child protections, recipient-specific consent or cross-border transfer requirements.",
+					"PIPL Articles 13–17 govern the processing basis, informed consent and withdrawal. This preset covers ordinary optional processing relying on consent.",
+					"A category grant does not establish separate consent for provision to other controllers, sensitive information or overseas transfers under Articles 23, 29 and 39. Keep those operations independently gated until their required permissions and transfer conditions are satisfied.",
+					"Personalized commercial recommendations need a non-personalized option or convenient refusal under Article 24.",
+					"365-day choice and notice validity are independent c15t product defaults, not legal requirements.",
+					"A refusal in the requested scope suppresses automatic choice prompts, including after policy changes or grant expiry. New, changed or expired opt-in purposes remain denied until the user opens preferences and grants them.",
+					"Equivalent default prominence for accept and reject is a c15t product invariant.",
+					"The controller owns processing facts, legal basis, copy and legal review; this preset is starter configuration."
+				],
+				"reviewBy": "2026-12-15",
+				"reviewedOn": "2026-09-08",
+				"sources": [
+					"https://en.npc.gov.cn.cdurl.cn/2021-12/29/c_694559.htm",
+					"https://en.npc.gov.cn.cdurl.cn/2021-12/29/c_694559_2.htm"
+				],
+				"status": "reviewed"
+			},
+			"validity": {
+				"choiceDays": 365
+			}
+		},
+		"europeIab": {
+			"id": "europe_iab",
+			"match": {
+				"countries": [
+					"AX",
+					"GF",
+					"GP",
+					"MQ",
+					"MF",
+					"RE",
+					"YT",
+					"AT",
+					"BE",
+					"BG",
+					"HR",
+					"CY",
+					"CZ",
+					"DK",
+					"EE",
+					"FI",
+					"FR",
+					"DE",
+					"GR",
+					"HU",
+					"IE",
+					"IT",
+					"LV",
+					"LT",
+					"LU",
+					"MT",
+					"NL",
+					"PL",
+					"PT",
+					"RO",
+					"SK",
+					"SI",
+					"ES",
+					"SE",
+					"IS",
+					"LI",
+					"NO",
+					"GB",
+					"GI"
+				],
+				"fallback": true
+			},
+			"model": "iab",
+			"prompt": "choice",
+			"proof": {
+				"storeIp": true,
+				"storeLanguage": true,
+				"storeUserAgent": true
+			},
+			"review": {
+				"assumptions": [
+					"IAB TCF 2.4 under TCF Policies v5.0.b. TC strings are service-specific: c15t stores them per site and browser and does not sync them across devices.",
+					"Covers consent-requiring processing in the EEA, UK and Gibraltar, including separately geocoded EU territories. National analytics exemptions need separate scoped configurations.",
+					"Used as the geo fallback so an unknown location gets the strictest configured behavior.",
+					"365-day choice and notice validity are independent c15t product defaults, not legal requirements.",
+					"A refusal in the requested scope suppresses automatic choice prompts, including after policy changes or grant expiry. New, changed or expired opt-in purposes remain denied until the user opens preferences and grants them.",
+					"Equivalent default prominence for accept and reject is a c15t product invariant.",
+					"The controller owns processing facts, legal basis, copy and legal review; this preset is starter configuration."
+				],
+				"reviewBy": "2026-12-15",
+				"reviewedOn": "2026-09-08",
+				"sources": [
+					"https://ico.org.uk/for-organisations/direct-marketing-and-privacy-and-electronic-communications/guidance-on-the-use-of-storage-and-access-technologies/what-are-the-exceptions/",
+					"https://www.edpb.europa.eu/sites/default/files/files/file1/edpb_guidelines_202005_consent_en.pdf",
+					"https://www.gra.gi/uploads/documents/data-protection/Documents/Guidance/GN28%20Cookies.pdf"
+				],
+				"status": "reviewed"
+			},
+			"validity": {
+				"choiceDays": 365
+			},
+			"legacyMaterial": {
+				"input": {
+					"consent": {
+						"categories": [
+							"*"
+						],
+						"expiryDays": 365,
+						"scopeMode": "permissive"
+					},
+					"model": "iab",
+					"proof": {
+						"storeIp": true,
+						"storeLanguage": true,
+						"storeUserAgent": true
+					}
+				},
+				"policyFingerprint": "cbbf5d147ac468a745e188b4e4681e60a04debcbad2d0d5bc0fc618c31b06dae"
+			}
+		},
+		"europeOptIn": {
+			"id": "europe_opt_in",
+			"match": {
+				"countries": [
+					"AX",
+					"GF",
+					"GP",
+					"MQ",
+					"MF",
+					"RE",
+					"YT",
+					"AT",
+					"BE",
+					"BG",
+					"HR",
+					"CY",
+					"CZ",
+					"DK",
+					"EE",
+					"FI",
+					"FR",
+					"DE",
+					"GR",
+					"HU",
+					"IE",
+					"IT",
+					"LV",
+					"LT",
+					"LU",
+					"MT",
+					"NL",
+					"PL",
+					"PT",
+					"RO",
+					"SK",
+					"SI",
+					"ES",
+					"SE",
+					"IS",
+					"LI",
+					"NO",
+					"GB",
+					"GI"
+				],
+				"fallback": true
+			},
+			"model": "opt-in",
+			"prompt": "choice",
+			"proof": {
+				"storeIp": true,
+				"storeLanguage": true,
+				"storeUserAgent": true
+			},
+			"review": {
+				"assumptions": [
+					"Optional categories stay denied until an explicit choice; consent is never inferred from inactivity.",
+					"Covers consent-requiring processing in the EEA, UK and Gibraltar, including separately geocoded EU territories. National analytics exemptions need separate scoped configurations.",
+					"Used as the geo fallback so an unknown location gets the strictest configured behavior.",
+					"365-day choice and notice validity are independent c15t product defaults, not legal requirements.",
+					"A refusal in the requested scope suppresses automatic choice prompts, including after policy changes or grant expiry. New, changed or expired opt-in purposes remain denied until the user opens preferences and grants them.",
+					"Equivalent default prominence for accept and reject is a c15t product invariant.",
+					"The controller owns processing facts, legal basis, copy and legal review; this preset is starter configuration."
+				],
+				"reviewBy": "2026-12-15",
+				"reviewedOn": "2026-09-08",
+				"sources": [
+					"https://ico.org.uk/for-organisations/direct-marketing-and-privacy-and-electronic-communications/guidance-on-the-use-of-storage-and-access-technologies/what-are-the-exceptions/",
+					"https://www.edpb.europa.eu/sites/default/files/files/file1/edpb_guidelines_202005_consent_en.pdf",
+					"https://www.gra.gi/uploads/documents/data-protection/Documents/Guidance/GN28%20Cookies.pdf"
+				],
+				"status": "reviewed"
+			},
+			"validity": {
+				"choiceDays": 365
+			},
+			"legacyMaterial": {
+				"input": {
+					"consent": {
+						"expiryDays": 365,
+						"scopeMode": "permissive"
+					},
+					"model": "opt-in",
+					"proof": {
+						"storeIp": true,
+						"storeLanguage": true,
+						"storeUserAgent": true
+					},
+					"ui": {
+						"banner": {
+							"allowedActions": [
+								"accept",
+								"reject",
+								"customize"
+							],
+							"direction": "row",
+							"layout": [
+								[
+									"reject",
+									"accept"
+								],
+								[
+									"customize"
+								]
+							],
+							"primaryActions": [
+								"customize"
+							]
+						},
+						"dialog": {
+							"allowedActions": [
+								"accept",
+								"reject",
+								"customize"
+							],
+							"direction": "row",
+							"layout": [
+								[
+									"reject",
+									"accept"
+								],
+								[
+									"customize"
+								]
+							],
+							"primaryActions": [
+								"customize"
+							]
+						},
+						"mode": "banner"
+					}
+				},
+				"policyFingerprint": "8aca68633714c54fb0a96eaee313aa415ae0a3137e56764cf629a20793b2f969"
+			}
+		},
+		"indiaOptIn": {
+			"id": "india_opt_in",
+			"match": {
+				"countries": [
+					"IN"
+				]
+			},
+			"model": "opt-in",
+			"prompt": "choice",
+			"review": {
+				"assumptions": [
+					"Optional categories stay denied until an explicit choice. Use this workflow for consent-based processing; other lawful bases and exemptions need their own configuration.",
+					"This country matcher does not determine territorial scope, sensitive-data rules, child protections, recipient-specific consent or cross-border transfer requirements.",
+					"DPDP commencement is phased, with full enforceability announced for 13 May 2027. This preset is an opt-in product default now, not a claim that every DPDP duty is already in force.",
+					"Using c15t does not make a deployment a registered Consent Manager under the DPDP Act.",
+					"365-day choice and notice validity are independent c15t product defaults, not legal requirements.",
+					"A refusal in the requested scope suppresses automatic choice prompts, including after policy changes or grant expiry. New, changed or expired opt-in purposes remain denied until the user opens preferences and grants them.",
+					"Equivalent default prominence for accept and reject is a c15t product invariant.",
+					"The controller owns processing facts, legal basis, copy and legal review; this preset is starter configuration."
+				],
+				"reviewBy": "2026-12-15",
+				"reviewedOn": "2026-09-08",
+				"sources": [
+					"https://www.meity.gov.in/static/uploads/2024/02/Digital-Personal-Data-Protection-Act-2023-1.pdf",
+					"https://www.meity.gov.in/static/uploads/2025/11/c56ceae6c383460ca69577428d36828b.pdf",
+					"https://www.meity.gov.in/static/uploads/2025/11/53450e6e5dc0bfa85ebd78686cadad39.pdf"
+				],
+				"status": "reviewed"
+			},
+			"validity": {
+				"choiceDays": 365
+			}
+		},
+		"indonesiaOptIn": {
+			"id": "indonesia_opt_in",
+			"match": {
+				"countries": [
+					"ID"
+				]
+			},
+			"model": "opt-in",
+			"prompt": "choice",
+			"review": {
+				"assumptions": [
+					"Optional categories stay denied until an explicit choice. Use this workflow for consent-based processing; other lawful bases and exemptions need their own configuration.",
+					"This country matcher does not determine territorial scope, sensitive-data rules, child protections, recipient-specific consent or cross-border transfer requirements.",
+					"Law 27/2022 provides several processing bases. This preset uses explicit, recorded consent for disclosed optional purposes, with withdrawal available through preferences.",
+					"The controller must supply the required information and retain proof of consent; category settings do not implement transfer safeguards or all data-subject requests.",
+					"365-day choice and notice validity are independent c15t product defaults, not legal requirements.",
+					"A refusal in the requested scope suppresses automatic choice prompts, including after policy changes or grant expiry. New, changed or expired opt-in purposes remain denied until the user opens preferences and grants them.",
+					"Equivalent default prominence for accept and reject is a c15t product invariant.",
+					"The controller owns processing facts, legal basis, copy and legal review; this preset is starter configuration."
+				],
+				"reviewBy": "2026-12-15",
+				"reviewedOn": "2026-09-08",
+				"sources": [
+					"https://jdih.komdigi.go.id/produk_hukum/view/id/832/t/undangundang%2Bnomor%2B27%2Btahun%2B2022"
+				],
+				"status": "reviewed"
+			},
+			"validity": {
+				"choiceDays": 365
+			}
+		},
+		"japanOptIn": {
+			"id": "japan_opt_in",
+			"match": {
+				"countries": [
+					"JP"
+				]
+			},
+			"model": "opt-in",
+			"prompt": "choice",
+			"review": {
+				"assumptions": [
+					"Optional categories stay denied until an explicit choice. Use this workflow for consent-based processing; other lawful bases and exemptions need their own configuration.",
+					"This country matcher does not determine territorial scope, sensitive-data rules, child protections, recipient-specific consent or cross-border transfer requirements.",
+					"APPI treatment depends on whether cookie data is personal information or personal-related information, including how a recipient combines it. Review third-party provision and applicable external-transmission notices separately.",
+					"365-day choice and notice validity are independent c15t product defaults, not legal requirements.",
+					"A refusal in the requested scope suppresses automatic choice prompts, including after policy changes or grant expiry. New, changed or expired opt-in purposes remain denied until the user opens preferences and grants them.",
+					"Equivalent default prominence for accept and reject is a c15t product invariant.",
+					"The controller owns processing facts, legal basis, copy and legal review; this preset is starter configuration."
+				],
+				"reviewBy": "2026-12-15",
+				"reviewedOn": "2026-09-08",
+				"sources": [
+					"https://www.ppc.go.jp/personalinfo/faq/APPI_QA/"
+				],
+				"status": "reviewed"
+			},
+			"validity": {
+				"choiceDays": 365
+			}
+		},
+		"japanOptOut": {
+			"i18n": {
+				"messageProfile": "preferences"
+			},
+			"id": "japan_opt_out",
+			"match": {
+				"countries": [
+					"JP"
+				]
+			},
+			"model": "opt-out",
+			"prompt": "none",
+			"review": {
+				"assumptions": [
+					"Only for processing whose reviewed basis permits it before a consent choice. This preset does not establish that basis.",
+					"Supply required information before processing and persistent refusal controls. A no-prompt setting does not remove those duties.",
+					"Only where APPI third-party provision, sensitive-data or recipient-matching consent is not triggered. A settings button does not implement the APPI registered third-party-provision opt-out procedure.",
+					"Telecommunications Business Act Article 27-12 requires notice or accessible publication for covered telecommunications services, subject to its exemptions. Ordinary corporate and own-retail sites are not automatically covered; APPI still applies. Disclose information sent, recipients and purposes where required.",
+					"365-day choice and notice validity are independent c15t product defaults, not legal requirements.",
+					"A refusal in the requested scope suppresses automatic choice prompts, including after policy changes or grant expiry. New, changed or expired opt-in purposes remain denied until the user opens preferences and grants them.",
+					"Equivalent default prominence for accept and reject is a c15t product invariant.",
+					"The controller owns processing facts, legal basis, copy and legal review; this preset is starter configuration."
+				],
+				"reviewBy": "2026-12-15",
+				"reviewedOn": "2026-09-08",
+				"sources": [
+					"https://www.ppc.go.jp/personalinfo/legal/guidelines_tsusoku/",
+					"https://laws.e-gov.go.jp/law/359AC0000000086"
+				],
+				"status": "reviewed"
+			},
+			"validity": {
+				"choiceDays": 365
+			}
+		},
+		"laosOptIn": {
+			"id": "laos_opt_in",
+			"match": {
+				"countries": [
+					"LA"
+				]
+			},
+			"model": "opt-in",
+			"prompt": "choice",
+			"review": {
+				"assumptions": [
+					"Optional categories stay denied until an explicit choice. Use this workflow for consent-based processing; other lawful bases and exemptions need their own configuration.",
+					"This country matcher does not determine territorial scope, sensitive-data rules, child protections, recipient-specific consent or cross-border transfer requirements.",
+					"Law on Electronic Data Protection 25/NA applies to electronic data. Article 12 requires purpose information and owner approval for collection of specific data, including personal data.",
+					"Article 17 addresses permission for sending or transferring data, including transfers abroad. Generic category consent does not establish a separate transfer permission or satisfy all collection notifications.",
+					"No general analytics exemption was verified in the available official translation. Obtain local interpretation before relying on an exception.",
+					"365-day choice and notice validity are independent c15t product defaults, not legal requirements.",
+					"A refusal in the requested scope suppresses automatic choice prompts, including after policy changes or grant expiry. New, changed or expired opt-in purposes remain denied until the user opens preferences and grants them.",
+					"Equivalent default prominence for accept and reject is a c15t product invariant.",
+					"The controller owns processing facts, legal basis, copy and legal review; this preset is starter configuration."
+				],
+				"reviewBy": "2026-12-15",
+				"reviewedOn": "2026-09-08",
+				"sources": [
+					"https://lsp.moic.gov.la/?id=289&r=site%2Fdisplaylegal"
+				],
+				"status": "reviewed"
+			},
+			"validity": {
+				"choiceDays": 365
+			}
+		},
+		"malaysiaOptIn": {
+			"id": "malaysia_opt_in",
+			"match": {
+				"countries": [
+					"MY"
+				]
+			},
+			"model": "opt-in",
+			"prompt": "choice",
+			"review": {
+				"assumptions": [
+					"Optional categories stay denied until an explicit choice. Use this workflow for consent-based processing; other lawful bases and exemptions need their own configuration.",
+					"This country matcher does not determine territorial scope, sensitive-data rules, child protections, recipient-specific consent or cross-border transfer requirements.",
+					"PDPA sections 2 and 3 govern applicability: commercial transactions, establishment or use of equipment in Malaysia, and the exclusion for overseas processing unless intended for further processing in Malaysia. Visitor location alone neither establishes nor rules out applicability; override the matcher for the actual processing scope.",
+					"PDPA section 6 provides consent and specified exceptions. This preset uses consent for optional processing within the commercial-transactions scope of the Act.",
+					"Section 7 requires the written notice in the national language and English. A single automatically selected UI translation does not supply that bilingual notice; the host must provide it.",
+					"The General Code describes contextual implied consent, but the 2026 Data Protection by Design guideline recommends opt-in where consent is the basis and gives an essential-cookies-only default example. Do not infer page-load tracking permission from the older Code.",
+					"Section 45(2)(c) separately exempts qualifying statistics-only processing. Use malaysiaStatistics only after reviewing all included processing.",
+					"Sensitive personal data and international transfers need separate assessment under the amended Act.",
+					"365-day choice and notice validity are independent c15t product defaults, not legal requirements.",
+					"A refusal in the requested scope suppresses automatic choice prompts, including after policy changes or grant expiry. New, changed or expired opt-in purposes remain denied until the user opens preferences and grants them.",
+					"Equivalent default prominence for accept and reject is a c15t product invariant.",
+					"The controller owns processing facts, legal basis, copy and legal review; this preset is starter configuration."
+				],
+				"reviewBy": "2026-12-15",
+				"reviewedOn": "2026-09-08",
+				"sources": [
+					"https://www.pdp.gov.my/ppdpv1/en/akta/pdp-act-2010-en/",
+					"https://www.pdp.gov.my/ppdpv1/en/akta/personal-data-protection-amendment-act-2024/",
+					"https://www.pdp.gov.my/ppdpv1/en/akta/personal-data-protection-general-practice/",
+					"https://www.pdp.gov.my/ppdpv1/wp-content/uploads/2026/04/Data-Protection-By-Design-Guideline-DpbD.pdf"
+				],
+				"status": "reviewed"
+			},
+			"validity": {
+				"choiceDays": 365
+			}
+		},
+		"malaysiaStatistics": {
+			"i18n": {
+				"messageProfile": "preferences"
+			},
+			"id": "malaysia_statistics",
+			"match": {
+				"countries": [
+					"MY"
+				]
+			},
+			"model": "opt-out",
+			"prompt": "none",
+			"review": {
+				"assumptions": [
+					"Only for processing whose reviewed basis permits it before a consent choice. This preset does not establish that basis.",
+					"Supply required information before processing and persistent refusal controls. A no-prompt setting does not remove those duties.",
+					"PDPA sections 2 and 3 govern applicability: commercial transactions, establishment or use of equipment in Malaysia, and the exclusion for overseas processing unless intended for further processing in Malaysia. Visitor location alone neither establishes nor rules out applicability; override the matcher for the actual processing scope.",
+					"PDPA section 45(2)(c) requires processing solely for statistics/research, no other use and nonidentifying published results. Advertising, profiling for other purposes and vendor reuse are excluded.",
+					"This is an exemption-based processing configuration, not implied consent obtained by dismissing a banner. Review every included measurement script. Security, Retention and Data Integrity Principles remain applicable.",
+					"365-day choice and notice validity are independent c15t product defaults, not legal requirements.",
+					"A refusal in the requested scope suppresses automatic choice prompts, including after policy changes or grant expiry. New, changed or expired opt-in purposes remain denied until the user opens preferences and grants them.",
+					"Equivalent default prominence for accept and reject is a c15t product invariant.",
+					"The controller owns processing facts, legal basis, copy and legal review; this preset is starter configuration."
+				],
+				"reviewBy": "2026-12-15",
+				"reviewedOn": "2026-09-08",
+				"sources": [
+					"https://www.pdp.gov.my/ppdpv1/wp-content/uploads/2024/07/UNDANG-UNDANG-MALAYSIA_AKTA_PERLINDUNGAN_DATA_PERIBADI_2010_709_MALAY_AND-ENG_V2022.pdf"
+				],
+				"status": "reviewed"
+			},
+			"validity": {
+				"choiceDays": 365
+			},
+			"categories": [
+				"measurement"
+			],
+			"scopeMode": "strict"
+		},
+		"philippinesOptIn": {
+			"id": "philippines_opt_in",
+			"match": {
+				"countries": [
+					"PH"
+				]
+			},
+			"model": "opt-in",
+			"prompt": "choice",
+			"review": {
+				"assumptions": [
+					"Optional categories stay denied until an explicit choice. Use this workflow for consent-based processing; other lawful bases and exemptions need their own configuration.",
+					"This country matcher does not determine territorial scope, sensitive-data rules, child protections, recipient-specific consent or cross-border transfer requirements.",
+					"Sections 12 and 13 distinguish lawful processing bases and sensitive-information conditions. This preset assumes consent for the configured optional purposes, not that consent is the only lawful basis.",
+					"Disclose specific purposes and recipients; a broad category label alone is not an informed consent notice.",
+					"365-day choice and notice validity are independent c15t product defaults, not legal requirements.",
+					"A refusal in the requested scope suppresses automatic choice prompts, including after policy changes or grant expiry. New, changed or expired opt-in purposes remain denied until the user opens preferences and grants them.",
+					"Equivalent default prominence for accept and reject is a c15t product invariant.",
+					"The controller owns processing facts, legal basis, copy and legal review; this preset is starter configuration."
+				],
+				"reviewBy": "2026-12-15",
+				"reviewedOn": "2026-09-08",
+				"sources": [
+					"https://privacy.gov.ph/data-privacy-act/",
+					"https://privacy.gov.ph/wp-content/uploads/2023/11/NPC-Circular-No.-2023-04_Guidelines-on-Consent_07Nov2023.pdf"
+				],
+				"status": "reviewed"
+			},
+			"validity": {
+				"choiceDays": 365
+			}
+		},
+		"quebecOptIn": {
+			"id": "quebec_opt_in",
+			"match": {
+				"regions": [
+					{
+						"country": "CA",
+						"region": "QC"
+					}
+				]
+			},
+			"model": "opt-in",
+			"prompt": "choice",
+			"proof": {
+				"storeIp": true,
+				"storeLanguage": true,
+				"storeUserAgent": true
+			},
+			"review": {
+				"assumptions": [
+					"Optional identification, location and profiling functions require prior information and activation under section 8.1. Classify technical operations separately.",
+					"The CAI consent guidelines describe validity criteria, including purpose-specific choice and duration; they do not establish a blanket cookie opt-in rule.",
+					"The Law 25 highest-privacy-default provision does not apply to cookie privacy settings; this preset makes no blanket opt-in claim from it.",
+					"365-day choice and notice validity are independent c15t product defaults, not legal requirements.",
+					"A refusal in the requested scope suppresses automatic choice prompts, including after policy changes or grant expiry. New, changed or expired opt-in purposes remain denied until the user opens preferences and grants them.",
+					"Equivalent default prominence for accept and reject is a c15t product invariant.",
+					"The controller owns processing facts, legal basis, copy and legal review; this preset is starter configuration."
+				],
+				"reviewBy": "2026-12-15",
+				"reviewedOn": "2026-09-08",
+				"sources": [
+					"https://www.cai.gouv.qc.ca/protection-renseignements-personnels/sujets-et-domaines-dinteret/principaux-changements-loi-25",
+					"https://www.cai.gouv.qc.ca/uploads/pdfs/CAI_Criteres_Validite_Consentement.pdf"
+				],
+				"status": "reviewed"
+			},
+			"validity": {
+				"choiceDays": 365
+			},
+			"legacyMaterial": {
+				"input": {
+					"consent": {
+						"expiryDays": 365,
+						"scopeMode": "permissive"
+					},
+					"model": "opt-in",
+					"proof": {
+						"storeIp": true,
+						"storeLanguage": true,
+						"storeUserAgent": true
+					},
+					"ui": {
+						"banner": {
+							"allowedActions": [
+								"accept",
+								"reject",
+								"customize"
+							],
+							"direction": "row",
+							"layout": [
+								[
+									"reject",
+									"accept"
+								],
+								[
+									"customize"
+								]
+							],
+							"primaryActions": [
+								"customize"
+							]
+						},
+						"dialog": {
+							"allowedActions": [
+								"accept",
+								"reject",
+								"customize"
+							],
+							"direction": "row",
+							"layout": [
+								[
+									"reject",
+									"accept"
+								],
+								[
+									"customize"
+								]
+							],
+							"primaryActions": [
+								"customize"
+							]
+						},
+						"mode": "banner"
+					}
+				},
+				"policyFingerprint": "8aca68633714c54fb0a96eaee313aa415ae0a3137e56764cf629a20793b2f969"
+			}
+		},
+		"saudiArabiaOptIn": {
+			"id": "saudi_arabia_opt_in",
+			"match": {
+				"countries": [
+					"SA"
+				]
+			},
+			"model": "opt-in",
+			"prompt": "choice",
+			"review": {
+				"assumptions": [
+					"Optional categories stay denied until an explicit choice. Use this workflow for consent-based processing; other lawful bases and exemptions need their own configuration.",
+					"This country matcher does not determine territorial scope, sensitive-data rules, child protections, recipient-specific consent or cross-border transfer requirements.",
+					"PDPL Article 26 and Implementing Regulation Article 29 require consent for covered marketing, with refusal available afterward. An assessed Article 16 basis may cover expected nonsensitive analytics; this preset uses consent.",
+					"365-day choice and notice validity are independent c15t product defaults, not legal requirements.",
+					"A refusal in the requested scope suppresses automatic choice prompts, including after policy changes or grant expiry. New, changed or expired opt-in purposes remain denied until the user opens preferences and grants them.",
+					"Equivalent default prominence for accept and reject is a c15t product invariant.",
+					"The controller owns processing facts, legal basis, copy and legal review; this preset is starter configuration."
+				],
+				"reviewBy": "2026-12-15",
+				"reviewedOn": "2026-09-08",
+				"sources": [
+					"https://sdaia.gov.sa/en/SDAIA/about/Documents/ImplementingRegulation.pdf"
+				],
+				"status": "reviewed"
+			},
+			"validity": {
+				"choiceDays": 365
+			}
+		},
+		"singaporeOptIn": {
+			"id": "singapore_opt_in",
+			"match": {
+				"countries": [
+					"SG"
+				]
+			},
+			"model": "opt-in",
+			"prompt": "choice",
+			"review": {
+				"assumptions": [
+					"Optional categories stay denied until an explicit choice. Use this workflow for consent-based processing; other lawful bases and exemptions need their own configuration.",
+					"This country matcher does not determine territorial scope, sensitive-data rules, child protections, recipient-specific consent or cross-border transfer requirements.",
+					"Nonpersonal processing and assessed exceptions can avoid consent requests. Personal-data ad targeting requires consent under PDPC cookie guidance.",
+					"Deemed consent by notification requires an assessment and a reasonable opt-out period. This preset uses explicit choice and does not implement that route.",
+					"365-day choice and notice validity are independent c15t product defaults, not legal requirements.",
+					"A refusal in the requested scope suppresses automatic choice prompts, including after policy changes or grant expiry. New, changed or expired opt-in purposes remain denied until the user opens preferences and grants them.",
+					"Equivalent default prominence for accept and reject is a c15t product invariant.",
+					"The controller owns processing facts, legal basis, copy and legal review; this preset is starter configuration."
+				],
+				"reviewBy": "2026-12-15",
+				"reviewedOn": "2026-09-08",
+				"sources": [
+					"https://www.pdpc.gov.sg/-/media/files/pdpc/pdf-files/advisory-guidelines/ag-on-selected-topics/advisory-guidelines-on-the-pdpa-for-selected-topics-(revised-may-2024).pdf",
+					"https://www.pdpc.gov.sg/-/media/files/pdpc/pdf-files/advisory-guidelines/ag-on-key-concepts/advisory-guidelines-on-key-concepts-in-the-pdpa-17-may-2022.pdf"
+				],
+				"status": "reviewed"
+			},
+			"validity": {
+				"choiceDays": 365
+			}
+		},
+		"southKoreaOptIn": {
+			"id": "south_korea_opt_in",
+			"match": {
+				"countries": [
+					"KR"
+				]
+			},
+			"model": "opt-in",
+			"prompt": "choice",
+			"review": {
+				"assumptions": [
+					"Optional categories stay denied until an explicit choice. Use this workflow for consent-based processing; other lawful bases and exemptions need their own configuration.",
+					"This country matcher does not determine territorial scope, sensitive-data rules, child protections, recipient-specific consent or cross-border transfer requirements.",
+					"PIPA permits multiple processing bases. When relying on consent, purpose disclosures, optional consent and third-party provision need their own assessment; category toggles do not establish those facts.",
+					"365-day choice and notice validity are independent c15t product defaults, not legal requirements.",
+					"A refusal in the requested scope suppresses automatic choice prompts, including after policy changes or grant expiry. New, changed or expired opt-in purposes remain denied until the user opens preferences and grants them.",
+					"Equivalent default prominence for accept and reject is a c15t product invariant.",
+					"The controller owns processing facts, legal basis, copy and legal review; this preset is starter configuration."
+				],
+				"reviewBy": "2026-12-15",
+				"reviewedOn": "2026-09-08",
+				"sources": [
+					"https://elaw.klri.re.kr/eng_service/lawViewContent.do?hseq=71740"
+				],
+				"status": "reviewed"
+			},
+			"validity": {
+				"choiceDays": 365
+			}
+		},
+		"switzerlandOptIn": {
+			"id": "switzerland_opt_in",
+			"match": {
+				"countries": [
+					"CH"
+				]
+			},
+			"model": "opt-in",
+			"prompt": "choice",
+			"review": {
+				"assumptions": [
+					"Optional categories stay denied until an explicit choice. Use this workflow for consent-based processing; other lawful bases and exemptions need their own configuration.",
+					"This country matcher does not determine territorial scope, sensitive-data rules, child protections, recipient-specific consent or cross-border transfer requirements.",
+					"Use this variant for optional tracking relying on consent, including highly intrusive or high-risk profiling. FDPIC guidance distinguishes these uses from lower-risk information-and-opt-out cases.",
+					"Assess sensitive data, profiling, third-party tracking and transfers separately; the CH matcher alone cannot establish a justification for processing.",
+					"365-day choice and notice validity are independent c15t product defaults, not legal requirements.",
+					"A refusal in the requested scope suppresses automatic choice prompts, including after policy changes or grant expiry. New, changed or expired opt-in purposes remain denied until the user opens preferences and grants them.",
+					"Equivalent default prominence for accept and reject is a c15t product invariant.",
+					"The controller owns processing facts, legal basis, copy and legal review; this preset is starter configuration."
+				],
+				"reviewBy": "2026-12-15",
+				"reviewedOn": "2026-09-08",
+				"sources": [
+					"https://www.edoeb.admin.ch/en/cookie-guidelines-updated-version"
+				],
+				"status": "reviewed"
+			},
+			"validity": {
+				"choiceDays": 365
+			}
+		},
+		"switzerlandOptOutNoPrompt": {
+			"i18n": {
+				"messageProfile": "preferences"
+			},
+			"id": "switzerland_opt_out_no_prompt",
+			"match": {
+				"countries": [
+					"CH"
+				]
+			},
+			"model": "opt-out",
+			"prompt": "none",
+			"review": {
+				"assumptions": [
+					"Only for processing with a reviewed justification that does not require prior consent. Unexpected low-intrusion uses require notice prominent enough that first-time visitors cannot ignore it.",
+					"The host must provide the required information before processing and a persistent, accessible way to refuse. No prompt does not mean no disclosure.",
+					"Do not use this variant for high-risk profiling, third-party advertising networks or unexpected tracking on political, religious or trade-union sites. This preset excludes these cases; assess them separately and use switzerlandOptIn for lawful consent-based processing.",
+					"This preset does not map GPC or establish a US sale-or-sharing right. Use a preferences control labelled for the actual processing.",
+					"365-day choice and notice validity are independent c15t product defaults, not legal requirements.",
+					"A refusal in the requested scope suppresses automatic choice prompts, including after policy changes or grant expiry. New, changed or expired opt-in purposes remain denied until the user opens preferences and grants them.",
+					"Equivalent default prominence for accept and reject is a c15t product invariant.",
+					"The controller owns processing facts, legal basis, copy and legal review; this preset is starter configuration."
+				],
+				"reviewBy": "2026-12-15",
+				"reviewedOn": "2026-09-08",
+				"sources": [
+					"https://www.edoeb.admin.ch/en/cookie-guidelines-updated-version"
+				],
+				"status": "reviewed"
+			},
+			"rights": [
+				"preferences"
+			],
+			"validity": {
+				"choiceDays": 365
+			}
+		},
+		"thailandOptIn": {
+			"id": "thailand_opt_in",
+			"match": {
+				"countries": [
+					"TH"
+				]
+			},
+			"model": "opt-in",
+			"prompt": "choice",
+			"review": {
+				"assumptions": [
+					"Optional categories stay denied until an explicit choice. Use this workflow for consent-based processing; other lawful bases and exemptions need their own configuration.",
+					"This country matcher does not determine territorial scope, sensitive-data rules, child protections, recipient-specific consent or cross-border transfer requirements.",
+					"PDPA section 19 requires informed, freely given consent and accessible withdrawal when consent is the basis. Sections 24 and 26 provide other bases and sensitive-data conditions.",
+					"Describe each consent purpose separately. Optional tracking must not be a condition for unrelated service.",
+					"365-day choice and notice validity are independent c15t product defaults, not legal requirements.",
+					"A refusal in the requested scope suppresses automatic choice prompts, including after policy changes or grant expiry. New, changed or expired opt-in purposes remain denied until the user opens preferences and grants them.",
+					"Equivalent default prominence for accept and reject is a c15t product invariant.",
+					"The controller owns processing facts, legal basis, copy and legal review; this preset is starter configuration."
+				],
+				"reviewBy": "2026-12-15",
+				"reviewedOn": "2026-09-08",
+				"sources": [
+					"https://www.etda.or.th/getattachment/e820df2c-848f-4e03-86cb-a9dad38cc713/ENG-Version.aspx"
+				],
+				"status": "reviewed"
+			},
+			"validity": {
+				"choiceDays": 365
+			}
+		},
+		"turkeyOptIn": {
+			"id": "turkey_opt_in",
+			"match": {
+				"countries": [
+					"TR"
+				]
+			},
+			"model": "opt-in",
+			"prompt": "choice",
+			"review": {
+				"assumptions": [
+					"Optional categories stay denied until an explicit choice. Use this workflow for consent-based processing; other lawful bases and exemptions need their own configuration.",
+					"This country matcher does not determine territorial scope, sensitive-data rules, child protections, recipient-specific consent or cross-border transfer requirements.",
+					"KVKK decision 2022/1358 requires opt-in for non-essential cookies when another applicable processing condition is absent. Necessary cookies are assessed separately.",
+					"This preset relies on consent for optional purposes; disclosures, sensitive-data conditions and overseas transfers require separate assessment.",
+					"365-day choice and notice validity are independent c15t product defaults, not legal requirements.",
+					"A refusal in the requested scope suppresses automatic choice prompts, including after policy changes or grant expiry. New, changed or expired opt-in purposes remain denied until the user opens preferences and grants them.",
+					"Equivalent default prominence for accept and reject is a c15t product invariant.",
+					"The controller owns processing facts, legal basis, copy and legal review; this preset is starter configuration."
+				],
+				"reviewBy": "2026-12-15",
+				"reviewedOn": "2026-09-08",
+				"sources": [
+					"https://www.kvkk.gov.tr/Icerik/7595/2022-1358",
+					"https://www.kvkk.gov.tr/Icerik/6649/Personal-Data-Protection-Law"
+				],
+				"status": "reviewed"
+			},
+			"validity": {
+				"choiceDays": 365
+			}
+		},
+		"uaeOptIn": {
+			"id": "uae_opt_in",
+			"match": {
+				"countries": [
+					"AE"
+				]
+			},
+			"model": "opt-in",
+			"prompt": "choice",
+			"review": {
+				"assumptions": [
+					"Optional categories stay denied until an explicit choice. Use this workflow for consent-based processing; other lawful bases and exemptions need their own configuration.",
+					"This country matcher does not determine territorial scope, sensitive-data rules, child protections, recipient-specific consent or cross-border transfer requirements.",
+					"Federal Decree-Law 45/2021 provides consent and specific exceptions, not a general legitimate-interest basis. The AE location matcher does not select DIFC or ADGM business regimes.",
+					"Executive-regulation issuance and the resulting compliance transition were not established in this source review. Verify current federal applicability before deployment.",
+					"365-day choice and notice validity are independent c15t product defaults, not legal requirements.",
+					"A refusal in the requested scope suppresses automatic choice prompts, including after policy changes or grant expiry. New, changed or expired opt-in purposes remain denied until the user opens preferences and grants them.",
+					"Equivalent default prominence for accept and reject is a c15t product invariant.",
+					"The controller owns processing facts, legal basis, copy and legal review; this preset is starter configuration."
+				],
+				"reviewBy": "2026-12-15",
+				"reviewedOn": "2026-09-08",
+				"sources": [
+					"https://www.uaelegislation.gov.ae/en/legislations/1972/download"
+				],
+				"status": "reviewed"
+			},
+			"validity": {
+				"choiceDays": 365
+			}
+		},
+		"ukStatistics": {
+			"i18n": {
+				"messageProfile": "preferences"
+			},
+			"id": "uk_statistics",
+			"match": {
+				"countries": [
+					"GB"
+				]
+			},
+			"model": "opt-out",
+			"prompt": "none",
+			"review": {
+				"assumptions": [
+					"Only for processing whose reviewed basis permits it before a consent choice. This preset does not establish that basis.",
+					"Supply required information before processing and persistent refusal controls. A no-prompt setting does not remove those duties.",
+					"PECR Schedule A1 paragraph 5 requires service-improvement statistics as the sole purpose, limits sharing to assistance with those improvements, and requires information plus a free, simple objection mechanism. Paragraph 5(2) excludes collecting or monitoring automatically emitted device information, such as Wi-Fi probe requests.",
+					"ICO guidance limits this route to aggregate service statistics: no advertising, retained individual histories, cross-site tracking or vendor reuse. A provider must act only as a processor for this purpose. Personal-data processing still needs a UK GDPR lawful basis.",
+					"Provide clear information and a simple free objection mechanism. Every measurement script must meet these conditions; category membership alone is insufficient.",
+					"365-day choice and notice validity are independent c15t product defaults, not legal requirements.",
+					"A refusal in the requested scope suppresses automatic choice prompts, including after policy changes or grant expiry. New, changed or expired opt-in purposes remain denied until the user opens preferences and grants them.",
+					"Equivalent default prominence for accept and reject is a c15t product invariant.",
+					"The controller owns processing facts, legal basis, copy and legal review; this preset is starter configuration."
+				],
+				"reviewBy": "2026-12-15",
+				"reviewedOn": "2026-09-08",
+				"sources": [
+					"https://www.legislation.gov.uk/uksi/2003/2426/schedule/A1",
+					"https://ico.org.uk/for-organisations/direct-marketing-and-privacy-and-electronic-communications/guidance-on-the-use-of-storage-and-access-technologies/what-are-the-exceptions/"
+				],
+				"status": "reviewed"
+			},
+			"validity": {
+				"choiceDays": 365
+			},
+			"categories": [
+				"measurement"
+			],
+			"scopeMode": "strict"
+		},
+		"usPrivacyStatesOptIn": {
+			"id": "us_privacy_states_opt_in",
+			"match": {
+				"regions": [
+					{
+						"country": "US",
+						"region": "CA"
+					},
+					{
+						"country": "US",
+						"region": "CO"
+					},
+					{
+						"country": "US",
+						"region": "CT"
+					},
+					{
+						"country": "US",
+						"region": "DE"
+					},
+					{
+						"country": "US",
+						"region": "FL"
+					},
+					{
+						"country": "US",
+						"region": "IA"
+					},
+					{
+						"country": "US",
+						"region": "IN"
+					},
+					{
+						"country": "US",
+						"region": "KY"
+					},
+					{
+						"country": "US",
+						"region": "MD"
+					},
+					{
+						"country": "US",
+						"region": "MN"
+					},
+					{
+						"country": "US",
+						"region": "MT"
+					},
+					{
+						"country": "US",
+						"region": "NE"
+					},
+					{
+						"country": "US",
+						"region": "NH"
+					},
+					{
+						"country": "US",
+						"region": "NJ"
+					},
+					{
+						"country": "US",
+						"region": "OR"
+					},
+					{
+						"country": "US",
+						"region": "RI"
+					},
+					{
+						"country": "US",
+						"region": "TN"
+					},
+					{
+						"country": "US",
+						"region": "TX"
+					},
+					{
+						"country": "US",
+						"region": "UT"
+					},
+					{
+						"country": "US",
+						"region": "VA"
+					}
+				]
+			},
+			"model": "opt-in",
+			"privacySignals": {
+				"gpc": {
+					"denyCategories": [
+						"marketing",
+						"measurement"
+					]
+				}
+			},
+			"prompt": "choice",
+			"review": {
+				"assumptions": [
+					"Curated coverage of 20 states as of 8 September 2026, including the narrower Florida law. Applicability thresholds and exemptions differ; location alone does not determine applicability.",
+					"These variants cover ordinary adult, non-sensitive processing. Child protections, sensitive-data consent or prohibitions, assessments and appeal workflows need separate implementation.",
+					"Optional categories stay denied until an explicit choice. Opt-in is a deployment choice, not a claim that every covered state requires it.",
+					"GPC denies marketing and measurement across the group as a conservative product mapping, not a claim that every state mandates GPC or all measurement is sale, sharing or targeted advertising.",
+					"The referenced GPC specification is a Working Draft, not a final Recommendation. Removing the signal does not withdraw a recorded opt-out.",
+					"Maryland collection minimization and sensitive-data/minor prohibitions require separate processing controls. Connecticut prohibits sale and targeted advertising using minors data from 1 July 2026. Consent cannot waive these limits.",
+					"Louisiana and Oklahoma start 1 January 2027, Alabama 1 May 2027 and Vermont 1 January 2028. These future laws are excluded from the current group. Nevada sale opt-outs and sector laws also apply outside it.",
+					"365-day choice and notice validity are independent c15t product defaults, not legal requirements.",
+					"A refusal in the requested scope suppresses automatic choice prompts, including after policy changes or grant expiry. New, changed or expired opt-in purposes remain denied until the user opens preferences and grants them.",
+					"Equivalent default prominence for accept and reject is a c15t product invariant.",
+					"The controller owns processing facts, legal basis, copy and legal review; this preset is starter configuration."
+				],
+				"reviewBy": "2026-12-15",
+				"reviewedOn": "2026-09-08",
+				"sources": [
+					"https://oag.ca.gov/privacy/ccpa",
+					"https://coag.gov/resources/colorado-privacy-act/",
+					"https://www.flsenate.gov/Laws/Statutes/2025/501.702",
+					"https://mgaleg.maryland.gov/mgawebsite/Laws/StatuteText?article=gcl&section=14-4707&enactments=false",
+					"https://www.ag.ky.gov/about/Office-Divisions/ODP/KCDPA/Pages/default.aspx",
+					"https://www.in.gov/attorneygeneral/files/Consumer_Data-Bill-of-Rights.pdf",
+					"https://webserver.rilegislature.gov/Statutes/TITLE6/6-48.1/INDEX.htm",
+					"https://www.legis.la.gov/legis/BillInfo.aspx?b=SB386&s=26RS&sbi=y",
+					"https://legislature.vermont.gov/Documents/2026/Docs/ACTS/ACT145/ACT145%20Act%20Summary.pdf",
+					"https://portal.ct.gov/ag/sections/privacy/the-connecticut-data-privacy-act",
+					"https://www.w3.org/TR/2026/WD-gpc-20260611/"
+				],
+				"status": "reviewed"
+			},
+			"validity": {
+				"choiceDays": 365
+			}
+		},
+		"usPrivacyStatesOptOut": {
+			"id": "us_privacy_states_opt_out",
+			"match": {
+				"regions": [
+					{
+						"country": "US",
+						"region": "CA"
+					},
+					{
+						"country": "US",
+						"region": "CO"
+					},
+					{
+						"country": "US",
+						"region": "CT"
+					},
+					{
+						"country": "US",
+						"region": "DE"
+					},
+					{
+						"country": "US",
+						"region": "FL"
+					},
+					{
+						"country": "US",
+						"region": "IA"
+					},
+					{
+						"country": "US",
+						"region": "IN"
+					},
+					{
+						"country": "US",
+						"region": "KY"
+					},
+					{
+						"country": "US",
+						"region": "MD"
+					},
+					{
+						"country": "US",
+						"region": "MN"
+					},
+					{
+						"country": "US",
+						"region": "MT"
+					},
+					{
+						"country": "US",
+						"region": "NE"
+					},
+					{
+						"country": "US",
+						"region": "NH"
+					},
+					{
+						"country": "US",
+						"region": "NJ"
+					},
+					{
+						"country": "US",
+						"region": "OR"
+					},
+					{
+						"country": "US",
+						"region": "RI"
+					},
+					{
+						"country": "US",
+						"region": "TN"
+					},
+					{
+						"country": "US",
+						"region": "TX"
+					},
+					{
+						"country": "US",
+						"region": "UT"
+					},
+					{
+						"country": "US",
+						"region": "VA"
+					}
+				]
+			},
+			"model": "opt-out",
+			"privacySignals": {
+				"gpc": {
+					"denyCategories": [
+						"marketing",
+						"measurement"
+					]
+				}
+			},
+			"prompt": "none",
+			"review": {
+				"assumptions": [
+					"Curated coverage of 20 states as of 8 September 2026, including the narrower Florida law. Applicability thresholds and exemptions differ; location alone does not determine applicability.",
+					"These variants cover ordinary adult, non-sensitive processing. Child protections, sensitive-data consent or prohibitions, assessments and appeal workflows need separate implementation.",
+					"No automatic banner. Supply timely disclosures and persistent opt-out controls; an optional notice dismissal records no consent.",
+					"GPC denies marketing and measurement across the group as a conservative product mapping, not a claim that every state mandates GPC or all measurement is sale, sharing or targeted advertising.",
+					"The referenced GPC specification is a Working Draft, not a final Recommendation. Removing the signal does not withdraw a recorded opt-out.",
+					"Maryland collection minimization and sensitive-data/minor prohibitions require separate processing controls. Connecticut prohibits sale and targeted advertising using minors data from 1 July 2026. Consent cannot waive these limits.",
+					"Louisiana and Oklahoma start 1 January 2027, Alabama 1 May 2027 and Vermont 1 January 2028. These future laws are excluded from the current group. Nevada sale opt-outs and sector laws also apply outside it.",
+					"365-day choice and notice validity are independent c15t product defaults, not legal requirements.",
+					"A refusal in the requested scope suppresses automatic choice prompts, including after policy changes or grant expiry. New, changed or expired opt-in purposes remain denied until the user opens preferences and grants them.",
+					"Equivalent default prominence for accept and reject is a c15t product invariant.",
+					"The controller owns processing facts, legal basis, copy and legal review; this preset is starter configuration."
+				],
+				"reviewBy": "2026-12-15",
+				"reviewedOn": "2026-09-08",
+				"sources": [
+					"https://oag.ca.gov/privacy/ccpa",
+					"https://coag.gov/resources/colorado-privacy-act/",
+					"https://www.flsenate.gov/Laws/Statutes/2025/501.702",
+					"https://mgaleg.maryland.gov/mgawebsite/Laws/StatuteText?article=gcl&section=14-4707&enactments=false",
+					"https://www.ag.ky.gov/about/Office-Divisions/ODP/KCDPA/Pages/default.aspx",
+					"https://www.in.gov/attorneygeneral/files/Consumer_Data-Bill-of-Rights.pdf",
+					"https://webserver.rilegislature.gov/Statutes/TITLE6/6-48.1/INDEX.htm",
+					"https://www.legis.la.gov/legis/BillInfo.aspx?b=SB386&s=26RS&sbi=y",
+					"https://legislature.vermont.gov/Documents/2026/Docs/ACTS/ACT145/ACT145%20Act%20Summary.pdf",
+					"https://portal.ct.gov/ag/sections/privacy/the-connecticut-data-privacy-act",
+					"https://www.w3.org/TR/2026/WD-gpc-20260611/"
+				],
+				"status": "reviewed"
+			},
+			"validity": {
+				"choiceDays": 365,
+				"noticeDays": 365
+			}
+		},
+		"vietnamOptIn": {
+			"id": "vietnam_opt_in",
+			"match": {
+				"countries": [
+					"VN"
+				]
+			},
+			"model": "opt-in",
+			"prompt": "choice",
+			"review": {
+				"assumptions": [
+					"Optional categories stay denied until an explicit choice. Use this workflow for consent-based processing; other lawful bases and exemptions need their own configuration.",
+					"This country matcher does not determine territorial scope, sensitive-data rules, child protections, recipient-specific consent or cross-border transfer requirements.",
+					"Law 91/2025/QH15 and Decree 356/2025 took effect on 1 January 2026. Article 28(8) requires consent before behavioral/personalized advertising; Decree Article 6 rejects default consent and requires evidence.",
+					"Keep distinct purposes separately selectable. This category preset does not implement processing impact assessments, transfer duties or platform-specific tracking obligations.",
+					"365-day choice and notice validity are independent c15t product defaults, not legal requirements.",
+					"A refusal in the requested scope suppresses automatic choice prompts, including after policy changes or grant expiry. New, changed or expired opt-in purposes remain denied until the user opens preferences and grants them.",
+					"Equivalent default prominence for accept and reject is a c15t product invariant.",
+					"The controller owns processing facts, legal basis, copy and legal review; this preset is starter configuration."
+				],
+				"reviewBy": "2026-12-15",
+				"reviewedOn": "2026-09-08",
+				"sources": [
+					"https://vanban.chinhphu.vn/?classid=1&docid=214590&pageid=27160&typegroup=",
+					"https://datafiles.chinhphu.vn/cpp/files/vbpq/2025/7/91qh.signed.pdf",
+					"https://datafiles.chinhphu.vn/cpp/files/vbpq/2026/01/356-nd.signed.pdf"
+				],
+				"status": "reviewed"
+			},
+			"validity": {
+				"choiceDays": 365
+			}
+		},
+		"worldNone": {
+			"id": "world_none",
+			"match": {
+				"isDefault": true
+			},
+			"model": "none",
+			"prompt": "none",
+			"proof": {
+				"storeIp": false,
+				"storeLanguage": false,
+				"storeUserAgent": false
+			},
+			"review": {
+				"assumptions": [
+					"Applies where no consent law grants the visitor rights over the optional categories, so no prompt, control or acknowledgement is owed.",
+					"Matches known locations no other rule covers. The matcher dataset is finite and does not establish that an unlisted location has no privacy law; review the locations your traffic actually comes from.",
+					"No GPC mapping; add privacySignals.gpc where the deployment honors the signal anyway.",
+					"365-day choice and notice validity are independent c15t product defaults, not legal requirements.",
+					"A refusal in the requested scope suppresses automatic choice prompts, including after policy changes or grant expiry. New, changed or expired opt-in purposes remain denied until the user opens preferences and grants them.",
+					"Equivalent default prominence for accept and reject is a c15t product invariant.",
+					"The controller owns processing facts, legal basis, copy and legal review; this preset is starter configuration."
+				],
+				"reviewBy": "2026-12-15",
+				"status": "pending"
+			}
+		},
+		"worldOptOutNoPrompt": {
+			"i18n": {
+				"messageProfile": "preferences"
+			},
+			"id": "world_opt_out_no_prompt",
+			"match": {
+				"isDefault": true
+			},
+			"model": "opt-out",
+			"prompt": "none",
+			"proof": {
+				"storeIp": false,
+				"storeLanguage": false,
+				"storeUserAgent": true
+			},
+			"review": {
+				"assumptions": [
+					"Intentional allow-by-default configuration with no first-layer prompt. Disclosure, preferences and the opt-out right stay reachable.",
+					"Include this rule explicitly only after reviewing locations not covered by the pack. The matcher dataset is finite and does not establish that an unlisted location has no privacy law.",
+					"This is controller configuration, never the runtime fallback for a failed or unmatched resolution.",
+					"No GPC mapping; add privacySignals.gpc where the deployment honors the signal.",
+					"365-day choice and notice validity are independent c15t product defaults, not legal requirements.",
+					"A refusal in the requested scope suppresses automatic choice prompts, including after policy changes or grant expiry. New, changed or expired opt-in purposes remain denied until the user opens preferences and grants them.",
+					"Equivalent default prominence for accept and reject is a c15t product invariant.",
+					"The controller owns processing facts, legal basis, copy and legal review; this preset is starter configuration."
+				],
+				"reviewBy": "2026-12-15",
+				"reviewedOn": "2026-09-08",
+				"sources": [],
+				"status": "reviewed"
+			},
+			"rights": [
+				"preferences"
+			],
+			"validity": {
+				"choiceDays": 365,
+				"noticeDays": 365
+			},
+			"legacyMaterial": {
+				"input": {
+					"consent": {
+						"scopeMode": "permissive"
+					},
+					"model": "none",
+					"proof": {
+						"storeIp": false,
+						"storeLanguage": false,
+						"storeUserAgent": true
+					},
+					"ui": {
+						"mode": "none"
+					}
+				},
+				"policyFingerprint": "92e599db3379c3b0a47db142ab9bc4d4a33e4b019ce2cd7a524528dee5fa93a4"
+			}
+		}
+	},
+	"recommended": {
+		"default": [
+			{
+				"id": "europe_opt_in",
+				"match": {
+					"countries": [
+						"AX",
+						"GF",
+						"GP",
+						"MQ",
+						"MF",
+						"RE",
+						"YT",
+						"AT",
+						"BE",
+						"BG",
+						"HR",
+						"CY",
+						"CZ",
+						"DK",
+						"EE",
+						"FI",
+						"FR",
+						"DE",
+						"GR",
+						"HU",
+						"IE",
+						"IT",
+						"LV",
+						"LT",
+						"LU",
+						"MT",
+						"NL",
+						"PL",
+						"PT",
+						"RO",
+						"SK",
+						"SI",
+						"ES",
+						"SE",
+						"IS",
+						"LI",
+						"NO",
+						"GB",
+						"GI"
+					],
+					"fallback": true
+				},
+				"model": "opt-in",
+				"prompt": "choice",
+				"proof": {
+					"storeIp": true,
+					"storeLanguage": true,
+					"storeUserAgent": true
+				},
+				"review": {
+					"assumptions": [
+						"Optional categories stay denied until an explicit choice; consent is never inferred from inactivity.",
+						"Covers consent-requiring processing in the EEA, UK and Gibraltar, including separately geocoded EU territories. National analytics exemptions need separate scoped configurations.",
+						"Used as the geo fallback so an unknown location gets the strictest configured behavior.",
+						"365-day choice and notice validity are independent c15t product defaults, not legal requirements.",
+						"A refusal in the requested scope suppresses automatic choice prompts, including after policy changes or grant expiry. New, changed or expired opt-in purposes remain denied until the user opens preferences and grants them.",
+						"Equivalent default prominence for accept and reject is a c15t product invariant.",
+						"The controller owns processing facts, legal basis, copy and legal review; this preset is starter configuration."
+					],
+					"reviewBy": "2026-12-15",
+					"reviewedOn": "2026-09-08",
+					"sources": [
+						"https://ico.org.uk/for-organisations/direct-marketing-and-privacy-and-electronic-communications/guidance-on-the-use-of-storage-and-access-technologies/what-are-the-exceptions/",
+						"https://www.edpb.europa.eu/sites/default/files/files/file1/edpb_guidelines_202005_consent_en.pdf",
+						"https://www.gra.gi/uploads/documents/data-protection/Documents/Guidance/GN28%20Cookies.pdf"
+					],
+					"status": "reviewed"
+				},
+				"validity": {
+					"choiceDays": 365
+				},
+				"legacyMaterial": {
+					"input": {
+						"consent": {
+							"expiryDays": 365,
+							"scopeMode": "permissive"
+						},
+						"model": "opt-in",
+						"proof": {
+							"storeIp": true,
+							"storeLanguage": true,
+							"storeUserAgent": true
+						},
+						"ui": {
+							"banner": {
+								"allowedActions": [
+									"accept",
+									"reject",
+									"customize"
+								],
+								"direction": "row",
+								"layout": [
+									[
+										"reject",
+										"accept"
+									],
+									[
+										"customize"
+									]
+								],
+								"primaryActions": [
+									"customize"
+								]
+							},
+							"dialog": {
+								"allowedActions": [
+									"accept",
+									"reject",
+									"customize"
+								],
+								"direction": "row",
+								"layout": [
+									[
+										"reject",
+										"accept"
+									],
+									[
+										"customize"
+									]
+								],
+								"primaryActions": [
+									"customize"
+								]
+							},
+							"mode": "banner"
+						}
+					},
+					"policyFingerprint": "8aca68633714c54fb0a96eaee313aa415ae0a3137e56764cf629a20793b2f969"
+				}
+			},
+			{
+				"id": "quebec_opt_in",
+				"match": {
+					"regions": [
+						{
+							"country": "CA",
+							"region": "QC"
+						}
+					]
+				},
+				"model": "opt-in",
+				"prompt": "choice",
+				"proof": {
+					"storeIp": true,
+					"storeLanguage": true,
+					"storeUserAgent": true
+				},
+				"review": {
+					"assumptions": [
+						"Optional identification, location and profiling functions require prior information and activation under section 8.1. Classify technical operations separately.",
+						"The CAI consent guidelines describe validity criteria, including purpose-specific choice and duration; they do not establish a blanket cookie opt-in rule.",
+						"The Law 25 highest-privacy-default provision does not apply to cookie privacy settings; this preset makes no blanket opt-in claim from it.",
+						"365-day choice and notice validity are independent c15t product defaults, not legal requirements.",
+						"A refusal in the requested scope suppresses automatic choice prompts, including after policy changes or grant expiry. New, changed or expired opt-in purposes remain denied until the user opens preferences and grants them.",
+						"Equivalent default prominence for accept and reject is a c15t product invariant.",
+						"The controller owns processing facts, legal basis, copy and legal review; this preset is starter configuration."
+					],
+					"reviewBy": "2026-12-15",
+					"reviewedOn": "2026-09-08",
+					"sources": [
+						"https://www.cai.gouv.qc.ca/protection-renseignements-personnels/sujets-et-domaines-dinteret/principaux-changements-loi-25",
+						"https://www.cai.gouv.qc.ca/uploads/pdfs/CAI_Criteres_Validite_Consentement.pdf"
+					],
+					"status": "reviewed"
+				},
+				"validity": {
+					"choiceDays": 365
+				},
+				"legacyMaterial": {
+					"input": {
+						"consent": {
+							"expiryDays": 365,
+							"scopeMode": "permissive"
+						},
+						"model": "opt-in",
+						"proof": {
+							"storeIp": true,
+							"storeLanguage": true,
+							"storeUserAgent": true
+						},
+						"ui": {
+							"banner": {
+								"allowedActions": [
+									"accept",
+									"reject",
+									"customize"
+								],
+								"direction": "row",
+								"layout": [
+									[
+										"reject",
+										"accept"
+									],
+									[
+										"customize"
+									]
+								],
+								"primaryActions": [
+									"customize"
+								]
+							},
+							"dialog": {
+								"allowedActions": [
+									"accept",
+									"reject",
+									"customize"
+								],
+								"direction": "row",
+								"layout": [
+									[
+										"reject",
+										"accept"
+									],
+									[
+										"customize"
+									]
+								],
+								"primaryActions": [
+									"customize"
+								]
+							},
+							"mode": "banner"
+						}
+					},
+					"policyFingerprint": "8aca68633714c54fb0a96eaee313aa415ae0a3137e56764cf629a20793b2f969"
+				}
+			},
+			{
+				"id": "us_privacy_states_opt_out",
+				"match": {
+					"regions": [
+						{
+							"country": "US",
+							"region": "CA"
+						},
+						{
+							"country": "US",
+							"region": "CO"
+						},
+						{
+							"country": "US",
+							"region": "CT"
+						},
+						{
+							"country": "US",
+							"region": "DE"
+						},
+						{
+							"country": "US",
+							"region": "FL"
+						},
+						{
+							"country": "US",
+							"region": "IA"
+						},
+						{
+							"country": "US",
+							"region": "IN"
+						},
+						{
+							"country": "US",
+							"region": "KY"
+						},
+						{
+							"country": "US",
+							"region": "MD"
+						},
+						{
+							"country": "US",
+							"region": "MN"
+						},
+						{
+							"country": "US",
+							"region": "MT"
+						},
+						{
+							"country": "US",
+							"region": "NE"
+						},
+						{
+							"country": "US",
+							"region": "NH"
+						},
+						{
+							"country": "US",
+							"region": "NJ"
+						},
+						{
+							"country": "US",
+							"region": "OR"
+						},
+						{
+							"country": "US",
+							"region": "RI"
+						},
+						{
+							"country": "US",
+							"region": "TN"
+						},
+						{
+							"country": "US",
+							"region": "TX"
+						},
+						{
+							"country": "US",
+							"region": "UT"
+						},
+						{
+							"country": "US",
+							"region": "VA"
+						}
+					],
+					"regionFallbacks": [
+						"US"
+					]
+				},
+				"model": "opt-out",
+				"privacySignals": {
+					"gpc": {
+						"denyCategories": [
+							"marketing",
+							"measurement"
+						]
+					}
+				},
+				"prompt": "none",
+				"review": {
+					"assumptions": [
+						"Curated coverage of 20 states as of 8 September 2026, including the narrower Florida law. Applicability thresholds and exemptions differ; location alone does not determine applicability.",
+						"These variants cover ordinary adult, non-sensitive processing. Child protections, sensitive-data consent or prohibitions, assessments and appeal workflows need separate implementation.",
+						"No automatic banner. Supply timely disclosures and persistent opt-out controls; an optional notice dismissal records no consent.",
+						"GPC denies marketing and measurement across the group as a conservative product mapping, not a claim that every state mandates GPC or all measurement is sale, sharing or targeted advertising.",
+						"The referenced GPC specification is a Working Draft, not a final Recommendation. Removing the signal does not withdraw a recorded opt-out.",
+						"Maryland collection minimization and sensitive-data/minor prohibitions require separate processing controls. Connecticut prohibits sale and targeted advertising using minors data from 1 July 2026. Consent cannot waive these limits.",
+						"Louisiana and Oklahoma start 1 January 2027, Alabama 1 May 2027 and Vermont 1 January 2028. These future laws are excluded from the current group. Nevada sale opt-outs and sector laws also apply outside it.",
+						"365-day choice and notice validity are independent c15t product defaults, not legal requirements.",
+						"A refusal in the requested scope suppresses automatic choice prompts, including after policy changes or grant expiry. New, changed or expired opt-in purposes remain denied until the user opens preferences and grants them.",
+						"Equivalent default prominence for accept and reject is a c15t product invariant.",
+						"The controller owns processing facts, legal basis, copy and legal review; this preset is starter configuration."
+					],
+					"reviewBy": "2026-12-15",
+					"reviewedOn": "2026-09-08",
+					"sources": [
+						"https://oag.ca.gov/privacy/ccpa",
+						"https://coag.gov/resources/colorado-privacy-act/",
+						"https://www.flsenate.gov/Laws/Statutes/2025/501.702",
+						"https://mgaleg.maryland.gov/mgawebsite/Laws/StatuteText?article=gcl&section=14-4707&enactments=false",
+						"https://www.ag.ky.gov/about/Office-Divisions/ODP/KCDPA/Pages/default.aspx",
+						"https://www.in.gov/attorneygeneral/files/Consumer_Data-Bill-of-Rights.pdf",
+						"https://webserver.rilegislature.gov/Statutes/TITLE6/6-48.1/INDEX.htm",
+						"https://www.legis.la.gov/legis/BillInfo.aspx?b=SB386&s=26RS&sbi=y",
+						"https://legislature.vermont.gov/Documents/2026/Docs/ACTS/ACT145/ACT145%20Act%20Summary.pdf",
+						"https://portal.ct.gov/ag/sections/privacy/the-connecticut-data-privacy-act",
+						"https://www.w3.org/TR/2026/WD-gpc-20260611/"
+					],
+					"status": "reviewed"
+				},
+				"validity": {
+					"choiceDays": 365,
+					"noticeDays": 365
+				}
+			},
+			{
+				"id": "world_none",
+				"match": {
+					"isDefault": true
+				},
+				"model": "none",
+				"prompt": "none",
+				"proof": {
+					"storeIp": false,
+					"storeLanguage": false,
+					"storeUserAgent": false
+				},
+				"review": {
+					"assumptions": [
+						"Applies where no consent law grants the visitor rights over the optional categories, so no prompt, control or acknowledgement is owed.",
+						"Matches known locations no other rule covers. The matcher dataset is finite and does not establish that an unlisted location has no privacy law; review the locations your traffic actually comes from.",
+						"No GPC mapping; add privacySignals.gpc where the deployment honors the signal anyway.",
+						"365-day choice and notice validity are independent c15t product defaults, not legal requirements.",
+						"A refusal in the requested scope suppresses automatic choice prompts, including after policy changes or grant expiry. New, changed or expired opt-in purposes remain denied until the user opens preferences and grants them.",
+						"Equivalent default prominence for accept and reject is a c15t product invariant.",
+						"The controller owns processing facts, legal basis, copy and legal review; this preset is starter configuration."
+					],
+					"reviewBy": "2026-12-15",
+					"status": "pending"
+				}
+			}
+		],
+		"iab": [
+			{
+				"id": "europe_iab",
+				"match": {
+					"countries": [
+						"AX",
+						"GF",
+						"GP",
+						"MQ",
+						"MF",
+						"RE",
+						"YT",
+						"AT",
+						"BE",
+						"BG",
+						"HR",
+						"CY",
+						"CZ",
+						"DK",
+						"EE",
+						"FI",
+						"FR",
+						"DE",
+						"GR",
+						"HU",
+						"IE",
+						"IT",
+						"LV",
+						"LT",
+						"LU",
+						"MT",
+						"NL",
+						"PL",
+						"PT",
+						"RO",
+						"SK",
+						"SI",
+						"ES",
+						"SE",
+						"IS",
+						"LI",
+						"NO",
+						"GB",
+						"GI"
+					],
+					"fallback": true
+				},
+				"model": "iab",
+				"prompt": "choice",
+				"proof": {
+					"storeIp": true,
+					"storeLanguage": true,
+					"storeUserAgent": true
+				},
+				"review": {
+					"assumptions": [
+						"IAB TCF 2.4 under TCF Policies v5.0.b. TC strings are service-specific: c15t stores them per site and browser and does not sync them across devices.",
+						"Covers consent-requiring processing in the EEA, UK and Gibraltar, including separately geocoded EU territories. National analytics exemptions need separate scoped configurations.",
+						"Used as the geo fallback so an unknown location gets the strictest configured behavior.",
+						"365-day choice and notice validity are independent c15t product defaults, not legal requirements.",
+						"A refusal in the requested scope suppresses automatic choice prompts, including after policy changes or grant expiry. New, changed or expired opt-in purposes remain denied until the user opens preferences and grants them.",
+						"Equivalent default prominence for accept and reject is a c15t product invariant.",
+						"The controller owns processing facts, legal basis, copy and legal review; this preset is starter configuration."
+					],
+					"reviewBy": "2026-12-15",
+					"reviewedOn": "2026-09-08",
+					"sources": [
+						"https://ico.org.uk/for-organisations/direct-marketing-and-privacy-and-electronic-communications/guidance-on-the-use-of-storage-and-access-technologies/what-are-the-exceptions/",
+						"https://www.edpb.europa.eu/sites/default/files/files/file1/edpb_guidelines_202005_consent_en.pdf",
+						"https://www.gra.gi/uploads/documents/data-protection/Documents/Guidance/GN28%20Cookies.pdf"
+					],
+					"status": "reviewed"
+				},
+				"validity": {
+					"choiceDays": 365
+				},
+				"legacyMaterial": {
+					"input": {
+						"consent": {
+							"categories": [
+								"*"
+							],
+							"expiryDays": 365,
+							"scopeMode": "permissive"
+						},
+						"model": "iab",
+						"proof": {
+							"storeIp": true,
+							"storeLanguage": true,
+							"storeUserAgent": true
+						}
+					},
+					"policyFingerprint": "cbbf5d147ac468a745e188b4e4681e60a04debcbad2d0d5bc0fc618c31b06dae"
+				}
+			},
+			{
+				"id": "quebec_opt_in",
+				"match": {
+					"regions": [
+						{
+							"country": "CA",
+							"region": "QC"
+						}
+					]
+				},
+				"model": "opt-in",
+				"prompt": "choice",
+				"proof": {
+					"storeIp": true,
+					"storeLanguage": true,
+					"storeUserAgent": true
+				},
+				"review": {
+					"assumptions": [
+						"Optional identification, location and profiling functions require prior information and activation under section 8.1. Classify technical operations separately.",
+						"The CAI consent guidelines describe validity criteria, including purpose-specific choice and duration; they do not establish a blanket cookie opt-in rule.",
+						"The Law 25 highest-privacy-default provision does not apply to cookie privacy settings; this preset makes no blanket opt-in claim from it.",
+						"365-day choice and notice validity are independent c15t product defaults, not legal requirements.",
+						"A refusal in the requested scope suppresses automatic choice prompts, including after policy changes or grant expiry. New, changed or expired opt-in purposes remain denied until the user opens preferences and grants them.",
+						"Equivalent default prominence for accept and reject is a c15t product invariant.",
+						"The controller owns processing facts, legal basis, copy and legal review; this preset is starter configuration."
+					],
+					"reviewBy": "2026-12-15",
+					"reviewedOn": "2026-09-08",
+					"sources": [
+						"https://www.cai.gouv.qc.ca/protection-renseignements-personnels/sujets-et-domaines-dinteret/principaux-changements-loi-25",
+						"https://www.cai.gouv.qc.ca/uploads/pdfs/CAI_Criteres_Validite_Consentement.pdf"
+					],
+					"status": "reviewed"
+				},
+				"validity": {
+					"choiceDays": 365
+				},
+				"legacyMaterial": {
+					"input": {
+						"consent": {
+							"expiryDays": 365,
+							"scopeMode": "permissive"
+						},
+						"model": "opt-in",
+						"proof": {
+							"storeIp": true,
+							"storeLanguage": true,
+							"storeUserAgent": true
+						},
+						"ui": {
+							"banner": {
+								"allowedActions": [
+									"accept",
+									"reject",
+									"customize"
+								],
+								"direction": "row",
+								"layout": [
+									[
+										"reject",
+										"accept"
+									],
+									[
+										"customize"
+									]
+								],
+								"primaryActions": [
+									"customize"
+								]
+							},
+							"dialog": {
+								"allowedActions": [
+									"accept",
+									"reject",
+									"customize"
+								],
+								"direction": "row",
+								"layout": [
+									[
+										"reject",
+										"accept"
+									],
+									[
+										"customize"
+									]
+								],
+								"primaryActions": [
+									"customize"
+								]
+							},
+							"mode": "banner"
+						}
+					},
+					"policyFingerprint": "8aca68633714c54fb0a96eaee313aa415ae0a3137e56764cf629a20793b2f969"
+				}
+			},
+			{
+				"id": "us_privacy_states_opt_out",
+				"match": {
+					"regions": [
+						{
+							"country": "US",
+							"region": "CA"
+						},
+						{
+							"country": "US",
+							"region": "CO"
+						},
+						{
+							"country": "US",
+							"region": "CT"
+						},
+						{
+							"country": "US",
+							"region": "DE"
+						},
+						{
+							"country": "US",
+							"region": "FL"
+						},
+						{
+							"country": "US",
+							"region": "IA"
+						},
+						{
+							"country": "US",
+							"region": "IN"
+						},
+						{
+							"country": "US",
+							"region": "KY"
+						},
+						{
+							"country": "US",
+							"region": "MD"
+						},
+						{
+							"country": "US",
+							"region": "MN"
+						},
+						{
+							"country": "US",
+							"region": "MT"
+						},
+						{
+							"country": "US",
+							"region": "NE"
+						},
+						{
+							"country": "US",
+							"region": "NH"
+						},
+						{
+							"country": "US",
+							"region": "NJ"
+						},
+						{
+							"country": "US",
+							"region": "OR"
+						},
+						{
+							"country": "US",
+							"region": "RI"
+						},
+						{
+							"country": "US",
+							"region": "TN"
+						},
+						{
+							"country": "US",
+							"region": "TX"
+						},
+						{
+							"country": "US",
+							"region": "UT"
+						},
+						{
+							"country": "US",
+							"region": "VA"
+						}
+					],
+					"regionFallbacks": [
+						"US"
+					]
+				},
+				"model": "opt-out",
+				"privacySignals": {
+					"gpc": {
+						"denyCategories": [
+							"marketing",
+							"measurement"
+						]
+					}
+				},
+				"prompt": "none",
+				"review": {
+					"assumptions": [
+						"Curated coverage of 20 states as of 8 September 2026, including the narrower Florida law. Applicability thresholds and exemptions differ; location alone does not determine applicability.",
+						"These variants cover ordinary adult, non-sensitive processing. Child protections, sensitive-data consent or prohibitions, assessments and appeal workflows need separate implementation.",
+						"No automatic banner. Supply timely disclosures and persistent opt-out controls; an optional notice dismissal records no consent.",
+						"GPC denies marketing and measurement across the group as a conservative product mapping, not a claim that every state mandates GPC or all measurement is sale, sharing or targeted advertising.",
+						"The referenced GPC specification is a Working Draft, not a final Recommendation. Removing the signal does not withdraw a recorded opt-out.",
+						"Maryland collection minimization and sensitive-data/minor prohibitions require separate processing controls. Connecticut prohibits sale and targeted advertising using minors data from 1 July 2026. Consent cannot waive these limits.",
+						"Louisiana and Oklahoma start 1 January 2027, Alabama 1 May 2027 and Vermont 1 January 2028. These future laws are excluded from the current group. Nevada sale opt-outs and sector laws also apply outside it.",
+						"365-day choice and notice validity are independent c15t product defaults, not legal requirements.",
+						"A refusal in the requested scope suppresses automatic choice prompts, including after policy changes or grant expiry. New, changed or expired opt-in purposes remain denied until the user opens preferences and grants them.",
+						"Equivalent default prominence for accept and reject is a c15t product invariant.",
+						"The controller owns processing facts, legal basis, copy and legal review; this preset is starter configuration."
+					],
+					"reviewBy": "2026-12-15",
+					"reviewedOn": "2026-09-08",
+					"sources": [
+						"https://oag.ca.gov/privacy/ccpa",
+						"https://coag.gov/resources/colorado-privacy-act/",
+						"https://www.flsenate.gov/Laws/Statutes/2025/501.702",
+						"https://mgaleg.maryland.gov/mgawebsite/Laws/StatuteText?article=gcl&section=14-4707&enactments=false",
+						"https://www.ag.ky.gov/about/Office-Divisions/ODP/KCDPA/Pages/default.aspx",
+						"https://www.in.gov/attorneygeneral/files/Consumer_Data-Bill-of-Rights.pdf",
+						"https://webserver.rilegislature.gov/Statutes/TITLE6/6-48.1/INDEX.htm",
+						"https://www.legis.la.gov/legis/BillInfo.aspx?b=SB386&s=26RS&sbi=y",
+						"https://legislature.vermont.gov/Documents/2026/Docs/ACTS/ACT145/ACT145%20Act%20Summary.pdf",
+						"https://portal.ct.gov/ag/sections/privacy/the-connecticut-data-privacy-act",
+						"https://www.w3.org/TR/2026/WD-gpc-20260611/"
+					],
+					"status": "reviewed"
+				},
+				"validity": {
+					"choiceDays": 365,
+					"noticeDays": 365
+				}
+			},
+			{
+				"id": "world_none",
+				"match": {
+					"isDefault": true
+				},
+				"model": "none",
+				"prompt": "none",
+				"proof": {
+					"storeIp": false,
+					"storeLanguage": false,
+					"storeUserAgent": false
+				},
+				"review": {
+					"assumptions": [
+						"Applies where no consent law grants the visitor rights over the optional categories, so no prompt, control or acknowledgement is owed.",
+						"Matches known locations no other rule covers. The matcher dataset is finite and does not establish that an unlisted location has no privacy law; review the locations your traffic actually comes from.",
+						"No GPC mapping; add privacySignals.gpc where the deployment honors the signal anyway.",
+						"365-day choice and notice validity are independent c15t product defaults, not legal requirements.",
+						"A refusal in the requested scope suppresses automatic choice prompts, including after policy changes or grant expiry. New, changed or expired opt-in purposes remain denied until the user opens preferences and grants them.",
+						"Equivalent default prominence for accept and reject is a c15t product invariant.",
+						"The controller owns processing facts, legal basis, copy and legal review; this preset is starter configuration."
+					],
+					"reviewBy": "2026-12-15",
+					"status": "pending"
+				}
+			}
+		]
+	}
+}
