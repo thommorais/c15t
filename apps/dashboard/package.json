@@ -1,0 +1,39 @@
+{
+	"name": "@thom/dashboard",
+	"version": "0.0.0",
+	"private": true,
+	"type": "module",
+	"scripts": {
+		"dev": "vite",
+		"build": "vite build",
+		"start": "vite preview",
+		"lint": "oxlint ./src",
+		"format": "oxfmt ./src",
+		"typecheck": "tsc -b",
+		"test": "vitest",
+		"test:run": "vitest run"
+	},
+	"dependencies": {
+		"@journ/bloom": "0.3.2",
+		"@tanstack/react-router": "^1.170.32",
+		"@thom/pb": "workspace:*",
+		"pocketbase": "^0.28.1",
+		"react": "catalog:",
+		"react-dom": "catalog:"
+	},
+	"devDependencies": {
+		"@tailwindcss/vite": "^4.2.1",
+		"@tanstack/router-plugin": "^1.168.35",
+		"@testing-library/react": "catalog:",
+		"@total-typescript/ts-reset": "^0.6.1",
+		"@types/node": "^26.4.1",
+		"@types/react": "catalog:",
+		"@types/react-dom": "catalog:",
+		"@vitejs/plugin-react": "catalog:",
+		"happy-dom": "catalog:",
+		"tailwindcss": "catalog:",
+		"typescript": "catalog:",
+		"vite": "catalog:",
+		"vitest": "catalog:"
+	}
+}
