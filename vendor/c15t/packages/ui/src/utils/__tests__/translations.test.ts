@@ -152,7 +152,6 @@ describe('resolveTranslations', () => {
 		const config = {
 			defaultLanguage: 'de',
 			translations: {
-				// Missing required keys
 				de: { incomplete: 'translation' },
 				en: {
 					common: {},

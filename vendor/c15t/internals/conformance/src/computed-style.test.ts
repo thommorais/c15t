@@ -172,10 +172,6 @@ test('diffComputedStyleMap carries test-id into path of nested diffs', () => {
 	expect(diffs[0]?.name).toBe('color');
 });
 
-// ---------------------------------------------------------------------------
-// Value canonicalization
-// ---------------------------------------------------------------------------
-
 test('canonicalizeStyleValue normalizes hex shorthand to rgb', () => {
 	expect(canonicalizeStyleValue('color', '#abc')).toBe('rgb(170, 187, 204)');
 });
@@ -191,7 +187,6 @@ test('canonicalizeStyleValue normalizes 8-digit hex to rgba', () => {
 });
 
 test('canonicalizeStyleValue treats equivalent hex and hsl as equal', () => {
-	// #5c5c5c == hsl(0, 0%, 36.08%) (approximately)
 	const fromHex = canonicalizeStyleValue('color', '#5c5c5c');
 	const fromHsl = canonicalizeStyleValue('color', 'hsl(0, 0%, 36.08%)');
 	expect(fromHex).toBe(fromHsl);

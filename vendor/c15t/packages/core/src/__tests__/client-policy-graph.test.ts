@@ -1,13 +1,4 @@
 /// <reference types="node" />
-/**
- * Client code reads policy resolutions; it never resolves a pack.
- *
- * Resolving validates authored rules and hashes them with SHA-256. The kernel,
- * the hosted transport and the runtime ship to every visitor, so a value
- * import of the resolver anywhere in their static graph puts that work, and
- * its bytes, into every client bundle. Offline mode resolves in the browser
- * on purpose and loads on demand, so it is not an entry here.
- */
 import { readFileSync } from 'node:fs';
 import { dirname, join, normalize } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -27,7 +18,6 @@ const CLIENT_ENTRIES = [
 	'transports/init-output.ts',
 ];
 
-/** Schema exports that resolve, validate or hash an authored pack. */
 const RESOLVER_EXPORTS = new Set([
 	'createDeterministicFingerprint',
 	'createDeterministicFingerprintSync',
@@ -55,13 +45,11 @@ const resolveRelative = function resolveRelative(
 			readFileSync(candidate);
 			return candidate;
 		} catch {
-			// Try the next candidate.
 		}
 	}
 	throw new Error(`Cannot resolve ${specifier} from ${from}`);
 };
 
-/** Names each file in the static graph imports from `@c15t/schema/types`. */
 const schemaImports = function schemaImports(
 	entries: string[]
 ): Map<string, string[]> {

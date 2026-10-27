@@ -1,41 +1,19 @@
-/**
- * GPP section definitions.
- *
- * Field order and widths follow the IAB GPP section specifications. Every US
- * field c15t encodes is a fixed-width integer or a list of 2-bit integers,
- * so one table per section is enough to encode it and to describe it to
- * `getSection` callers.
- *
- * @packageDocumentation
- */
-
-/** GPP CMP API version reported by `ping`. */
 export const GPP_VERSION = '1.1';
 
-/** Section ID of the GPP header. */
 export const GPP_HEADER_ID = 3;
 
-/** Version of the GPP header. */
 export const GPP_HEADER_VERSION = 1;
 
-/** Section ID of IAB TCF EU v2. */
 export const TCF_EU_SECTION_ID = 2;
 
-/** API prefix of IAB TCF EU v2. */
 export const TCF_EU_PREFIX = 'tcfeuv2';
 
-/**
- * One field: its name, its width in bits and, for a list, the number of
- * entries. Field names are the section specification's names, which
- * `getField` callers use.
- */
 export type GPPFieldSpec = readonly [
 	name: string,
 	bits: number,
 	count?: number,
 ];
 
-/** API prefixes of the US sections c15t encodes. */
 export type USSectionPrefix =
 	| 'usnat'
 	| 'usca'
@@ -55,27 +33,19 @@ export type USSectionPrefix =
 	| 'ustn'
 	| 'usmn';
 
-/** A US section c15t can encode. */
 export interface USSectionDefinition {
-	/** GPP section ID. */
 	id: number;
-	/** API prefix, used by `getSection` and `getField`. */
 	prefix: USSectionPrefix;
-	/** Section version encoded in the `Version` field. */
 	version: number;
-	/** Core subsection fields, in encoding order. */
 	core: readonly GPPFieldSpec[];
-	/** Whether the section defines a GPC subsection. */
 	gpc: boolean;
 }
 
-/** Fields of the GPC subsection shared by every US section that has one. */
 export const GPC_SUBSECTION: readonly GPPFieldSpec[] = [
 	['SubsectionType', 2],
 	['Gpc', 1],
 ];
 
-/** `SubsectionType` value of a GPC subsection. */
 export const GPC_SUBSECTION_TYPE = 1;
 
 const int = (name: string): GPPFieldSpec => [name, 2];
@@ -87,19 +57,11 @@ const MSPA: readonly GPPFieldSpec[] = [
 	int('MspaServiceProviderMode'),
 ];
 
-/**
- * Child consents: a single field in some sections, a list in others.
- * `1` stands for the single field.
- */
 const childConsents = (count: number): GPPFieldSpec =>
 	count === 1
 		? int('KnownChildSensitiveDataConsents')
 		: list('KnownChildSensitiveDataConsents', count);
 
-/**
- * The layout shared by Virginia, Colorado and Connecticut: a sharing notice,
- * sale and targeted advertising opt-outs, sensitive data and child consents.
- */
 const sharingNoticeLayout = (
 	sensitive: number,
 	children: number
@@ -115,11 +77,6 @@ const sharingNoticeLayout = (
 	...MSPA,
 ];
 
-/**
- * The layout most later state sections share: a processing notice, sale and
- * targeted advertising opt-outs, sensitive data, child consents and
- * additional processing consent.
- */
 const processingNoticeLayout = (
 	sensitive: number,
 	children: number,
@@ -137,7 +94,6 @@ const processingNoticeLayout = (
 	...MSPA,
 ];
 
-/** The MSPA US National section, version 2. */
 export const US_NATIONAL_SECTION: USSectionDefinition = {
 	core: [
 		VERSION,
@@ -168,14 +124,6 @@ const state = (
 	gpc = true
 ): USSectionDefinition => ({ core, gpc, id, prefix, version: 1 });
 
-/**
- * State sections keyed by ISO 3166-2 subdivision code.
- *
- * Indiana, Kentucky, Maryland and Rhode Island are absent: their published
- * specifications put a section header before the core subsection, which the
- * IAB reference implementation does not encode, so no string for them can be
- * checked against it yet.
- */
 export const US_STATE_SECTIONS: Readonly<Record<string, USSectionDefinition>> =
 	{
 		CA: state(8, 'usca', [
@@ -234,7 +182,6 @@ export const US_STATE_SECTIONS: Readonly<Record<string, USSectionDefinition>> =
 		VA: state(9, 'usva', sharingNoticeLayout(8, 1), false),
 	};
 
-/** Every US section c15t can encode, ordered by section ID. */
 export const US_SECTIONS: readonly USSectionDefinition[] = [
 	US_NATIONAL_SECTION,
 	...Object.values(US_STATE_SECTIONS),

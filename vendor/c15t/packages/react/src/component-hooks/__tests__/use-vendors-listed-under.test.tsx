@@ -9,8 +9,6 @@ import { offline } from '~/transports/offline';
 
 import { useVendorsListedUnder } from '../use-vendors-listed-under';
 
-// What an `@c15t/integrations` helper puts on its script: a vendor slug and
-// the vendor's name and privacy policy, with no entry in `vendors`.
 const helperScript = {
 	category: 'measurement' as const,
 	id: 'posthog',

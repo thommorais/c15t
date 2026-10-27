@@ -11,13 +11,8 @@ import { createDevTools } from '../../index';
 import type { DevToolsInstance } from '../../index';
 import { policyResolution } from '../helpers/kernel';
 
-/** Encoding and decoding a TC string outruns `waitFor`'s 1s default on CI. */
 const SAVE_TIMEOUT_MS = 5000;
 
-/**
- * Room for both `waitFor` windows plus the work between them, so the test
- * itself cannot time out while an assertion is still legitimately waiting.
- */
 const SAVE_TEST_TIMEOUT_MS = SAVE_TIMEOUT_MS * 2 + 5000;
 
 const cleanups: (() => void)[] = [];
@@ -278,8 +273,6 @@ describe('IAB DevTools', () => {
 			toggle(tools, 'iab:purposes:1:consent').click();
 			button(tools, 'Save IAB consent').click();
 			expect(button(tools, 'Save IAB consent').disabled).toBe(true);
-			// Encoding a TC string is real work, and a loaded CI runner takes
-			// longer over it than `waitFor`'s one-second default allows.
 			await vi.waitFor(
 				() =>
 					expect(

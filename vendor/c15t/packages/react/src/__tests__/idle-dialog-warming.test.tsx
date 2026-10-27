@@ -30,7 +30,6 @@ interface ConnectionStub {
 	saveData?: boolean;
 }
 
-// Idle callbacks the page scheduled, run on demand instead of by the browser.
 let idleCallbacks: IdleRequestCallback[] = [];
 let warmer = vi.fn();
 let unregister = () => {};
@@ -61,9 +60,6 @@ const stubConnection = (connection: ConnectionStub) => {
 };
 
 beforeEach(async () => {
-	// An earlier test can leave the pointer where a banner button renders,
-	// and Chromium then reports a pointer enter, which warms the dialog on
-	// intent. Park it in the corner so idle warming is all these tests see.
 	await userEvent.hover(document.documentElement, { position: { x: 1, y: 1 } });
 	expect(document.readyState).toBe('complete');
 	resetDialogChunkWarmingForTests();
@@ -130,8 +126,6 @@ test('loads the dialog in idle time for a mounted trigger after consent was save
 	await vi.waitFor(() => expect(button('consent-dialog-link')).not.toBeNull());
 	expect(button('consent-banner-customize-button')).toBeNull();
 	await vi.waitFor(() => expect(idleCallbacks).toHaveLength(1));
-	// The link can render under the pointer an earlier test left behind,
-	// which warms the dialog on intent. Count only the idle callback's call.
 	const warmedBefore = warmer.mock.calls.length;
 
 	runIdleCallbacks();

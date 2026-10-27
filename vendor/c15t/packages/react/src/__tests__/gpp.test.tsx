@@ -1,7 +1,3 @@
-/**
- * `ConsentGPP` from `@c15t/react/gpp`: it mounts `window.__gpp` on the
- * provider's kernel and removes it on unmount.
- */
 import type { ProviderTransportFactory } from '@c15t/core';
 import { createConsentRuntime } from '@c15t/core/runtime';
 import type { GPPPingData } from '@c15t/iab/gpp';
@@ -78,7 +74,6 @@ test('mounts on a borrowed runtime too', async () => {
 
 test('logs a mount failure and leaves the app rendered', async () => {
 	const error = vi.spyOn(console, 'error').mockImplementation(() => undefined);
-	// createGPP rejects a CMP ID that is neither 1 nor a registered ID.
 	const screen = await render(
 		<ConsentProvider options={{ mode, overrides, persistence: false }}>
 			<ConsentGPP cmpId={-1} />
@@ -96,9 +91,6 @@ test('logs a mount failure and leaves the app rendered', async () => {
 });
 
 test('installs __gpp within a microtask of the first init()', async () => {
-	// `manifest()` from `@c15t/browser` relies on this: before it answers a
-	// visitor whose location it does not know, it waits one microtask and
-	// asks the backend instead when `__gpp` exists by then.
 	const seen: { atInit?: boolean; afterMicrotask?: boolean } = {};
 	const watching: ProviderTransportFactory = Object.assign(
 		(context: Parameters<ProviderTransportFactory>[0]) => {

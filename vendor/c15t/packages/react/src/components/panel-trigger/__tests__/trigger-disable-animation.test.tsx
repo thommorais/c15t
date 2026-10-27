@@ -1,7 +1,3 @@
-/**
- * `disableAnimation` on the provider stops the floating trigger's hover and
- * snap transitions, as it stops the banner's and the dialog's.
- */
 import '@c15t/ui/styles.css';
 import { describe, expect, test, vi } from 'vitest';
 import { render } from 'vitest-browser-react';
@@ -49,8 +45,6 @@ describe.each([false, true])('disableAnimation %s', (disableAnimation) => {
 			);
 		}
 		const item = toolbar()?.querySelector('[data-c15t-trigger-item]') ?? null;
-		// The stock trigger animates hover and snap; the flag stops both it
-		// and the toolbar items.
 		expect(longestTransition(trigger()) > 0).toBe(!disableAnimation);
 		expect(longestTransition(item) > 0).toBe(!disableAnimation);
 		unmount();

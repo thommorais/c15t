@@ -1,18 +1,3 @@
-/**
- * The "Secured by" tag reads its colours, border, shadow and the edge it
- * shares with the card from `--consent-branding-tag-*` variables. Without
- * them a host that wants the tag to match its card has to out-rank four
- * descendant rules that each hardcode `--c15t-text-on-primary`.
- *
- * The variables are read with a fallback rather than declared on `:root`, so
- * the defaults still resolve on the tag itself and follow a `--c15t-primary`
- * or dark palette scoped to a banner or to `.c15t-theme-root`.
- *
- * jsdom cannot compute these properties (it rejects `@layer` and does not
- * substitute `var()`), so this substitutes the tag variables in the shipped
- * declarations by hand. These read the built artifacts, so
- * `bun run --cwd packages/ui build` (which `test` depends on) must have run.
- */
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
@@ -33,7 +18,6 @@ const readDist = function readDist(relativePath: string): string {
 	return readFileSync(path, 'utf8');
 };
 
-/** Hashed class names from the branding class map. */
 const classes = Object.fromEntries(
 	[
 		...readDist(join('styles', 'components', 'branding.js')).matchAll(
@@ -54,7 +38,6 @@ const cls = function cls(key: string): string {
 
 const stylesheet = parse(readDist('styles.css'));
 
-/** Every value `prop` takes in a rule whose selector passes `matches`. */
 const declared = function declared(
 	matches: (selector: string, selectors: string[]) => boolean,
 	prop: string
@@ -74,11 +57,6 @@ const declared = function declared(
 	return values;
 };
 
-/**
- * Replace each `var(--consent-branding-tag-*, fallback)` with the host's value,
- * or with its fallback when the host sets none. Other `var()`s are left alone:
- * those are theme tokens the page resolves as before.
- */
 const substitute = function substitute(
 	value: string,
 	host: Record<string, string>
@@ -128,7 +106,6 @@ const substitute = function substitute(
 
 const tag = () => `.${cls('brandingTag')}:not(.headless)`;
 
-/** Where each part of the tag gets the property under test. */
 const TARGETS = {
 	bannerTag: (selector: string) =>
 		selector.includes(`.${cls('brandingTag')}[data-context=banner]`),
@@ -166,7 +143,6 @@ const CHECKS = [
 	['legacyDialogTag', 'transform'],
 ] as const;
 
-/** What each check resolves to with `host` variables set on an ancestor. */
 const resolve = function resolve(
 	host: Record<string, string>
 ): Record<string, string> {

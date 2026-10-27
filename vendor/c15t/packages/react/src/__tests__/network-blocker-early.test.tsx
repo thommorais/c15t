@@ -26,7 +26,6 @@ afterEach(() => {
 	window.fetch = nativeFetch;
 });
 
-/** Sends a tracker request from its mount effect and records the status. */
 const Beacon = ({
 	label,
 	statuses,
@@ -84,7 +83,6 @@ test('holds requests from mount effects that run before the blocker loads', asyn
 	const { statuses } = renderWithBeacons(undefined);
 	await vi.waitFor(() => expect(statuses).toHaveLength(2));
 
-	// Both effects ran before the lazily loaded blocker could install.
 	expect(trackerCalls()).toHaveLength(0);
 	expect(await Promise.all(statuses)).toEqual([451, 451]);
 	expect(trackerCalls()).toHaveLength(0);

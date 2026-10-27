@@ -1,12 +1,3 @@
-/**
- * Locale fixtures for the i18n conformance matrix.
- *
- * Each locale targets a real risk:
- * - `en` — baseline LTR
- * - `ar` — RTL; verifies `dir="rtl"` propagation & mirrored layouts
- * - `de` — long compound words; verifies no layout overflow regressions
- */
-
 export interface LocaleFixture {
 	code: string;
 	direction: 'ltr' | 'rtl';

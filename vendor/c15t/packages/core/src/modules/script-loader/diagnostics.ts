@@ -1,7 +1,6 @@
 import type { ConsentKernel } from '../../types';
 import type { Script, ScriptLoaderDebugEvent } from './types';
 
-/** Current loader state, distinct from merely finding a script element. */
 export type ScriptDiagnosticStatus =
 	| 'blocked'
 	| 'pending'
@@ -11,7 +10,6 @@ export type ScriptDiagnosticStatus =
 	| 'retained'
 	| 'error';
 
-/** Read-only script metadata exposed to developer tools. */
 export interface ScriptDiagnostic {
 	readonly loaderId: number;
 	readonly id: string;
@@ -20,10 +18,8 @@ export interface ScriptDiagnostic {
 	readonly category: Script['category'];
 	readonly status: ScriptDiagnosticStatus;
 	readonly eligible: boolean;
-	/** Actual consent requirements, independent of alwaysLoad. */
 	readonly hasConsent: boolean;
 	readonly vendorId?: Script['vendorId'];
-	/** Vendor slug for vendor-level consent outside IAB. */
 	readonly vendor?: Script['vendor'];
 	readonly callbackOnly: boolean;
 	readonly alwaysLoad: boolean;
@@ -49,9 +45,6 @@ const registryFor = (kernel: ConsentKernel): Registry => {
 	return registry;
 };
 
-/** Registers a loader without exposing it through browser globals.
- * @internal
- */
 export const registerScriptDiagnostics = (
 	kernel: ConsentKernel,
 	read: (loaderId: number) => readonly ScriptDiagnostic[]
@@ -64,7 +57,6 @@ export const registerScriptDiagnostics = (
 			try {
 				listener(event);
 			} catch {
-				// Inspection must never interrupt script loading.
 			}
 		}
 	};
@@ -79,11 +71,6 @@ export const registerScriptDiagnostics = (
 	};
 };
 
-/**
- * Reads scripts belonging to loaders attached to this kernel.
- * @param kernel - The consent provider's kernel.
- * @returns Script metadata and current loading status, without callbacks or nonces.
- */
 export const getScriptDiagnostics = (
 	kernel: ConsentKernel
 ): readonly ScriptDiagnostic[] =>
@@ -91,12 +78,6 @@ export const getScriptDiagnostics = (
 		read()
 	);
 
-/**
- * Observes loader registration, configuration, and lifecycle changes.
- * @param kernel - The consent provider's kernel.
- * @param listener - Called synchronously when script diagnostics change.
- * @returns A function that releases the subscription.
- */
 export const subscribeScriptDiagnostics = (
 	kernel: ConsentKernel,
 	listener: Listener

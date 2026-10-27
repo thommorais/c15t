@@ -3,8 +3,6 @@ import { expect, test, vi } from 'vitest';
 
 import { policyFixture } from './policy-fixture';
 
-// Vitest's browser mode serves each source module as its own request, so the
-// resource timeline shows which modules this document has loaded.
 const DIALOG_MODULE = '/src/components/panel/panel.tsx';
 const WIDGET_MODULE = '/src/components/preferences/preferences.tsx';
 
@@ -30,8 +28,6 @@ test('the split dialog and widget entries load nothing until they are needed', a
 	const root = createRoot(container);
 	const dialog = () =>
 		document.querySelector('[data-testid="consent-dialog-root"]');
-	// Idle-time preloading, where the provider supports it, would load the
-	// dialog on its own. This test is about what importing the entries loads.
 	vi.stubGlobal('requestIdleCallback', () => 0);
 	try {
 		const { ConsentDialog } = await import('../panel');
@@ -60,15 +56,11 @@ test('the split dialog and widget entries load nothing until they are needed', a
 			return button as HTMLButtonElement;
 		});
 
-		// The banner is up and the dialog can open, but neither the dialog nor
-		// the widget has been requested.
 		expect(modules.loaded(DIALOG_MODULE)).toBe(false);
 		expect(modules.loaded(WIDGET_MODULE)).toBe(false);
 		expect(dialog()).toBeNull();
 
 		customize.click();
-		// A cold module request can exceed Vitest's one-second default when
-		// the full browser suite is compiling modules with coverage.
 		await vi.waitFor(() => expect(dialog()).not.toBeNull(), { timeout: 5000 });
 		expect(modules.loaded(DIALOG_MODULE)).toBe(true);
 	} finally {

@@ -48,9 +48,6 @@ describe('bundled vendor list translations', () => {
 			([language]) => language !== 'en'
 		)
 	)('%s does not reuse the English vendor copy', (_language, translations) => {
-		// The React and Vue rows fall back to English on a missing key, so a
-		// locale that omits the block would show English inside localized
-		// copy without anything failing.
 		const english = bundledTranslations.en.consentManagerDialog.vendors;
 		const { vendors } = translations.consentManagerDialog;
 		expect(vendors?.disabledByCategory).not.toBe(english?.disabledByCategory);
@@ -93,8 +90,6 @@ describe('bundled notice and rights translations', () => {
 });
 
 describe('bundled IAB banner translations', () => {
-	// Existing mismatches; this list should only shrink. `bg` and `cs` also
-	// ship ICU plural syntax that nothing formats.
 	const knownMismatches = new Set(['bg', 'cs', 'he', 'pl']);
 
 	it.each(
@@ -104,8 +99,6 @@ describe('bundled IAB banner translations', () => {
 	)(
 		'%s contains the partners link inside the banner description',
 		(_language, translations) => {
-			// The stock IAB banners split the description on the link text to
-			// turn it into a button; without a match they repeat the count.
 			const { description, partnersLink } = translations.iab.banner;
 			expect(description.replace('{partnerCount}', '42')).toContain(
 				partnersLink.replace('{count}', '42')
@@ -311,7 +304,6 @@ describe('mergeTranslationConfigs', () => {
 		expect(enTranslations?.cookieBanner?.description).toBe(
 			'Default Description'
 		);
-		// German translations should now be complete with English fallbacks
 		expect(deTranslations?.consentManagerDialog?.description).toBe(
 			'Customize your privacy settings here. You can choose which types of cookies and tracking technologies you allow.'
 		);
@@ -323,7 +315,6 @@ describe('mergeTranslationConfigs', () => {
 
 	it('should handle undefined custom config', () => {
 		const result = mergeTranslationConfigs(defaultConfig);
-		// Should return complete translations with English fallbacks
 		expect(result.defaultLanguage).toBe(defaultConfig.defaultLanguage);
 		expect(result.translations.en?.consentManagerDialog?.description).toBe(
 			'Customize your privacy settings here. You can choose which types of cookies and tracking technologies you allow.'

@@ -96,8 +96,6 @@ describe('ConsentGate default placeholder', () => {
 				'[data-testid="consent-gate-button"]'
 			);
 			expect(button).toBeInTheDocument();
-			// The category title comes from the translation bundle, not the
-			// raw category key.
 			expect(placeholder).toHaveTextContent('Marketing');
 			expect(
 				container.querySelector('[data-testid="gate-content"]')
@@ -160,9 +158,6 @@ describe('ConsentGate server rendering', () => {
 		expect(html).not.toContain('data-testid="gate-content"');
 	});
 
-	// Inside a streamed Suspense boundary React moves the server HTML into
-	// place after parsing it, which reloads an iframe that was already
-	// loading. Granted children therefore mount after hydration only.
 	test('leaves granted children out of the first HTML', () => {
 		const html = renderToString(
 			gateApp(content, { marketing: true, necessary: true })
@@ -180,8 +175,6 @@ describe('ConsentGate server rendering', () => {
 		expect(html).not.toContain('data-testid="consent-gate-button"');
 	});
 
-	// Next.js `cacheComponents` fails a prerender that reads the clock in a
-	// Client Component, so the gate must decide from the snapshot alone.
 	test.each([false, true])(
 		'reads no clock while rendering on the server (granted: %s)',
 		(marketing) => {

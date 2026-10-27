@@ -57,8 +57,6 @@ const createRuntime = function createRuntime(
 beforeEach(() => {
 	localStorage.clear();
 	clearStoredConsentRecords();
-	// A save in an earlier test leaves a consent cookie, which would make the
-	// next runtime a returning visitor with no banner.
 	for (const cookie of document.cookie.split(';')) {
 		const name = cookie.split('=')[0]?.trim();
 		if (name) {
@@ -72,7 +70,6 @@ afterEach(() => {
 	delete (window as { __c15tExperiment?: unknown }).__c15tExperiment;
 });
 
-/** Wait for the lazily loaded controller to release the held prompt. */
 const settled = async (runtime: ReturnType<typeof createConsentRuntime>) => {
 	await vi.waitFor(() =>
 		expect(runtime.kernel.getSnapshot().experimentPending).toBe(false)
@@ -94,14 +91,12 @@ describe('runtime experiments', () => {
 			assignedBy: 'c15t',
 			id: 'banner-shape',
 		});
-		// The first impression already carries the arm.
 		expect(shown[0]).toMatchObject({ experiment: assignment });
 		expect(
 			JSON.parse(localStorage.getItem(EXPERIMENT_STORAGE_KEY) as string)
 		).toEqual({ arm: assignment?.arm, id: 'banner-shape' });
 		first.runtime.dispose();
 
-		// Force the other arm so stickiness, not luck, is tested.
 		const other = assignment?.arm === 'bar' ? 'floating' : 'bar';
 		localStorage.setItem(
 			EXPERIMENT_STORAGE_KEY,
@@ -115,8 +110,6 @@ describe('runtime experiments', () => {
 	});
 
 	test('a prefetched arm the server rendered seeds the snapshot and survives start', async () => {
-		// The server assigned and rendered `bar`; the browser must attribute
-		// the impression to that arm rather than start unassigned.
 		const seeded = {
 			acknowledgedDiagnostics: false,
 			arm: 'bar',
@@ -164,7 +157,6 @@ describe('runtime experiments', () => {
 		runtime.start();
 		await settled(runtime);
 		expect(runtime.kernel.getSnapshot().experiment?.arm).toBe('floating');
-		// The runtime's init carries the arm the early request counted.
 		expect(transport.init).toHaveBeenCalledWith(
 			expect.objectContaining({
 				experiment: { arm: 'floating', id: 'banner-shape' },
@@ -195,7 +187,6 @@ describe('runtime experiments', () => {
 			JSON.stringify({ arm: 'bar', id: 'banner-shape' })
 		);
 		const { runtime } = createRuntime({ arm: 'floating' });
-		// Known before start: the host decided.
 		expect(runtime.kernel.getSnapshot().experiment).toEqual({
 			acknowledgedDiagnostics: false,
 			arm: 'floating',
@@ -267,8 +258,6 @@ describe('runtime experiments', () => {
 		await first.runtime.kernel.commands.save('all');
 		first.runtime.dispose();
 
-		// The choice is stored: this visitor is not shown the banner, so the
-		// next page's `/init` does not count them toward the arm.
 		const second = createRuntime({ arm: 'bar' });
 		second.runtime.start();
 		await vi.waitFor(() => expect(second.transport.init).toHaveBeenCalled());
@@ -354,9 +343,6 @@ describe('runtime experiments', () => {
 });
 
 describe('the host theme', () => {
-	// The host styles accept and reject unequally; the arm evens them out.
-	// Only the arm merged over the host theme is valid, so this pins that
-	// the runtime validates arms against `theme`. Vue's copy left it out.
 	const evening: ConsentExperiment = {
 		arms: {
 			quiet: {
@@ -376,7 +362,6 @@ describe('the host theme', () => {
 
 	test('validates arms against the theme they render with', async () => {
 		const error = vi.spyOn(console, 'error').mockImplementation(() => {
-			// Rejected arms are reported here.
 		});
 		const runtime = createConsentRuntime({
 			experiment: evening,
@@ -385,8 +370,6 @@ describe('the host theme', () => {
 		});
 		runtime.start();
 		await settled(runtime);
-		// Without the host theme the arm trips a diagnostic, the experiment is
-		// rejected and no arm is recorded.
 		expect(runtime.kernel.getSnapshot().experiment).toMatchObject({
 			id: 'button-style',
 		});

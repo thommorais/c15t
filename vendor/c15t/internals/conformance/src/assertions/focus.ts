@@ -1,10 +1,5 @@
 import { expect, userEvent, waitFor } from 'storybook/test';
 
-/**
- * Wait until the element matching `testId` receives focus. Useful after
- * opening a dialog / banner where focus moves asynchronously (microtask /
- * animation frame).
- */
 export const assertInitialFocus = async function assertInitialFocus(
 	root: ParentNode,
 	testId: string
@@ -19,8 +14,6 @@ export const assertInitialFocus = async function assertInitialFocus(
 	});
 };
 
-// Mirrors `firstTabbable` in `@c15t/ui`: the same selector, the same
-// visibility and disabled checks, positive `tabindex` first.
 const FOCUSABLE = [
 	'a[href]:not([disabled]):not([tabindex="-1"])',
 	'button:not([disabled]):not([tabindex="-1"])',
@@ -53,11 +46,6 @@ const firstTabbable = function firstTabbable(
 	return positive[0] ?? candidates.find((element) => element.tabIndex === 0);
 };
 
-/**
- * Wait until focus lands on the first tabbable control inside the element
- * matching `containerTestId`. Dialogs open this way, the way Base UI's do,
- * so a keyboard user sees the ring on a control rather than on the panel.
- */
 export const assertInitialFocusOnFirstControl =
 	async function assertInitialFocusOnFirstControl(
 		root: ParentNode,
@@ -77,10 +65,6 @@ export const assertInitialFocusOnFirstControl =
 		});
 	};
 
-/**
- * Assert that after `closeAction` runs, focus returns to the element with
- * `triggerTestId`. Use for testing dialog-close / banner-dismiss flows.
- */
 export const assertFocusReturnsTo = async function assertFocusReturnsTo(
 	root: ParentNode,
 	triggerTestId: string,
@@ -97,10 +81,6 @@ export const assertFocusReturnsTo = async function assertFocusReturnsTo(
 	});
 };
 
-/**
- * Walk `Tab` through the expected focus order and assert each stop matches.
- * `orderedTestIds[0]` should already have focus when this is called.
- */
 export const assertTabOrder = async function assertTabOrder(
 	root: ParentNode,
 	orderedTestIds: readonly string[]
@@ -135,10 +115,6 @@ export const assertTabOrder = async function assertTabOrder(
 	}
 };
 
-/**
- * Assert that `Shift+Tab` from the current focus moves back to the previous
- * element in the order.
- */
 export const assertReverseTabOrder = async function assertReverseTabOrder(
 	root: ParentNode,
 	orderedTestIds: readonly string[]
@@ -166,10 +142,6 @@ export const assertReverseTabOrder = async function assertReverseTabOrder(
 	}
 };
 
-/**
- * Focus trap: assert that Tab from the last element wraps to the first, and
- * Shift+Tab from the first wraps to the last.
- */
 export const assertFocusTrap = async function assertFocusTrap(
 	root: ParentNode,
 	orderedTestIds: readonly string[]
@@ -197,20 +169,6 @@ export const assertFocusTrap = async function assertFocusTrap(
 	);
 };
 
-/**
- * Assert that an element renders a visible keyboard-focus indicator.
- *
- * Focuses the element (in a fresh story with no preceding pointer
- * interaction, script focus matches `:focus-visible` in Chromium), captures
- * its computed outline/box-shadow, blurs, and asserts the indicator styles
- * actually changed — catching regressions where a higher-specificity variant
- * rule crushes the `:focus-visible` ring (e.g. stroke/ghost button modes).
- *
- * Only use this for elements that render the indicator on THEMSELVES
- * (buttons, cards, links). Composite widgets render it elsewhere — the
- * switch rings its `.track` child and the accordion rings the enclosing
- * `.item` via `:has()` — and would false-fail this assertion.
- */
 export const assertVisibleFocusIndicator = function assertVisibleFocusIndicator(
 	root: ParentNode,
 	testId: string

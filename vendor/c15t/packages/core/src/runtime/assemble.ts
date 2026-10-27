@@ -1,18 +1,3 @@
-/**
- * The consent runtime: a kernel plus every opt-in module, wired, with a
- * lifecycle hosts drive and do not re-derive.
- *
- * - `start()` mounts the modules, then runs `init()` or adopts a resolved
- *   prefetch; `dispose()` undoes it in reverse, the kernel last.
- * - `clearRecords()` is the one clear sequence.
- * - `setLanguage()` switches copy and asks the backend again.
- *
- * The modules come in through {@link ConsentRuntimeModules}. Options are
- * read when they are used, not copied at construction, so the provider
- * runtime (`provider-runtime.ts`) can hand in a live view of a component's
- * props and stop and start the runtime around the same kernel. A host that
- * configures once never loads that code.
- */
 import { displayedCategories } from '../consent/consent-types';
 import type { AllConsentNames } from '../consent/consent-types';
 import { clearKernelRecords } from '../kernel/clear-records';
@@ -42,36 +27,13 @@ import type {
 	ConsentRuntimeOptions,
 } from './types';
 
-/** What the provider runtime needs beyond the public interface. @internal */
 export interface AssembledRuntime {
-	/**
-	 * Send the requests held for a runtime parked before it ran: a disabled
-	 * provider grants every category, so nothing waits for its blocker.
-	 * `start()` holds again until its blocker takes over.
-	 */
 	releaseHold: () => void;
-	/**
-	 * Continue the consent journey a streamed prefetch started. See
-	 * `JourneyController.adopt`.
-	 */
 	adoptJourney: (id: string | null | undefined) => void;
 	runtime: ConsentRuntime;
-	/**
-	 * Unmount every module and `window.c15t` and detach callbacks, keeping
-	 * the kernel and its records. `start()` mounts them again, then adopts
-	 * the prefetch at the current clock or runs `init()`.
-	 */
 	stop: () => void;
 }
 
-/**
- * Whether a prefetch's records seed the kernel in place of storage.
- *
- * Records a server read from the request cookie are the seed: persistence
- * then applies only newer stored denials over them. A prefetch that names
- * nothing but a subject (an `/init` answer's `subjectId`) read no records,
- * so storage hydrates the kernel as it would without a prefetch.
- */
 const isRecordSeed = function isRecordSeed(
 	records: HydrationRecords | undefined
 ): boolean {
@@ -80,7 +42,6 @@ const isRecordSeed = function isRecordSeed(
 	);
 };
 
-/** The storage `persistence` resolves to, from one option set. @internal */
 export const storageFor = function storageFor(
 	options: Pick<
 		ConsentRuntimeOptions,
@@ -94,15 +55,6 @@ export const storageFor = function storageFor(
 	);
 };
 
-/**
- * Build a runtime from options and module factories.
- *
- * @param options - The runtime configuration, read when used.
- * @param modules - The module factories to mount.
- * @returns The runtime and its `stop()`.
- * @throws {Error} When `mode` is not a transport factory.
- * @internal
- */
 // oxlint-disable-next-line max-lines-per-function -- One cohesive lifecycle: construct, start, stop, dispose.
 export const assembleConsentRuntime = function assembleConsentRuntime(
 	options: ConsentRuntimeOptions,
@@ -112,18 +64,12 @@ export const assembleConsentRuntime = function assembleConsentRuntime(
 	const enabled = options.enabled ?? true;
 	const experiment = hostExperiment(options.experiment, options.prefetch);
 	const journey = createJourneyController({
-		// A server state that says the page has no journey wins.
 		option: options.prefetch?.journey === null ? false : options.journey,
 		serverId: options.prefetch?.journey?.id,
 	});
 	const kernel = createRuntimeKernel(options, (transport) =>
 		withJourney(transport, journey)
 	);
-	// `start()` installs the blocker, often after the host rendered its
-	// children. Hold matching requests until then; the blocker takes over this
-	// runtime's hold and replays them. A runtime disposed before it started
-	// ends its hold itself, failing what it held closed. Either way, other
-	// callers' holds stay in place.
 	const holdRequests = (): NetworkHold | null =>
 		enabled &&
 		options.networkBlocker &&
@@ -147,7 +93,6 @@ export const assembleConsentRuntime = function assembleConsentRuntime(
 		}
 	};
 
-	// Attached at construction, so they hear events from the first `start()`.
 	const wire = (): (() => void)[] => [
 		wireRuntimeCallbacks({
 			callbacks: options.callbacks,
@@ -159,9 +104,6 @@ export const assembleConsentRuntime = function assembleConsentRuntime(
 			isEnabled: () => options.reloadOnConsentRevoked !== false,
 			kernel,
 		}),
-		// Vendors the backend declares arrive with init. Their categories
-		// become selectable the same way a code-declared vendor's do at
-		// construction.
 		kernel.events.on('init:applied', ({ snapshot }) => {
 			const declared = snapshot.vendors?.declared ?? [];
 			if (declared.length > 0) {
@@ -173,8 +115,6 @@ export const assembleConsentRuntime = function assembleConsentRuntime(
 			}
 		}),
 	];
-	// Teardown runs in reverse push order, so the wiring, pushed first, is
-	// detached after every module that reads from the kernel.
 	let disposers: (() => void)[] = wire();
 
 	const runInit = async function runInit(): Promise<void> {
@@ -210,9 +150,6 @@ export const assembleConsentRuntime = function assembleConsentRuntime(
 			disposed = true;
 			stop();
 			kernel.dispose();
-			// No blocker took the hold over, so nothing else ends it, and
-			// nothing checked consent for what it held: those requests fail
-			// as blocked rather than wait for the rest of the page.
 			hold?.block();
 			hold = null;
 			iabListeners.clear();
@@ -229,7 +166,6 @@ export const assembleConsentRuntime = function assembleConsentRuntime(
 			try {
 				await kernel.commands.identify(nextUser);
 			} catch {
-				// Surfaced through the `command:error` event and `onError`.
 			}
 		},
 		kernel,
@@ -293,8 +229,6 @@ export const assembleConsentRuntime = function assembleConsentRuntime(
 					persistenceHandle = null;
 				});
 			}
-			// Persistence gives a browser runtime its subject ID at startup.
-			// Without it the ID lives in memory for the page.
 			const { externalPermissions, subject } = kernel.getSnapshot();
 			if (
 				enabled &&
@@ -306,8 +240,6 @@ export const assembleConsentRuntime = function assembleConsentRuntime(
 					subject: { ...subject, subjectId: generateSubjectId() },
 				});
 			}
-			// After hydration, so the journey knows whether a choice was
-			// stored, and before init, which carries it.
 			if (enabled && !consentSource) {
 				disposers.push(journey.start(kernel));
 			}
@@ -318,8 +250,6 @@ export const assembleConsentRuntime = function assembleConsentRuntime(
 					type: 'init:applied',
 				});
 			}
-			// After hydration, so a returning visitor's subject id seeds the
-			// arm. The controller loads as its own chunk; a held prompt waits.
 			if (enabled && experiment && !consentSource) {
 				disposers.push(
 					startExperiment({
@@ -332,14 +262,8 @@ export const assembleConsentRuntime = function assembleConsentRuntime(
 				);
 			}
 
-			// A server-resolved prefetch already holds the init answer; asking
-			// for it again is one request per page load on every SSR route.
 			if (enabled && !consentSource) {
 				if (hasResolvedPrefetch(options.prefetch)) {
-					// What the server rendered is the visitor's first impression,
-					// so evaluate at its clock; a restart evaluates now.
-					// A streamed config adopted after construction carries its
-					// clock; the server snapshot predates it.
 					kernel.hydrate({
 						now: adopted
 							? Date.now()
@@ -347,14 +271,11 @@ export const assembleConsentRuntime = function assembleConsentRuntime(
 								kernel.getServerSnapshot().evaluatedAt),
 					});
 					adopted = true;
-					// No init call marks this kernel live, so do it here.
 					kernel.markLive();
 					const { gpc } = kernel.getSnapshot().privacySignals;
 					if (gpc.detected && gpc.active) {
 						kernel.set.privacySignals({ gpc: true });
 					}
-					// The prefetch stands in for the response, so replay the event
-					// the applied response would have raised.
 					kernel.events.emit({
 						snapshot: kernel.getSnapshot(),
 						type: 'init:applied',
@@ -364,10 +285,6 @@ export const assembleConsentRuntime = function assembleConsentRuntime(
 				}
 			}
 
-			// Not gated on `enabled`: a disabled runtime grants every category, so
-			// the loader mounts the configured scripts straight away. Skipping it
-			// would silently drop every consent-gated integration on a site that
-			// turned consent management off.
 			let loader: ScriptLoaderHandle | undefined;
 			if (options.scripts && options.scripts.length > 0) {
 				loader = modules.createScriptLoader({
@@ -381,11 +298,6 @@ export const assembleConsentRuntime = function assembleConsentRuntime(
 			}
 
 			if (enabled && options.networkBlocker) {
-				// Never omitted: without a hold, the blocker ends every caller's
-				// hold, including ones a disabled blocker must not. A restart,
-				// or a start after `releaseHold()`, holds again: a blocker that
-				// loads on demand would otherwise let requests through until
-				// its chunk lands.
 				const claimed = hold ?? holdRequests() ?? NOT_HELD;
 				hold = null;
 				const blocker = modules.createNetworkBlocker({
@@ -396,16 +308,9 @@ export const assembleConsentRuntime = function assembleConsentRuntime(
 					onRequestBlocked: options.networkBlocker.onRequestBlocked,
 					rules: options.networkBlocker.rules,
 				});
-				// A lazy blocker whose chunk failed to load never takes the hold
-				// over: fail what it holds closed now rather than leave it
-				// pending, and keep blocking until a later load takes over. A
-				// no-op once a blocker took over.
 				afterModuleLoaded(blocker, claimed.fail);
 				disposers.push(() => {
 					blocker.dispose();
-					// A lazy blocker disposed before it loaded never took the hold
-					// over, and nothing checked consent for what it held: fail it
-					// closed. A no-op once a blocker took over.
 					claimed.block();
 				});
 			}
@@ -444,9 +349,6 @@ export const assembleConsentRuntime = function assembleConsentRuntime(
 			}
 			const { clearOnRevocation } = options;
 			if (enabled && clearOnRevocation) {
-				// Data clearing subscribes after the script loader, so revocation
-				// callbacks finish before browser data is removed. A loader that
-				// loads on demand subscribes when its chunk lands.
 				let cleanup: { dispose: () => void } | null = null;
 				let cancelled = false;
 				const mountCleanup = () => {

@@ -1,42 +1,13 @@
-/**
- * Errors for a backend response that is not ok.
- *
- * A backend that refuses a request usually says why in a JSON body:
- * `{ message, code }`, or c15t's own `{ message, cause: { code, reason } }`.
- * These helpers read that body so the error says what the backend said,
- * not only the status. Over HTTP/2 `statusText` is empty, so without the
- * body an error reads `responded 429 ` and nothing more.
- *
- * @internal
- */
-
-/** Bodies past this many bytes are not read further. */
 const MAX_BODY_BYTES = 16 * 1024;
-/** Stop waiting for a body after this long. */
 const BODY_TIMEOUT_MS = 2000;
-/** Longest backend message an error carries. */
 const MAX_MESSAGE_LENGTH = 500;
 
-/**
- * What a failed response's body said, when it said anything readable.
- *
- * @internal
- */
 export interface FailedResponseDetail {
-	/** `cause.code`, else the top-level `code`. */
 	code?: string;
-	/** The top-level `message`, cut to a bounded length. */
 	message?: string;
-	/** `cause.reason`. */
 	reason?: string;
 }
 
-/**
- * An `Error` for a failed response, with the response's status and the
- * backend's code attached.
- *
- * @internal
- */
 export type FailedResponseError = Error & {
 	code?: string;
 	status: number;
@@ -48,14 +19,12 @@ const readNonEmptyString = function readNonEmptyString(
 	return typeof value === 'string' && value.trim() ? value.trim() : undefined;
 };
 
-/** Drop the rest of a body; an unread body would hold the connection. */
 const dropRest = async function dropRest(
 	reader: ReadableStreamDefaultReader<Uint8Array>
 ): Promise<void> {
 	try {
 		await reader.cancel();
 	} catch {
-		// Nothing left to release.
 	}
 };
 
@@ -82,7 +51,6 @@ const readStream = async function readStream(
 		}
 	} finally {
 		clearTimeout(timer.id);
-		// Not awaited: a stream that never ends may never finish cancelling.
 		void dropRest(reader);
 	}
 	return bytes > MAX_BODY_BYTES ? '' : text + decoder.decode();
@@ -95,16 +63,6 @@ const readText = async function readText(response: Response): Promise<string> {
 	return typeof response.text === 'function' ? await response.text() : '';
 };
 
-/**
- * Read the body of a failed response for the backend's message and code.
- *
- * Never throws. Reads at most 16 KiB and waits at most two seconds. A body
- * that is not JSON, or JSON without these fields, yields `{}`.
- *
- * @param response - The response that is not ok. Its body is consumed.
- * @returns The backend's message, code and reason, where present.
- * @internal
- */
 export const readFailedResponse = async function readFailedResponse(
 	response: Response
 ): Promise<FailedResponseDetail> {
@@ -145,18 +103,6 @@ export const readFailedResponse = async function readFailedResponse(
 	return detail;
 };
 
-/**
- * The error message for a failed response: `<prefix> responded <status>`,
- * then the backend's message and code when the body had them, else the
- * status text as before.
- *
- * @param prefix - Names the caller and route, such as
- * `c15t hosted transport: /init`.
- * @param response - The response that is not ok.
- * @param detail - What {@link readFailedResponse} read from its body.
- * @returns The message.
- * @internal
- */
 export const describeFailedResponse = function describeFailedResponse(
 	prefix: string,
 	response: Response,
@@ -169,24 +115,6 @@ export const describeFailedResponse = function describeFailedResponse(
 	return `${prefix} responded ${response.status}${said}${code}`;
 };
 
-/**
- * Build the error for a failed response, reading its body for the
- * backend's message and code.
- *
- * @param prefix - Names the caller and route, such as
- * `c15t hosted transport: /init`.
- * @param response - The response that is not ok. Its body is consumed.
- * @returns An `Error` carrying `status`, and `code` when the body had one.
- * @example
- * ```ts
- * if (!response.ok) {
- *   throw await failedResponseError('c15t hosted transport: /init', response);
- * }
- * // c15t hosted transport: /init responded 402: Your plan is out of
- * // consent sessions. (CONSENT_SESSIONS_EXHAUSTED)
- * ```
- * @internal
- */
 export const failedResponseError = async function failedResponseError(
 	prefix: string,
 	response: Response

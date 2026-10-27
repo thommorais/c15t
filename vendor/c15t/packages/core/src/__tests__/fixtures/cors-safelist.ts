@@ -1,18 +1,5 @@
-/**
- * The Fetch standard's CORS-safelisted request headers, as a test oracle.
- *
- * A cross-origin request whose method is `GET`, `HEAD` or `POST` and whose
- * headers all pass this check is a "simple request": the browser sends it
- * without an `OPTIONS` preflight. Any other header, a value the safelist
- * rejects, or a forbidden header such as `Sec-GPC` (which a browser drops
- * and so never reaches the backend) fails it.
- *
- * @see https://fetch.spec.whatwg.org/#cors-safelisted-request-header
- */
-
 const SIMPLE_METHODS = new Set(['GET', 'HEAD', 'POST']);
 
-/** Bytes the spec calls CORS-unsafe request-header bytes. */
 const hasUnsafeByte = (value: string): boolean =>
 	[...value].some((char) => {
 		const code = char.charCodeAt(0);
@@ -65,13 +52,6 @@ const toEntries = (headers: HeadersInit | undefined): [string, string][] => {
 	return Object.entries(headers);
 };
 
-/**
- * The reasons a fetch would need a CORS preflight, or none for a simple
- * request.
- *
- * @param init - The fetch options the code under test sent.
- * @returns One message per method or header that breaks the safelist.
- */
 export const corsPreflightReasons = function corsPreflightReasons(
 	init: RequestInit | undefined
 ): string[] {

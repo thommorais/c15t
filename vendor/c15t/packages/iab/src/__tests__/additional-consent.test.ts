@@ -21,8 +21,6 @@ import type { TCData } from '../tcf/iab-tcf-types';
 import { completeGVL } from './fixtures/gvl-sample';
 
 describe('ACv2 string', () => {
-	// The four examples in Google's specification, for providers 1, 2, 3, 4
-	// and 10 disclosed.
 	test.each([
 		['seen, no decision', [], '2~~dv.1.2.3.4.10'],
 		['all consented', [1, 2, 3, 4, 10], '2~1.2.3.4.10~dv.'],
@@ -232,7 +230,6 @@ describe('createIAB with Additional Consent', () => {
 		expect(payload?.addtlConsent).toBe('2~89.2577~dv.');
 	});
 
-	/** The sample list with no vendor declaring personalised ads. */
 	const withoutPersonalisedAds = {
 		...completeGVL,
 		vendors: Object.fromEntries(
@@ -386,7 +383,6 @@ describe('createIAB with Additional Consent', () => {
 	});
 
 	test('a provider list replaced in place drops the removed provider', async () => {
-		// The backend lists the providers; this handle configures none.
 		const kernel = makeKernel();
 		kernel.set.iab({
 			adTechProviders: [PROVIDERS.providers['89'], PROVIDERS.providers['2577']],
@@ -398,7 +394,6 @@ describe('createIAB with Additional Consent', () => {
 		await addon.save();
 		expect((await tcData()).addtlConsent).toBe('2~89.2577~dv.');
 
-		// A re-init that returns a shorter list keeps the GVL and reference.
 		kernel.set.iab({ adTechProviders: [PROVIDERS.providers['89']] });
 		await vi.waitFor(() =>
 			expect(kernel.getSnapshot().iab?.authority?.addtlConsent).toBe('2~89~dv.')
@@ -476,7 +471,6 @@ describe('createIAB with Additional Consent', () => {
 		);
 	});
 
-	/** Holds the provider list until the test releases it. */
 	const holdProviderList = () => {
 		let release!: () => void;
 		const released = new Promise<void>((resolve) => {
@@ -509,7 +503,6 @@ describe('createIAB with Additional Consent', () => {
 		expect(kernel.getSnapshot().iab?.adTechProviderConsents).toEqual({});
 		expect(await tcData()).not.toHaveProperty('addtlConsent');
 
-		// Shown now: a later save discloses them, Accept All consents to them.
 		await addon.save();
 		expect((await tcData()).addtlConsent).toBe('2~~dv.89.2577');
 		addon.acceptAll();
@@ -606,12 +599,10 @@ describe('createIAB with Additional Consent', () => {
 		expect((await tcData()).addtlConsent).toBe('2~89~dv.');
 		expect(localStorage.getItem('addtl_consent')).toBe('2~89~dv.');
 
-		// Shown now, so the next save discloses it.
 		await addon.save();
 		expect((await tcData()).addtlConsent).toBe('2~89~dv.2577');
 	});
 
-	/** A handle whose provider list is still loading, and its release. */
 	const mountWithPendingProviders = function mountWithPendingProviders() {
 		const release = holdProviderList();
 		const kernel = makeKernel();
@@ -635,7 +626,6 @@ describe('createIAB with Additional Consent', () => {
 			addon.setPurposeConsent(purpose, true);
 		}
 		const saved = addon.save();
-		// Not part of what the visitor confirmed with this save.
 		addon.setPurposeConsent(1, false);
 		release();
 		await expect(saved).rejects.toThrow('selections changed');
@@ -678,16 +668,12 @@ describe('createIAB with Additional Consent', () => {
 		disposers.push(addon.dispose);
 
 		const saved = addon.save();
-		// A fresh /init re-resolves the policy, and the module restores the
-		// returning visitor's stored choice while the save waits. The visitor
-		// changed nothing, so the save goes through.
 		await kernel.commands.init();
 		await Promise.resolve();
 		release();
 		await saved;
 		const data = await tcData();
 		expect(data.tcString).not.toBe('');
-		// No provider was listed when the visitor clicked, so none is disclosed.
 		expect(data).not.toHaveProperty('addtlConsent');
 	});
 
@@ -735,7 +721,6 @@ describe('createIAB with Additional Consent', () => {
 		expect(fetchMock).not.toHaveBeenCalled();
 	});
 
-	/** A kernel whose `/init` sends the backend's provider list. */
 	const kernelWithBackendProviders = function kernelWithBackendProviders() {
 		const { resolution } = makeKernel().getSnapshot();
 		const kernel = createConsentKernel({
@@ -802,7 +787,6 @@ describe('createIAB with Additional Consent', () => {
 		);
 		vi.spyOn(console, 'warn').mockImplementation(() => {});
 		const kernel = makeKernel();
-		// No `gvl` option, so a new list in the kernel loads the providers again.
 		const addon = createIAB({
 			additionalConsent: {
 				providers: [89, 2577],
@@ -832,7 +816,6 @@ describe('createIAB with Additional Consent', () => {
 		expect(
 			kernel.getSnapshot().iab?.adTechProviders?.map(({ id }) => id)
 		).toEqual([89, 2577]);
-		// Never shown before the click, so not disclosed in its name.
 		expect(await tcData()).not.toHaveProperty('addtlConsent');
 	});
 

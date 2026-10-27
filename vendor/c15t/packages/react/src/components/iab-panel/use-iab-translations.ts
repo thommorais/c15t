@@ -1,11 +1,6 @@
 import { useTranslations } from '~/component-hooks/use-translations';
 import { defaultTranslationConfig } from '~/utils/default-translation-config';
 
-/**
- * IAB translations interface.
- * This matches the structure in @c15t/translations but is defined locally
- * to avoid cross-package type dependencies.
- */
 interface IABTranslations {
 	banner: {
 		title: string;
@@ -83,15 +78,10 @@ interface IABTranslations {
 	};
 }
 
-// Get the default IAB translations from the translations package
-// This is the single source of truth - no duplicated default strings
 // oxlint-disable-next-line typescript/no-non-null-assertion -- enTranslations is guaranteed to exist in defaultTranslationConfig
 const DEFAULT_IAB_TRANSLATIONS = defaultTranslationConfig.translations.en!
 	.iab as IABTranslations;
 
-/**
- * Deep merge helper for IAB translations
- */
 const deepMerge = function deepMerge<T extends Record<string, unknown>>(
 	defaults: T,
 	overrides?: Partial<T>
@@ -126,14 +116,6 @@ const deepMerge = function deepMerge<T extends Record<string, unknown>>(
 	return result;
 };
 
-/**
- * Hook to get IAB translations with fallback to defaults from the translations package.
- *
- * This hook safely accesses IAB-specific translations and falls back to the
- * built-in English translations if the user hasn't provided custom translations.
- *
- * @returns Complete IAB translations object
- */
 export const useIABTranslations =
 	function useIABTranslations(): IABTranslations {
 		const translations = useTranslations();
@@ -142,7 +124,6 @@ export const useIABTranslations =
 			return DEFAULT_IAB_TRANSLATIONS;
 		}
 
-		// Deep merge user translations with defaults
 		return {
 			banner: deepMerge(
 				DEFAULT_IAB_TRANSLATIONS.banner,

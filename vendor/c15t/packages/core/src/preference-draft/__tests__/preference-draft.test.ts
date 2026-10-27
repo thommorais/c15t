@@ -1,10 +1,4 @@
 import type { PolicyRule } from '@c15t/schema/types';
-/**
- * The preference draft at its interface. Every framework adapter wraps this
- * module, so the rules where the old per-framework copies disagreed are
- * pinned here: vendor-surface order, the stale rule, the baseline merge, the
- * displayed categories and bulk actions.
- */
 import { afterEach, describe, expect, test, vi } from 'vitest';
 
 import {
@@ -53,16 +47,11 @@ const DECLARED = [
 
 const RULE = optInRule({ categories: ['marketing', 'measurement'] });
 
-/**
- * A kernel whose policy can change through `/init`, recording every save
- * payload it sends.
- */
 const setup = function setup(config: KernelConfig = {}, rule = RULE) {
 	vi.spyOn(Date, 'now').mockReturnValue(NOW);
 	let next = matchedResolution(rule);
 	const sent: SavePayload[] = [];
 	const kernel = createConsentKernel({
-		// A permissive policy offers only what the site declares.
 		consentCategories: ['marketing', 'measurement'],
 		initialPolicyResolution: matchedResolution(rule),
 		initialVendors: { declared: DECLARED, listVersion: '1' },
@@ -120,8 +109,6 @@ describe('seeding', () => {
 	});
 
 	test('displayed categories are necessary plus the choice scope in consentTypes order, not the policy or configured order', () => {
-		// The rule lists its categories in display order and the site
-		// configures another; resolving the rule sorts its scope.
 		const { kernel } = setup(
 			{
 				consentCategories: [
@@ -164,8 +151,6 @@ describe('seeding', () => {
 	test('vendors read granted unless the gate honors a denial; a disabled vendor reads granted', async () => {
 		const { kernel } = setup();
 		await kernel.commands.save({}, { vendors: { 'meta-pixel': false } });
-		// A denial recorded for a vendor later declared `disabled` no longer
-		// counts, so the draft never shows it off while every gate allows it.
 		kernel.set.vendors(
 			{
 				declared: [
@@ -297,8 +282,6 @@ describe('staging', () => {
 	});
 
 	test('new defaults wait until a dirty draft is clean', async () => {
-		// An experiment arm assigned after the visitor started editing must
-		// not flip a switch they left alone and save a grant they never saw.
 		const { kernel } = setup();
 		const draft = createPreferenceDraft(kernel);
 		draft.set('measurement', true);
@@ -306,7 +289,6 @@ describe('staging', () => {
 		expect(draft.getState().values.marketing).toBe(false);
 		expect(draft.toSaveInput()).toMatchObject({ marketing: false });
 		await draft.save();
-		// Saved and clean, the draft now shows the record.
 		expect(draft.getState().values).toMatchObject({
 			marketing: false,
 			measurement: true,
@@ -369,7 +351,6 @@ describe('saving', () => {
 		expect(recorded(kernel)).toEqual({ marketing: false, measurement: true });
 		expect(kernel.getSnapshot().vendorChoice?.denied).toEqual(['meta-pixel']);
 		expect(sent.at(-1)?.uiSource).toBe('dialog');
-		// The draft follows what it just recorded.
 		expect(draft.getState().isDirty).toBe(false);
 	});
 
@@ -430,8 +411,6 @@ describe('following the record', () => {
 			isStale: false,
 			values: { marketing: true, measurement: true },
 		});
-		// Saving now writes the other surface's measurement grant, not the
-		// value the draft was seeded with.
 		await draft.save();
 		expect(recorded(kernel)).toEqual({ marketing: true, measurement: true });
 	});
@@ -547,8 +526,6 @@ describe('stale drafts', () => {
 	});
 
 	test('a dirty draft stays saveable when the same rows come back in another order', () => {
-		// The kernel keeps a configured list in the order it was given and
-		// sorts every merged one, so renaming one vendor reorders the rows.
 		const { kernel } = setup();
 		const draft = createPreferenceDraft(kernel);
 		draft.setVendor('meta-pixel', false);
@@ -568,8 +545,6 @@ describe('stale drafts', () => {
 	});
 
 	test('comparing vendor surfaces does not load the collator', () => {
-		// The first `localeCompare` call in a page initialises ICU collation,
-		// which is slow on the main thread.
 		const { kernel } = setup();
 		const localeCompare = vi.spyOn(String.prototype, 'localeCompare');
 		const draft = createPreferenceDraft(kernel);

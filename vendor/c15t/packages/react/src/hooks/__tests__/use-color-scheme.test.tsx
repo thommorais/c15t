@@ -18,20 +18,16 @@ describe('useColorScheme', () => {
 	let removeEventListenerSpy: ReturnType<typeof vi.spyOn>;
 
 	beforeEach(() => {
-		// Reset document classes
 		document.documentElement.classList.remove('c15t-dark', 'dark');
 
-		// Mock matchMedia
 		mediaQueryList = {
 			addEventListener: vi.fn(),
-			// Deprecated but included for completeness
 			addListener: vi.fn(),
 			dispatchEvent: vi.fn(),
 			matches: false,
 			media: '(prefers-color-scheme: dark)',
 			onchange: null,
 			removeEventListener: vi.fn(),
-			// Deprecated but included for completeness,
 			removeListener: vi.fn(),
 		};
 
@@ -39,7 +35,6 @@ describe('useColorScheme', () => {
 			() => mediaQueryList as MediaQueryList
 		);
 
-		// Spy on event listeners
 		addEventListenerSpy = vi.spyOn(mediaQueryList, 'addEventListener');
 		removeEventListenerSpy = vi.spyOn(mediaQueryList, 'removeEventListener');
 	});
@@ -93,15 +88,11 @@ describe('useColorScheme', () => {
 	});
 
 	test('does nothing when colorScheme is null (opt-out behavior)', async () => {
-		// When colorScheme is null, the hook opts out and does nothing
-		// This allows users to manage color scheme themselves
 		document.documentElement.classList.add('dark');
 		await renderHook(() => useColorScheme(null));
-		// c15t-dark should NOT be added - the hook is inactive when null
 		expect(document.documentElement.classList.contains('c15t-dark')).toBe(
 			false
 		);
-		// The original 'dark' class should still be there (untouched)
 		expect(document.documentElement.classList.contains('dark')).toBe(true);
 	});
 });

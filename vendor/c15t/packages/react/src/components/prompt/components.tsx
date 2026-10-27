@@ -1,9 +1,3 @@
-/**
- * @packageDocumentation
- * Provides the core components for building consent banners.
- * Implements accessible, customizable components following GDPR requirements.
- */
-
 import type { PolicyRight } from '@c15t/schema/types';
 import actionStyles from '@c15t/ui/styles/components/consent-actions';
 import styles from '@c15t/ui/styles/components/consent-banner';
@@ -42,29 +36,8 @@ const CONSENT_BANNER_DISMISS_BUTTON_NAME = 'ConsentBannerDismissButton';
 const CONSENT_BANNER_RIGHTS_NAME = 'ConsentBannerRights';
 const CONSENT_BANNER_RIGHT_LINK_NAME = 'ConsentBannerRightLink';
 
-/** Rights the banner can expose as links. `disclosure` is carried by legal links. */
 export type ConsentBannerRight = Exclude<PolicyRight, 'disclosure'>;
 
-/**
- * Title component for the consent banner.
- *
- * @remarks
- * Provides the main heading for the consent notice.
- * Implements proper heading semantics and supports theming.
- * Renders an `h2`. With `asChild`, the child element, such as an `h1`,
- * takes its place and receives the title's class and attributes.
- *
- * @example
- * ```tsx
- * <ConsentBannerTitle>
- *   Cookie Preferences
- * </ConsentBannerTitle>
- *
- * <ConsentBannerTitle asChild>
- *   <h1>Cookie Preferences</h1>
- * </ConsentBannerTitle>
- * ```
- */
 const ConsentBannerTitle = createForwardRef<
 	HTMLDivElement,
 	Omit<BoxProps, 'slotKey'>
@@ -90,21 +63,6 @@ const ConsentBannerTitle = createForwardRef<
 
 ConsentBannerTitle.displayName = CONSENT_BANNER_TITLE_NAME;
 
-/**
- * Description component for the consent banner.
- *
- * @remarks
- * Provides explanatory text about cookie usage and privacy policies.
- * Supports rich text content and proper accessibility attributes.
- * Can include legal links inline with the description.
- *
- * @example
- * ```tsx
- * <ConsentBannerDescription>
- *   We use cookies to enhance your browsing experience and analyze our traffic.
- * </ConsentBannerDescription>
- * ```
- */
 const ConsentBannerDescription = createForwardRef<
 	HTMLDivElement,
 	Omit<BoxProps, 'slotKey'> & {
@@ -161,21 +119,6 @@ const ConsentBannerDescription = createForwardRef<
 
 ConsentBannerDescription.displayName = CONSENT_BANNER_DESCRIPTION_NAME;
 
-/**
- * Footer component for the consent banner.
- *
- * @remarks
- * Contains action buttons and additional information.
- * Implements proper layout and spacing for action items.
- *
- * @example
- * ```tsx
- * <ConsentBannerFooter>
- *   <ConsentBannerRejectButton>Reject All</ConsentBannerRejectButton>
- *   <ConsentBannerAcceptButton>Accept All</ConsentBannerAcceptButton>
- * </ConsentBannerFooter>
- * ```
- */
 const ConsentBannerFooter = createForwardRef<
 	HTMLDivElement,
 	Omit<BoxProps, 'slotKey'>
@@ -204,35 +147,15 @@ const ConsentBannerFooter = createForwardRef<
 
 ConsentBannerFooter.displayName = CONSENT_BANNER_FOOTER_NAME;
 
-/**
- * Card component for the consent banner.
- *
- * @remarks
- * Provides the main container for the consent notice.
- * Implements proper elevation and layout structure.
- *
- * @example
- * ```tsx
- * <ConsentBannerCard>
- *   <ConsentBannerHeader>
- *     <ConsentBannerTitle>Cookie Notice</ConsentBannerTitle>
- *   </ConsentBannerHeader>
- * </ConsentBannerCard>
- * ```
- */
 const ConsentBannerCard = createForwardRef<
 	HTMLDivElement,
 	Omit<BoxProps, 'slotKey'>
 >(({ children, ...props }, ref) => {
 	const { blocking } = useConsentBannerSurface();
 	const { title } = useBannerCopy();
-	// The trap reads its own ref; the caller's ref, object or callback, is
-	// filled alongside it.
 	const cardRef = useRef<HTMLDivElement>(null);
 	const composedRef = useComposedRefs(cardRef, ref);
 
-	// A blocking surface traps focus and announces as a modal dialog. A
-	// non-blocking surface is a labelled region that never steals focus.
 	const shouldTrapFocus = blocking;
 	useFocusTrap(shouldTrapFocus, cardRef);
 
@@ -255,13 +178,6 @@ const ConsentBannerCard = createForwardRef<
 
 ConsentBannerCard.displayName = CONSENT_BANNER_CARD_NAME;
 
-/**
- * Header component for the consent banner.
- *
- * @remarks
- * Contains the title and description sections.
- * Implements proper spacing and layout for header content.
- */
 const ConsentBannerHeader = createForwardRef<
 	HTMLDivElement,
 	Omit<BoxProps, 'slotKey'>
@@ -279,13 +195,6 @@ const ConsentBannerHeader = createForwardRef<
 
 ConsentBannerHeader.displayName = CONSENT_BANNER_HEADER_NAME;
 
-/**
- * Footer sub-group component for organizing related actions.
- *
- * @remarks
- * Groups related buttons or controls in the footer.
- * Implements proper spacing and alignment for button groups.
- */
 const ConsentBannerFooterSubGroup = createForwardRef<
 	HTMLDivElement,
 	Omit<BoxProps, 'slotKey'>
@@ -303,20 +212,6 @@ const ConsentBannerFooterSubGroup = createForwardRef<
 
 ConsentBannerFooterSubGroup.displayName = CONSENT_BANNER_FOOTER_SUB_GROUP_NAME;
 
-/**
- * Button to reject all non-essential cookies.
- *
- * @remarks
- * Implements the reject action for consent preferences.
- * Provides proper accessibility attributes and keyboard interaction.
- *
- * @example
- * ```tsx
- * <ConsentBannerRejectButton>
- *   Reject All Cookies
- * </ConsentBannerRejectButton>
- * ```
- */
 const ConsentBannerRejectButton = createForwardRef<
 	HTMLButtonElement,
 	ConsentButtonProps
@@ -338,13 +233,6 @@ const ConsentBannerRejectButton = createForwardRef<
 
 ConsentBannerRejectButton.displayName = CONSENT_BANNER_REJECT_BUTTON_NAME;
 
-/**
- * Button to open detailed consent preferences.
- *
- * @remarks
- * Opens the detailed consent management interface.
- * Implements proper focus management and keyboard interaction.
- */
 const ConsentBannerCustomizeButton = createForwardRef<
 	HTMLButtonElement,
 	ConsentButtonProps
@@ -365,21 +253,6 @@ const ConsentBannerCustomizeButton = createForwardRef<
 
 ConsentBannerCustomizeButton.displayName = CONSENT_BANNER_CUSTOMIZE_BUTTON_NAME;
 
-/**
- * Button to accept all cookies.
- *
- * @remarks
- * Implements the accept action for consent preferences.
- * Provides proper accessibility attributes and keyboard interaction.
- * Supports theming and style customization.
- *
- * @example
- * ```tsx
- * <ConsentBannerAcceptButton>
- *   Accept All Cookies
- * </ConsentBannerAcceptButton>
- * ```
- */
 const ConsentBannerAcceptButton = createForwardRef<
 	HTMLButtonElement,
 	ConsentButtonProps
@@ -403,23 +276,6 @@ const ConsentBannerAcceptButton = createForwardRef<
 
 ConsentBannerAcceptButton.displayName = CONSENT_BANNER_ACCEPT_BUTTON_NAME;
 
-/**
- * Button that acknowledges a notice prompt.
- *
- * @remarks
- * Records a notice dismissal without recording a category choice, so no
- * choice callbacks fire. Only rendered when the active policy requires a
- * notice. Uses `common.acknowledge`, with `common.dismiss` as a fallback.
- * Children or `dismissButtonText` override the label.
- * Themed through `theme.consentActions.dismiss`.
- *
- * @example
- * ```tsx
- * <ConsentBannerDismissButton>
- *   Got it
- * </ConsentBannerDismissButton>
- * ```
- */
 const ConsentBannerDismissButton = createForwardRef<
 	HTMLButtonElement,
 	ConsentButtonProps
@@ -443,43 +299,16 @@ const ConsentBannerDismissButton = createForwardRef<
 
 ConsentBannerDismissButton.displayName = CONSENT_BANNER_DISMISS_BUTTON_NAME;
 
-/**
- * Props for {@link ConsentBannerRightLink}.
- * @public
- */
 export interface ConsentBannerRightLinkProps extends Omit<
 	ButtonHTMLAttributes<HTMLButtonElement>,
 	'children' | 'type'
 > {
-	/** Which persistent right the control keeps reachable. */
 	right: ConsentBannerRight;
-	/** Custom label. Defaults to the `rights` translation for `right`. */
 	children?: ReactNode;
-	/** Render the child element instead of a button, keeping the behavior. */
 	asChild?: boolean;
-	/** Skip the banner stylesheet for this control. */
 	noStyle?: boolean;
 }
 
-/**
- * Underlined text control that keeps a persistent right reachable from the
- * banner.
- *
- * @remarks
- * Opens the preference center, where the subject can opt out or change
- * category preferences. Renders as plain underlined text through the
- * `rightLink` class and the `banner.rightLink` slot so the primary action
- * beside it keeps the emphasis. The label comes from the `rights`
- * translations and children override it. Carries `data-action="right"`,
- * `data-right`, and `data-c15t-rights` for styling hooks. With `asChild`
- * the child element, such as a link to a dedicated opt-out page, receives
- * the same class, attributes, and click handling.
- *
- * @example
- * ```tsx
- * <ConsentBannerRightLink right="opt-out" />
- * ```
- */
 const ConsentBannerRightLink = createForwardRef<
 	HTMLButtonElement,
 	ConsentBannerRightLinkProps
@@ -530,32 +359,10 @@ const ConsentBannerRightLink = createForwardRef<
 
 ConsentBannerRightLink.displayName = CONSENT_BANNER_RIGHT_LINK_NAME;
 
-/**
- * Props for {@link ConsentBannerRights}.
- * @public
- */
 export interface ConsentBannerRightsProps extends Omit<BoxProps, 'slotKey'> {
-	/**
-	 * Additional preferences buttons to render. Defaults to the resolved
-	 * presentation recommendation: a notice under an opt-out rule shows the
-	 * opt-out control (which also keeps preferences reachable), and a choice
-	 * prompt with customize shows nothing.
-	 */
 	rights?: readonly PolicyRight[];
 }
 
-/**
- * Group of additional buttons that open preferences.
- *
- * @remarks
- * Renders nothing when no additional preferences button is recommended. Children replace the default
- * controls; use {@link ConsentBannerRightLink} to keep the behavior.
- *
- * @example
- * ```tsx
- * <ConsentBannerRights />
- * ```
- */
 const ConsentBannerRights = createForwardRef<
 	HTMLDivElement,
 	ConsentBannerRightsProps

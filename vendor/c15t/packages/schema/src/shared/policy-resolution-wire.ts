@@ -1,13 +1,3 @@
-/**
- * The v3 policy resolution wire contract and its client reader.
- *
- * A browser reads a resolution the server produced; it never resolves a
- * pack itself. This module carries the outcome types, the contract version,
- * the safe fallback, and `readPolicyResolutionWire`, and depends only on the
- * resolved-rule invariants. Resolving and hashing a pack live in
- * `policy-resolution.ts`, which a client bundle then never needs.
- */
-
 import { compareCanonical } from './canonical-order';
 import type {
 	PolicyOptionalCategory,
@@ -27,17 +17,10 @@ import {
 } from './policy-rule-invariants';
 import type { PolicyMatchedBy } from './policy-runtime';
 
-/** Version of the policy wire contract this package produces and reads. */
 export const POLICY_CONTRACT_VERSION = 1;
 
-/**
- * Request header a client sends to declare the policy contract version it can
- * represent. `x-c15t-version` stays a telemetry header and is never used to
- * guess policy support.
- */
 export const POLICY_CONTRACT_HEADER = 'x-c15t-policy-contract';
 
-/** Why a resolution failed. */
 export type PolicyResolutionFailure =
 	| 'invalid-configuration'
 	| 'insufficient-inputs'
@@ -69,19 +52,16 @@ export interface PolicyResolutionMatched {
 	fingerprints: PolicyFingerprints;
 }
 
-/** Result of resolving a v3 policy pack for one request. */
 export type PolicyResolution =
 	| PolicyResolutionUnconfigured
 	| PolicyResolutionNoMatch
 	| PolicyResolutionFailed
 	| PolicyResolutionMatched;
 
-/** Wire form of {@link PolicyResolution}: the same union plus `version`. */
 export type PolicyResolutionWire = PolicyResolution & {
 	version: typeof POLICY_CONTRACT_VERSION;
 };
 
-/** Parses the {@link POLICY_CONTRACT_HEADER} value. */
 export const parsePolicyContractHeader = function parsePolicyContractHeader(
 	value: string | null | undefined
 ): number | undefined {
@@ -95,30 +75,14 @@ export const parsePolicyContractHeader = function parsePolicyContractHeader(
 	return Number.parseInt(trimmed, 10);
 };
 
-/**
- * A resolution that failed on invalid configuration.
- *
- * @internal
- */
 export const FAILED_CONFIGURATION: PolicyResolutionFailed = {
 	policy: null,
 	reason: 'invalid-configuration',
 	status: 'failed',
 };
 
-/** Identifier of the runtime fallback rule. Never a matched policy. */
 export const SAFE_FALLBACK_POLICY_ID = 'c15t_safe_fallback';
 
-/**
- * The safe opt-in choice fallback used whenever resolution did not match.
- *
- * @remarks
- * Strict scope over every optional category, accept and reject required,
- * customize allowed, disclosure and preferences rights, product-default
- * validity, no GPC mapping. Optional permissions stay denied until a valid
- * explicit choice exists. The resolution status remains observable and the
- * fallback is never reported as a matched policy.
- */
 export const safeFallbackPolicyRule =
 	function safeFallbackPolicyRule(): ResolvedPolicyRule {
 		return {
@@ -141,27 +105,17 @@ export const safeFallbackPolicyRule =
 		};
 	};
 
-/**
- * Precomputed fingerprints of {@link safeFallbackPolicyRule}.
- *
- * @remarks
- * Constants, not runtime hashes: a kernel can adopt the fallback during
- * construction or hydration without touching the hash implementation. A test
- * pins them to `createPolicyRuleFingerprints(safeFallbackPolicyRule())`.
- */
 export const SAFE_FALLBACK_POLICY_FINGERPRINTS: Readonly<PolicyFingerprints> = {
 	choice: '145fd951c0967e210d905acf5859a93cd03095c0291816b9c424d740048b7a47',
 	notice: '4b563e76133c49a5e14cffd9c0a0cc16885b811d9ff77548165cc01ee94996d7',
 	policy: 'caadd5bcf45bf76cbc279b3dfe765f2dcd165c510f489c38994e4c9264d9314f',
 };
 
-/** Rule and fingerprints the kernel adopts for every non-matched outcome. */
 export interface SafeFallbackPolicyInput {
 	policy: ResolvedPolicyRule;
 	fingerprints: PolicyFingerprints;
 }
 
-/** Fresh copy of the fallback rule with its precomputed fingerprints. */
 export const safeFallbackPolicyInput =
 	function safeFallbackPolicyInput(): SafeFallbackPolicyInput {
 		return {
@@ -170,7 +124,6 @@ export const safeFallbackPolicyInput =
 		};
 	};
 
-/** Adds the contract version to a resolution for transport. */
 export const writePolicyResolutionWire = function writePolicyResolutionWire(
 	resolution: PolicyResolution
 ): PolicyResolutionWire {
@@ -593,20 +546,6 @@ const readWire = function readWire(input: unknown): PolicyResolution {
 	}
 };
 
-/**
- * Reads a negotiated `policyResolution` wire value on the client.
- *
- * @remarks
- * Strict by design. A missing or malformed wire is `failed` with
- * `invalid-payload`; an unknown contract version, status, model, prompt,
- * action, right, category, or any unknown own field is `failed` with
- * `unsupported-contract`. Only own fields of plain objects are read. The
- * matched rule must satisfy the same semantic invariants as an authored rule
- * ({@link collectResolvedPolicyRuleIssues}). Never throws; needs no valibot.
- *
- * @param input - The raw `policyResolution` field from `/init`.
- * @returns A {@link PolicyResolution}.
- */
 export const readPolicyResolutionWire = function readPolicyResolutionWire(
 	input: unknown
 ): PolicyResolution {

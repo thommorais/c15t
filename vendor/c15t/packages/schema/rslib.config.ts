@@ -23,7 +23,6 @@ export default defineConfig({
 		target: 'node',
 	},
 	performance: {
-		// Avoid stale externalized imports when switching bundled/module builds.
 		buildCache: false,
 	},
 	plugins: [

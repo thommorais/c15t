@@ -1,57 +1,12 @@
 import type { ConsentState } from '../consent/compliance';
 import type { AllConsentNames } from '../consent/consent-types';
 
-/**
- * Defines a flexible condition system for checking consent states.
- *
- * @typeParam CategoryType - The type of consent categories being evaluated
- *
- * @remarks
- * This type supports complex logical operations for consent checking:
- * - Simple category matching: `"measurement"`
- * - Logical AND operations: `{ and: ["measurement", "marketing"] }`
- * - Logical OR operations: `{ or: ["measurement", "marketing"] }`
- * - Logical NOT operations: `{ not: "measurement" }` or `{ not: { and: [...] } }`
- *
- * Conditions can be nested arbitrarily deep, allowing for complex consent logic.
- *
- * @example
- * ```typescript
- * // Simple category check
- * const simpleCondition: HasCondition<AllConsentNames> = "measurement";
- *
- * // Complex nested condition
- * const complexCondition: HasCondition<AllConsentNames> = {
- *   and: [
- *     "necessary",
- *     { or: ["measurement", "marketing"] },
- *     { not: "functionality" }
- *   ]
- * };
- * ```
- *
- * @public
- */
 export type HasCondition<CategoryType> =
-	// e.g., "measurement"
 	| CategoryType
-	// e.g., { and: ["measurement", "marketing"] }
 	| { and: HasCondition<CategoryType> | HasCondition<CategoryType>[] }
-	// e.g., { or: ["measurement", "marketing"] }
 	| { or: HasCondition<CategoryType> | HasCondition<CategoryType>[] }
-	// e.g., { not: "measurement" }, { not: { and: ["measurement", "marketing"] } }
 	| { not: HasCondition<CategoryType> };
 
-/**
- * Validates that a condition array is not empty.
- *
- * @param conditions - Array of conditions to validate
- * @param conditionType - Type of condition for error message
- *
- * @throws {TypeError} When the condition array is empty
- *
- * @internal
- */
 const validateNonEmptyConditions = function validateNonEmptyConditions<
 	CategoryType,
 >(
@@ -63,17 +18,6 @@ const validateNonEmptyConditions = function validateNonEmptyConditions<
 	}
 };
 
-/**
- * Evaluates a simple category consent condition.
- *
- * @param category - The consent category to check
- * @param consents - The current consent state
- * @returns True if consent is granted for the category
- *
- * @throws {Error} When consent category is not found in consent state
- *
- * @internal
- */
 const evaluateCategoryCondition = function evaluateCategoryCondition(
 	category: AllConsentNames,
 	consents: ConsentState
@@ -86,29 +30,14 @@ const evaluateCategoryCondition = function evaluateCategoryCondition(
 	return consents[category] || false;
 };
 
-/**
- * Recursively evaluates consent conditions.
- *
- * @param condition - The condition to evaluate
- * @param consents - The current consent state
- * @returns Boolean result of the condition evaluation
- *
- * @throws {TypeError} When condition structure is invalid
- * @throws {Error} When consent category is not found in consent state
- *
- * @internal
- */
 const evaluateConditionRecursive = function evaluateConditionRecursive<
 	CategoryType extends AllConsentNames,
 >(condition: HasCondition<CategoryType>, consents: ConsentState): boolean {
-	// Handle simple category string
 	if (typeof condition === 'string') {
 		return evaluateCategoryCondition(condition, consents);
 	}
 
-	// Handle object conditions
 	if (typeof condition === 'object' && condition !== null) {
-		// Handle AND condition
 		if ('and' in condition) {
 			const andConditions = Array.isArray(condition.and)
 				? condition.and
@@ -119,7 +48,6 @@ const evaluateConditionRecursive = function evaluateConditionRecursive<
 			);
 		}
 
-		// Handle OR condition
 		if ('or' in condition) {
 			const orConditions = Array.isArray(condition.or)
 				? condition.or
@@ -130,7 +58,6 @@ const evaluateConditionRecursive = function evaluateConditionRecursive<
 			);
 		}
 
-		// Handle NOT condition
 		if ('not' in condition) {
 			return !evaluateConditionRecursive(condition.not, consents);
 		}
@@ -141,65 +68,6 @@ const evaluateConditionRecursive = function evaluateConditionRecursive<
 	);
 };
 
-/**
- * Evaluates whether current consent state satisfies the given condition.
- *
- * @typeParam CategoryType - The type of consent categories (typically AllConsentNames)
- *
- * @param condition - The consent condition to evaluate
- * @param consents - Current state of user consents
- * @param options - Configuration options for evaluation behavior
- *
- * @returns True if the consent condition is satisfied, false otherwise
- *
- * @throws {TypeError} When condition has invalid structure
- * @throws {Error} When required consent categories are missing from consent state
- *
- * @remarks
- * This function provides a powerful way to check complex consent requirements:
- *
- * **Simple Usage:**
- * - Check single consent: `has("measurement", consents)`
- *
- * **Complex Conditions:**
- * - AND logic: `has({ and: ["measurement", "marketing"] }, consents)`
- * - OR logic: `has({ or: ["measurement", "marketing"] }, consents)`
- * - NOT logic: `has({ not: "measurement" }, consents)`
- * - Nested logic: `has({ and: ["necessary", { or: ["measurement", "marketing"] }] }, consents)`
- *
- * @example
- * ```typescript
- * const consents: ConsentState = {
- *   necessary: true,
- *   measurement: true,
- *   marketing: false,
- *   functionality: false,
- *   experience: false
- * };
- *
- * // Simple checks
- * has("measurement", consents); // true
- * has("marketing", consents); // false
- *
- * // Complex logic
- * has({ and: ["necessary", "measurement"] }, consents); // true
- * has({ or: ["measurement", "marketing"] }, consents); // true
- * has({ not: "marketing" }, consents); // true
- *
- * // Nested conditions
- * has({
- *   and: [
- *     "necessary",
- *     { or: ["measurement", "marketing"] },
- *     { not: "functionality" }
- *   ]
- * }, consents); // true
- * ```
- *
- * @see {@link HasCondition} for condition structure details
- *
- * @public
- */
 export const has = function has<CategoryType extends AllConsentNames>(
 	condition: HasCondition<CategoryType>,
 	permissions: ConsentState
@@ -207,14 +75,6 @@ export const has = function has<CategoryType extends AllConsentNames>(
 	return evaluateConditionRecursive(condition, permissions);
 };
 
-/**
- * Extracts all consent category names from a {@link HasCondition}.
- *
- * @typeParam CategoryType - The type of consent categories
- * @param condition - The condition to extract categories from
- * @returns An array of unique consent category names
- * @public
- */
 export const extractConsentNamesFromCondition =
 	function extractConsentNamesFromCondition<
 		CategoryType extends AllConsentNames,

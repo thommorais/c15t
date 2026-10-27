@@ -1,17 +1,4 @@
 /** @vitest-environment jsdom */
-/**
- * Cookie projection size baseline. These numbers are evidence for a
- * later budget decision, not a budget. They lock the encoding: a change
- * that alters the byte count must be deliberate.
- *
- * Bytes are UTF-8 lengths of the value actually stored in
- * `document.cookie` after the real write path (`setCookie` for v2,
- * `writeStoredConsentEnvelope` for v3), without the `c15t=` name or
- * attributes. Neither path adds an outer URI encoding, so the stored
- * value equals the codec string; the tests assert that equality rather
- * than assume it. Fingerprints use 64-character SHA-256 hex, matching
- * `@c15t/schema` policy fingerprints.
- */
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import type { ChoiceBasis } from '../../../consent-record/types';
@@ -55,7 +42,6 @@ const v2Compact = function v2Compact(record: Record<string, unknown>): string {
 	return flatToString(shortenFlatKeys(flattenObject(record)));
 };
 
-/** Bytes of the value the browser actually holds after a v2 write. */
 const storedV2Bytes = function storedV2Bytes(
 	record: Record<string, unknown>
 ): number {
@@ -65,7 +51,6 @@ const storedV2Bytes = function storedV2Bytes(
 	return bytes(stored ?? '');
 };
 
-/** Bytes of the value the browser actually holds after a v3 write. */
 const storedV3Bytes = function storedV3Bytes(
 	envelope: StoredConsentEnvelope
 ): number {
@@ -229,7 +214,6 @@ describe('cookie projection bytes (baseline evidence, not a budget)', () => {
 		);
 		expect(measured).toEqual({
 			acceptAll: 186,
-			// The clear epoch adds `&e=` and 13 digits once a clear happened.
 			acceptAllAfterClear: 202,
 			acceptAllIdentified: 233,
 			migratedLegacyNoHash: 122,
@@ -248,7 +232,6 @@ describe('cookie projection bytes (baseline evidence, not a budget)', () => {
 		);
 		expect(measured).toEqual({
 			acceptAll: 748,
-			// `,"epoch":` and 13 digits.
 			acceptAllAfterClear: 770,
 			acceptAllIdentified: 823,
 			migratedLegacyNoHash: 424,

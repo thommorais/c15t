@@ -1,15 +1,3 @@
-/**
- * GPP stub.
- *
- * Installs `__gpp` before the CMP loads, as the GPP CMP API requires: `ping`
- * and the event listener commands answer at once, section queries answer
- * `null`, and every other command waits in a queue for the CMP. Also adds
- * the `__gppLocator` frame and the `postMessage` handler that let scripts
- * in iframes reach `__gpp`.
- *
- * @packageDocumentation
- */
-
 import { GPP_VERSION } from './sections';
 import type {
 	GPPApi,
@@ -22,12 +10,9 @@ import type {
 const LOCATOR_NAME = '__gppLocator';
 
 let stubInitialized = false;
-/** The stub this module installed, distinct from a CMP that replaced it. */
 let ownedStub: GPPApi | null = null;
 let locatorFrame: HTMLIFrameElement | null = null;
-/** Whether this module added the frame message handler. */
 let answeringFrames = false;
-/** Adds the locator once `<body>` exists. */
 let waitingForBody: (() => void) | null = null;
 
 const stubPingData = function stubPingData(): GPPPingData {
@@ -45,16 +30,8 @@ const stubPingData = function stubPingData(): GPPPingData {
 	};
 };
 
-/** Commands the stub answers with `null` instead of queueing. */
 const SECTION_QUERIES = new Set(['hasSection', 'getSection', 'getField']);
 
-/**
- * Creates a stub `__gpp`.
- *
- * @returns A function that follows the GPP stub contract.
- *
- * @internal
- */
 export const createGPPStub = function createGPPStub(): GPPApi {
 	const queue: unknown[][] = [];
 	const events: GPPQueuedListener[] = [];
@@ -119,7 +96,6 @@ interface GPPCallMessage {
 	callId: string | number;
 }
 
-/** Reads a `__gppCall` request, sent as an object or as JSON. */
 const readCall = function readCall(
 	data: unknown
 ): { call: GPPCallMessage; json: boolean } | null {
@@ -148,7 +124,6 @@ const readCall = function readCall(
 	return { call: call as GPPCallMessage, json };
 };
 
-/** Answers `__gppCall` messages from frames, in the form they arrived. */
 const handlePostMessage = function handlePostMessage(
 	event: MessageEvent
 ): void {
@@ -180,7 +155,6 @@ const hasLocatorFrame = (): boolean =>
 	typeof document !== 'undefined' &&
 	document.querySelector(`iframe[name="${LOCATOR_NAME}"]`) !== null;
 
-/** Adds the locator frame, waiting for `<body>` when the stub runs in `<head>`. */
 const addLocatorFrame = function addLocatorFrame(): void {
 	if (typeof document === 'undefined' || hasLocatorFrame()) {
 		return;
@@ -204,23 +178,6 @@ const addLocatorFrame = function addLocatorFrame(): void {
 	locatorFrame = frame;
 };
 
-/**
- * Installs the GPP stub, the `__gppLocator` frame and the frame message
- * handler. Call it as early as possible so vendors that load before the
- * CMP can queue calls. Does nothing on the server or when it already ran.
- *
- * When another script already installed `__gpp` or a `__gppLocator` frame,
- * that script answers frames: a spec stub forwards their calls to whatever
- * `__gpp` is current, so a second handler would answer each call twice.
- * Only the missing `__gpp` is added then.
- *
- * @example
- * ```ts
- * import { initializeGPPStub } from '@c15t/iab/gpp';
- *
- * initializeGPPStub();
- * ```
- */
 export const initializeGPPStub = function initializeGPPStub(): void {
 	if (typeof window === 'undefined' || stubInitialized) {
 		return;
@@ -239,10 +196,6 @@ export const initializeGPPStub = function initializeGPPStub(): void {
 	answeringFrames = true;
 };
 
-/**
- * Removes what {@link initializeGPPStub} installed. `__gpp` is removed only
- * while it is still this module's stub.
- */
 export const destroyGPPStub = function destroyGPPStub(): void {
 	if (typeof window === 'undefined') {
 		return;

@@ -1,11 +1,3 @@
-/**
- * The shared server-side GVL cache.
- *
- * The list runs to megabytes and every visitor in a language gets the same
- * bytes, so the interesting behaviour is all about how often it goes to the
- * network.
- */
-
 import { afterEach, describe, expect, test } from 'vitest';
 
 import { clearGvlCache, fetchCachedGvl } from '../gvl-cache';
@@ -107,7 +99,6 @@ describe('fetchCachedGvl', () => {
 			now: 0,
 			url: GVL_URL,
 		});
-		// Well past the 5s dedupe floor, well inside the hour the backend gave.
 		await fetchCachedGvl({
 			fetch: fetchImpl,
 			language: 'en',

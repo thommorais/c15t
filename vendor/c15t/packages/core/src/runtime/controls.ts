@@ -1,20 +1,12 @@
-/** Shared controls for adapters that own their kernel lifecycle. */
 import type { InternalKernel } from '../kernel/internals';
 import type { ConsentKernel, ConsentState, Unsubscribe } from '../types';
 import type { ConsentRuntimeOptions, ExternalConsentSource } from './types';
 
-/** Options shared by every framework provider. Configure these before mounting. */
 export type ConsentControlOptions = Pick<
 	ConsentRuntimeOptions,
 	'consentSource'
 >;
 
-/**
- * Delegate preference requests and synchronize the external authority.
- * @param kernel - A kernel created with `initialExternalPermissions`.
- * @param source - The existing CMP's client-side decision source.
- * @returns Cleanup for the source and preference listener. Call once per owner.
- */
 export const connectConsentSource = (
 	kernel: ConsentKernel,
 	source: ExternalConsentSource
@@ -49,7 +41,6 @@ export const connectConsentSource = (
 		try {
 			permissions = source.getPermissions();
 		} catch {
-			/* Fail closed. */
 		}
 		kernel.set.externalPermissions(permissions ?? {});
 	};
@@ -62,7 +53,6 @@ export const connectConsentSource = (
 		disposed = true;
 		unsubscribePreferences();
 		return () => {
-			// The failed connection is already disposed.
 		};
 	}
 	sync();

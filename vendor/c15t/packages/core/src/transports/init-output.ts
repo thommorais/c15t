@@ -1,9 +1,3 @@
-/**
- * Shared fold from a producer init payload to kernel initialization.
- * Versioned policy outcomes are validated before kernel construction.
- * Older producers without a policy contract fail safely. Detected GPC
- * remains separate from a developer override.
- */
 import {
 	POLICY_CONTRACT_VERSION,
 	readPolicyResolutionWire,
@@ -27,23 +21,11 @@ import type {
 type RichInitOutput = InitOutput &
 	Partial<Pick<InitResponse, 'resolvedOverrides' | 'subjectId'>>;
 
-/** Init payload after transport protocol negotiation and record mapping. */
 export type TransportInitResponse = Omit<InitResponse, 'policyResolution'> & {
 	policyResolution?: PolicyResolutionWire;
 };
 
-/** Options for {@link mapInitOutputToInitResponse}. */
 export interface MapInitOutputOptions {
-	/**
-	 * The policy contract the producer declared on its response.
-	 *
-	 * `undefined` permits a versioned wire body, but fails when it is absent.
-	 * A declared value this client speaks marks a
-	 * negotiated producer, whose response must carry `policyResolution` or is
-	 * a failed payload. A declared value this client does not speak, or one it
-	 * cannot parse (`null`), fails as `unsupported-contract` before the body
-	 * is read at all: a body under an unknown contract is not evidence.
-	 */
 	producerContract?: number | null;
 }
 
@@ -82,7 +64,6 @@ const mapResolvedOverrides = function mapResolvedOverrides(
 	return overrides;
 };
 
-/** The `Sec-GPC` request header as a detected signal. Exact values only. */
 export const mapPrivacySignals = function mapPrivacySignals(
 	headers: Record<string, string>
 ): NonNullable<InitResponse['resolvedPrivacySignals']> | undefined {
@@ -96,13 +77,6 @@ export const mapPrivacySignals = function mapPrivacySignals(
 	return undefined;
 };
 
-/**
- * The policy resolution wire a client should read for this payload.
- *
- * A producer declaring a contract this client does not speak fails closed
- * whatever its body says. A negotiated producer's wire passes through as-is.
- * A missing wire body fails protocol negotiation.
- */
 export const resolveInitPolicyWire = function resolveInitPolicyWire(
 	payload: Pick<InitOutput, 'policyResolution'>,
 	options: MapInitOutputOptions = {}
@@ -112,7 +86,6 @@ export const resolveInitPolicyWire = function resolveInitPolicyWire(
 		return writePolicyResolutionWire(FAILED_UNSUPPORTED_CONTRACT);
 	}
 	if (payload.policyResolution !== undefined) {
-		// Untouched. The kernel's strict reader decides what it can represent.
 		return payload.policyResolution;
 	}
 	if (declared !== undefined) {
@@ -127,8 +100,6 @@ export const mapInitOutputToInitResponse = function mapInitOutputToInitResponse(
 	options: MapInitOutputOptions = {}
 ): TransportInitResponse {
 	const mapped: TransportInitResponse = {
-		// On the real backend, omitted `gvl` on a 200 response means IAB is not
-		// active for this request. The kernel disables IAB on explicit null.
 		gvl: payload.gvl ?? null,
 		gvlReference: payload.gvlReference,
 
@@ -186,9 +157,6 @@ export const mapInitOutputToInitResponse = function mapInitOutputToInitResponse(
 	return mapped;
 };
 
-/**
- * Configuration after folding validated prefetch records and policy.
- */
 export type TransportKernelConfig = KernelConfig;
 
 export const mergeInitResponseIntoKernelConfig =
@@ -254,8 +222,6 @@ export const mergeInitResponseIntoKernelConfig =
 			merged.initialHosting = response.hosting;
 		}
 		if (response.policyResolution !== undefined) {
-			// Read here, on the server, so the kernel is constructed from a
-			// resolution and never lifts or hashes anything itself.
 			const resolution = readPolicyResolutionWire(response.policyResolution);
 			merged.initialPolicyResolution = resolution;
 		}
@@ -302,15 +268,11 @@ export const mergeInitResponseIntoKernelConfig =
 						: withoutManifestVendors(existing),
 				manifest: response.vendors ?? [],
 			});
-			// Same rule as `applyInitResponse`: a replacement list drops the
-			// previous label unless the response names a new one.
 			const listVersion =
 				response.vendorListVersion ??
 				(response.vendors === undefined
 					? (merged.initialVendors?.listVersion ?? null)
 					: null);
-			// An empty backend list with no version clears the slice; otherwise
-			// the old entries would survive the copy.
 			if (declared.length > 0 || listVersion !== null) {
 				merged.initialVendors = { declared, listVersion };
 			} else {
@@ -322,10 +284,6 @@ export const mergeInitResponseIntoKernelConfig =
 			merged.initialPolicyResolution &&
 			merged.initialPolicyResolution.status !== 'matched'
 		) {
-			// Clear after folding the response: a failed producer may include
-			// stale legacy metadata alongside its non-matching resolution.
-			// Vendor declarations stay: they are presentation data, not policy
-			// proof, and the client's own declarations would survive anyway.
 
 			delete merged.initialPolicySnapshotToken;
 			delete merged.initialIab;
@@ -340,30 +298,6 @@ export const initResponseToKernelConfig = function initResponseToKernelConfig(
 	return mergeInitResponseIntoKernelConfig({}, response);
 };
 
-/**
- * Lift the init-derived fields of a `KernelConfig` back into an
- * `InitResponse` — the inverse of {@link mergeInitResponseIntoKernelConfig}.
- *
- * Lets a server-prefetched config stand in for a transport's `init()`
- * result: feeding the returned response through the kernel's init path
- * applies the same policy, translations, location, branding, IAB metadata,
- * overrides, and consent state the merge folded in, and clears a
- * provisional placeholder policy the way a real init would.
- *
- * @param config - Kernel config, typically produced by a server helper such
- * as `resolveConsent()`.
- * @returns The equivalent init response, or `undefined` when the config
- * carries no resolved policy. A policy-less config (persisted consents,
- * geo, language) is a baseline rather than an init result, so callers
- * should fall through to the real transport init for the policy.
- * @example
- * ```ts
- * const response = kernelConfigToInitResponse(config);
- * const transport = response
- * 	? { init: async () => response }
- * 	: createHostedTransport({ backendURL });
- * ```
- */
 export const kernelConfigToInitResponse = function kernelConfigToInitResponse(
 	config: KernelConfig
 ): TransportInitResponse | undefined {
@@ -422,8 +356,6 @@ export const kernelConfigToInitResponse = function kernelConfigToInitResponse(
 
 	const vendors = config.initialVendors;
 	if (vendors !== undefined) {
-		// Only manifest-sourced entries round-trip: code-declared vendors are
-		// re-resolved by the runtime from its own options.
 		const manifest = vendors.declared.filter(
 			(vendor) => vendor.source === 'manifest' && vendor.presentable
 		);

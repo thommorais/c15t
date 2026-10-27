@@ -106,7 +106,6 @@ it('saves unmasked displayed choices under GPC and preserves hidden receipt cloc
 	expect(kernel.getSnapshot().explicitChoice?.categories.experience).toEqual(
 		hidden
 	);
-	// The save acknowledged the owed notice.
 	expect(kernel.getSnapshot().noticeDismissal).not.toBeNull();
 	await tools.actions.save('all');
 	expect(kernel.getSnapshot().explicitChoice?.categories.marketing?.value).toBe(

@@ -17,11 +17,6 @@ import { custom } from '~/index';
 import { ConsentProvider } from '~/provider';
 import { offline } from '~/transports/offline';
 
-/**
- * Without a resolved policy rule there is nothing to consent to, so no
- * prebuilt consent surface renders. App-owned toolbar actions still do.
- */
-
 const UNCONFIGURED: PolicyResolution = { policy: null, status: 'unconfigured' };
 
 const CONSENT_TEST_IDS = [
@@ -87,7 +82,6 @@ describe('consent surfaces without a resolved policy', () => {
 			</ComponentFixtureProvider>
 		);
 
-		// The app-owned action proves the tree rendered; the c15t item is absent.
 		await vi.waitFor(() => {
 			expect(queryToolbarAction('custom')).toBeInTheDocument();
 		});
@@ -106,8 +100,6 @@ describe('consent surfaces without a resolved policy', () => {
 				});
 		});
 
-		// The plain provider: the fixture provider would substitute a matched
-		// prefetch, and this test needs the kernel to start without a policy.
 		render(
 			<ConsentProvider
 				options={{
@@ -126,8 +118,6 @@ describe('consent surfaces without a resolved policy', () => {
 
 		settle?.();
 
-		// The prompt is owed under the resolved opt-in rule, so the banner shows,
-		// and the persistent routes to preferences appear beside it.
 		await vi.waitFor(() => {
 			expect(queryTestId('consent-banner-root')).toBeInTheDocument();
 			expect(queryTestId('consent-dialog-link')).toBeInTheDocument();

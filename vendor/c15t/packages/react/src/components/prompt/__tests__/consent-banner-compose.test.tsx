@@ -1,8 +1,3 @@
-/**
- * A banner composed by hand from `ConsentBanner.*` parts behaves like the
- * stock banner: refs compose with the focus trap, `asChild` swaps the
- * rendered element, and action buttons carry `data-action`.
- */
 import type { ReactNode } from 'react';
 import { describe, expect, test, vi } from 'vitest';
 import { render } from 'vitest-browser-react';
@@ -194,9 +189,7 @@ describe('composed ConsentBanner', () => {
 		);
 		await waitForTestId('consent-banner-accept-button');
 
-		// The pre-hydration script would replay accept with no veto.
 		expect(query('consent-banner-accept-button')?.dataset.earlyTap).toBe('off');
-		// Customize opens the dialog whatever the default action says.
 		expect(
 			query('consent-banner-customize-button')?.dataset.earlyTap
 		).toBeUndefined();
@@ -210,7 +203,6 @@ describe('composed ConsentBanner', () => {
 			<ConsentBanner.Root>
 				<ConsentBanner.Card>
 					<ConsentBanner.Footer>
-						{/* The link would navigate before the replay records accept. */}
 						<ConsentBanner.AcceptButton asChild>
 							<a href="#accept">Accept</a>
 						</ConsentBanner.AcceptButton>
@@ -226,7 +218,6 @@ describe('composed ConsentBanner', () => {
 	});
 
 	test('a button whose slot changes its data-action opts out of early tap replay', async () => {
-		// The script would replay reject while the hydrated button accepts.
 		const slot = { 'data-action': 'reject', 'data-early-tap': 'on' };
 		await renderComposed(
 			<ConsentBanner.Root>

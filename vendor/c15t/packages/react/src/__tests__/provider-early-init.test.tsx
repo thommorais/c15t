@@ -1,13 +1,3 @@
-/**
- * A provider with a hosted transport and nothing prefetched sends its
- * `/init` request from the client render that builds its runtime, not
- * from the mount effect, so the request leaves before the first paint.
- * Server renders and hydration send nothing. The response still applies
- * at mount, through the kernel's own init. These tests pin when it is
- * sent, that React's
- * repeated and discarded renders share one request, and that nothing
- * reads it for a runtime that never runs.
- */
 import { createConsentKernel } from '@c15t/core';
 import type {
 	ConsentKernel,
@@ -33,7 +23,6 @@ import { policyFixture } from './policy-fixture';
 
 const BACKEND = 'https://consent.example/api/c15t';
 
-/** An `/init` body for a policy whose id tells the responses apart. */
 const initBody = (id: string) =>
 	JSON.stringify({
 		branding: 'c15t',
@@ -45,7 +34,6 @@ const initBody = (id: string) =>
 	});
 
 interface InitRequest {
-	/** The country override, which travels as the `country` parameter. */
 	country: string | null;
 	headers: Record<string, string>;
 	respond: (policyId: string) => void;
@@ -58,7 +46,6 @@ let backendFetch: ReturnType<typeof vi.fn>;
 beforeEach(() => {
 	localStorage.clear();
 	sessionStorage.clear();
-	// The page's early journey; each test is a fresh page load.
 	delete (window as Window & { __c15tJourney?: unknown }).__c15tJourney;
 	requests = [];
 	backendFetch = vi.fn(
@@ -86,13 +73,11 @@ afterEach(() => {
 	vi.unstubAllGlobals();
 });
 
-/** `/init` requests, by path: a mounted runtime adds its journey as a query. */
 const initCalls = () =>
 	backendFetch.mock.calls.filter(([url]) =>
 		String(url).split('?')[0]?.endsWith('/init')
 	);
 
-/** Records, while it renders, how many `/init` requests were already out. */
 const SeenAtRender = ({ seen }: { seen: number[] }) => {
 	seen.push(initCalls().length);
 	return null;
@@ -121,13 +106,10 @@ test('sends /init once, before its children render, under StrictMode', async () 
 		</StrictMode>
 	);
 
-	// The provider renders before its children, so the request was out
-	// before any child rendered, let alone mounted.
 	expect(seen[0]).toBe(1);
 	await expect.element(view.getByTestId('policy')).toHaveTextContent('pending');
 	expect(initCalls()).toHaveLength(1);
 
-	// The mounted kernel's init takes that response.
 	requests[0]?.respond('early');
 	await expect.element(view.getByTestId('policy')).toHaveTextContent('early');
 	expect(initCalls()).toHaveLength(1);
@@ -153,7 +135,6 @@ test('the early /init and the save it leads to carry one journey', async () => {
 		</StrictMode>
 	);
 
-	// Sent during the render, before the runtime started.
 	expect(initCalls()).toHaveLength(1);
 	const early = readJourneyParams(String(initCalls()[0]?.[0]));
 	expect(early).toEqual({
@@ -164,7 +145,6 @@ test('the early /init and the save it leads to carry one journey', async () => {
 
 	requests[0]?.respond('early');
 	await expect.element(view.getByTestId('policy')).toHaveTextContent('early');
-	// The mounted kernel took the early response instead of asking again.
 	expect(initCalls()).toHaveLength(1);
 
 	const saving = (kernel as ConsentKernel | null)?.commands.save('all');
@@ -257,8 +237,6 @@ test('a render that suspends before its first commit and its retry share one req
 	};
 	const options = { mode: mode(), persistence: false as const };
 
-	// The boundary sits above the provider: the first render's runtime is
-	// thrown away and the retry builds another.
 	const view = await render(
 		<Suspense fallback={null}>
 			<ConsentProvider options={options}>
@@ -267,7 +245,6 @@ test('a render that suspends before its first commit and its retry share one req
 			</ConsentProvider>
 		</Suspense>
 	);
-	// Sent by the render React threw away.
 	expect(initCalls()).toHaveLength(1);
 
 	resume();
@@ -291,8 +268,6 @@ test('a hosted() mode created inline shares one request across StrictMode and a 
 		}
 		return null;
 	};
-	// Every render of the app builds a new `hosted()` factory, as in the
-	// provider's documented example.
 	const App = () => (
 		<ConsentProvider
 			options={{
@@ -356,7 +331,6 @@ test('a retry after the shared hosted() options changed sends its own request', 
 	);
 	expect(initCalls()).toHaveLength(1);
 
-	// The same object, edited before React retries.
 	shared.backendURL = 'https://other.example/api/c15t';
 	shared.headers['accept-language'] = 'fr';
 	resume();
@@ -395,16 +369,13 @@ test('a retry after the global fetch changed sends its own request through the n
 		}, [current]);
 		return null;
 	};
-	// Each request, tagged with the global fetch that sent it.
 	const calls: string[] = [];
 	const globalFetch = (tag: string) =>
 		((url: string, init: RequestInit) => {
-			// The path: the query carries the page's consent journey.
 			calls.push(`${tag} ${String(url).slice(BACKEND.length).split('?')[0]}`);
 			return backendFetch(url, init);
 		}) as typeof fetch;
 	vi.stubGlobal('fetch', globalFetch('old'));
-	// No `fetch`: the transport takes the global one when it is built.
 	const App = () => (
 		<ConsentProvider
 			options={{ mode: hosted({ backendURL: BACKEND }), persistence: false }}
@@ -421,7 +392,6 @@ test('a retry after the global fetch changed sends its own request through the n
 	);
 	expect(calls).toEqual(['old /init']);
 
-	// An instrumentation wrapper installed before React retries.
 	vi.stubGlobal('fetch', globalFetch('new'));
 	resume();
 	await vi.waitFor(() => expect(kernel).not.toBeNull());
@@ -432,7 +402,6 @@ test('a retry after the global fetch changed sends its own request through the n
 		expect(kernel?.getSnapshot().policyPending).toBe(false)
 	);
 	kernel?.commands.save('none');
-	// Every request after the thrown-away render's goes through the new one.
 	await vi.waitFor(() =>
 		expect(calls.filter((call) => !call.endsWith('/init'))).not.toEqual([])
 	);
@@ -451,7 +420,6 @@ test('sibling providers given one mode object each get a transport and an /init'
 		}, [kernel, name]);
 		return null;
 	};
-	// Tags each save with the transport that sends it.
 	const savedBy: KernelTransport[] = [];
 	const base = hosted({ backendURL: BACKEND, fetch: backendFetch });
 	const shared = Object.assign(
@@ -523,8 +491,6 @@ test('sibling providers given one hosted() mode each get their own /init', async
 		</StrictMode>
 	);
 
-	// The first was out before its children rendered. The second asks for
-	// another country, so it sends its own rather than taking the first's.
 	expect(seen[0]).toBe(1);
 	await vi.waitFor(() => expect(initCalls()).toHaveLength(2));
 	expect(requests.map(({ country }) => country)).toEqual(['DE', 'FR']);
@@ -561,9 +527,6 @@ test('a wrapper around hosted() keeps its own transport when another wrapper wit
 		}, [kernel, name]);
 		return null;
 	};
-	// Two wrappers, each around its own hosted() with the same options, that
-	// copy the factory's properties as a wrapper would. Each tags the saves
-	// its transport sends.
 	const savedBy: string[] = [];
 	const wrap = (tag: string) => {
 		const base = mode();
@@ -591,7 +554,6 @@ test('a wrapper around hosted() keeps its own transport when another wrapper wit
 		</>
 	);
 
-	// A's render suspended; B committed first.
 	await vi.waitFor(() => expect(kernels.get('B')).toBeDefined());
 	await vi.waitFor(() => expect(requests.length).toBeGreaterThan(0));
 	for (const request of requests) {
@@ -659,7 +621,6 @@ test('a provider asking for another context leaves an early request to the provi
 		</>
 	);
 
-	// DE's render sent its request and suspended; FR committed first.
 	await vi.waitFor(() => expect(kernels.get('FR')).toBeDefined());
 	await vi.waitFor(() => expect(initCalls()).toHaveLength(2));
 	expect(requests.map(({ country }) => country)).toEqual(['DE', 'FR']);
@@ -758,7 +719,6 @@ test('a retry with other overrides asks again rather than use the first answer',
 	await vi.waitFor(() => expect(initCalls()).toHaveLength(2));
 	expect(requests[1]?.country).toBe('FR');
 
-	// The answer for DE arrives first and is not applied.
 	requests[0]?.respond('for-de');
 	await new Promise((resolve) => {
 		setTimeout(resolve, 50);
@@ -825,7 +785,6 @@ test('a retry that turns the journey on asks again, and its save matches that re
 });
 
 test('skipHydration: the early /init says no choice is stored, as the runtime will', async () => {
-	// A visitor who chose on an earlier page.
 	const earlier = createConsentKernel({
 		...policyFixture({}, { id: 'earlier' }),
 		consentCategories: ['measurement'],
@@ -847,9 +806,7 @@ test('skipHydration: the early /init says no choice is stored, as the runtime wi
 		return sent?.storedChoice;
 	};
 	try {
-		// The runtime would hydrate the stored choice…
 		expect(await loads({})).toBe(true);
-		// …but not with skipHydration, so the early request says none is stored.
 		expect(await loads({ skipHydration: true })).toBe(false);
 	} finally {
 		persistence.clear();
@@ -914,8 +871,6 @@ test('a runtime whose render never commits sends one request and reads nothing f
 	)) {
 		run();
 	}
-	// A failure nobody waits for is not an unhandled rejection, and no
-	// retry or error report comes from a runtime that never ran.
 	requests[0]?.fail();
 	await new Promise((resolve) => {
 		nativeSetTimeout(resolve, 50);

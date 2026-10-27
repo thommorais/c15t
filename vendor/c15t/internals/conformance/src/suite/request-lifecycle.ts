@@ -5,7 +5,6 @@ import { conformanceTest, queryByTestId, waitForCondition } from './helpers';
 import type { SuiteApi } from './helpers';
 import { runPolicyScenarioConformance } from './policy-scenarios';
 
-/** Pending visibility remains a real deferred-transport mount test. */
 export const runInitVisibilityConformance =
 	function runInitVisibilityConformance(
 		driver: TestDriver,
@@ -46,8 +45,6 @@ export const runInitVisibilityConformance =
 							initMode: 'pending',
 						});
 						try {
-							// No policy, no consent UI: none of the surface roots exist,
-							// even for surfaces the host has asked to open.
 							for (const testId of NO_POLICY_HIDDEN_ROOTS) {
 								api
 									.expect(queryByTestId(mounted.root, testId), testId)
@@ -57,13 +54,7 @@ export const runInitVisibilityConformance =
 								throw new Error('Missing deferred transport resolveInit');
 							}
 							await mounted.resolveInit();
-							// The widget appears once the policy arrives, without a remount.
-							// The dialog is not asserted here: the arriving policy owes a
-							// prompt, so the kernel re-derives the surface to the banner and
-							// discards the pre-policy request to open the dialog.
 							if (component === 'consent-widget') {
-								// Framework boundaries apply a resolved init a tick or two
-								// after the transport answers, so poll before asserting.
 								await waitForCondition(
 									() =>
 										queryByTestId(mounted.root, 'consent-widget-root') !== null,
@@ -102,7 +93,6 @@ export const runInitVisibilityConformance =
 		});
 	};
 
-/** Run the shared request-lifecycle scenarios against real adapter observations. */
 export const runRequestLifecycleConformance =
 	function runRequestLifecycleConformance(
 		driver: TestDriver,

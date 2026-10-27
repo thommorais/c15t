@@ -1,9 +1,3 @@
-/**
- * IAB Consent Dialog Vendors Tab Unit Tests
- *
- * Tests for the vendors tab in IAB Consent Dialog.
- */
-
 import { evaluateConsent } from '@c15t/core';
 import type { ConsentKernel } from '@c15t/core';
 import { useContext, useEffect } from 'react';
@@ -30,7 +24,6 @@ const getDefined = <Value,>(
 	return value;
 };
 
-// Mock localStorage
 const localStorageMock = (() => {
 	let store: Record<string, string> = {};
 	return {
@@ -51,7 +44,6 @@ Object.defineProperty(window, 'localStorage', {
 	value: localStorageMock,
 });
 
-// Mock GVL with multiple vendors
 const mockGVL = {
 	features: {
 		1: { description: '', id: 1, illustrations: [], name: 'Match data' },
@@ -338,8 +330,6 @@ describe('IAB vendors tab with publisher restrictions', () => {
 					<IABConsentDialog open />
 				</ConsentProvider>
 			);
-			// Vendor 755 declares only consent purposes. Requiring legitimate
-			// interest for purpose 7 gives the visitor a right to object.
 			const vendorsTab = await vi.waitFor(
 				() =>
 					getDefined(
@@ -351,7 +341,6 @@ describe('IAB vendors tab with publisher restrictions', () => {
 			);
 			await userEvent.click(vendorsTab);
 			const row = await findVendorRow('Google Advertising Products');
-			// The objection sits in the row's content, mounted on first open.
 			await userEvent.click(
 				getDefined(
 					row.querySelector<HTMLElement>(
@@ -388,8 +377,6 @@ describe('IAB purposes tab with publisher restrictions', () => {
 			}, [kernel]);
 			return null;
 		};
-		// Vendors 1 and 10 declare purpose 7 for legitimate interest; the
-		// restriction moves vendor 755 there too, so no vendor uses consent.
 		render(
 			<ConsentProvider
 				options={{
@@ -406,8 +393,6 @@ describe('IAB purposes tab with publisher restrictions', () => {
 				<IABConsentDialog open />
 			</ConsentProvider>
 		);
-		// Purpose 7 sits in stack 1 with purpose 2. Stack content mounts when
-		// the stack first opens.
 		const trigger = (testId: string) =>
 			vi.waitFor(
 				() =>
@@ -430,7 +415,6 @@ describe('IAB purposes tab with publisher restrictions', () => {
 			},
 			{ timeout: 5000 }
 		);
-		// A consent switch here would change nothing the vendors rely on.
 		expect(
 			purposeRow.querySelector(
 				'[role="switch"][aria-label="Measure advertising performance"]'
@@ -444,8 +428,6 @@ describe('IAB purposes tab with publisher restrictions', () => {
 				),
 				`Missing ${label} button`
 			);
-		// The fixture policy scopes no optional category, so gate on the TC
-		// signals alone.
 		const target = {
 			category: 'necessary' as const,
 			iabPurposes: [7],
@@ -501,8 +483,6 @@ describe('IAB stack switch without an objection handler', () => {
 				/>
 			</ConsentProvider>
 		);
-		// With no objection control to fall back on, the rows keep their
-		// consent switch, so the stack switch must cover them too.
 		const stackSwitch = await vi.waitFor(() =>
 			getDefined(
 				document.querySelector<HTMLElement>(

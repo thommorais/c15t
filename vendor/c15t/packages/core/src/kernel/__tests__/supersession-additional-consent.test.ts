@@ -1,7 +1,3 @@
-/**
- * A narrowed replay drops the TC string, and the AC string with it: an AC
- * string sent without its TC string means nothing.
- */
 import { describe, expect, test } from 'vitest';
 
 import type { SavePayload } from '../../types';

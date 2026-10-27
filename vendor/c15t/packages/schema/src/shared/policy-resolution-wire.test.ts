@@ -1,12 +1,3 @@
-/**
- * The client reader stays apart from pack resolution.
- *
- * Every browser that renders a consent surface reads a policy resolution off
- * the wire. None of them resolves a pack: that validates authored rules and
- * hashes them with SHA-256, which only servers and offline mode do. These
- * tests read the sources, not a bundle, so a failure names the import that
- * pulled resolution back into the reader's module graph.
- */
 import { readFileSync } from 'node:fs';
 import { dirname, join, normalize } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -19,7 +10,6 @@ import { readPolicyResolutionWire } from './policy-resolution-wire';
 const SHARED_DIR = dirname(fileURLToPath(import.meta.url));
 const SOURCE_DIR = join(SHARED_DIR, '..');
 
-/** Relative specifiers of `import`/`export ... from` statements that carry values. */
 const valueImports = function valueImports(file: string): string[] {
 	const text = readFileSync(file, 'utf8');
 	const statements = text.match(
@@ -31,7 +21,6 @@ const valueImports = function valueImports(file: string): string[] {
 	);
 };
 
-/** Files reachable from `entry` through static value imports. */
 const staticGraph = function staticGraph(entry: string): Set<string> {
 	const seen = new Set<string>();
 	const pending = [entry];
@@ -48,7 +37,6 @@ const staticGraph = function staticGraph(entry: string): Set<string> {
 	return new Set([...seen].map((file) => file.slice(SOURCE_DIR.length + 1)));
 };
 
-/** Source module each name in an `export { ... } from` block comes from. */
 const exportSources = function exportSources(
 	file: string
 ): Map<string, string> {
@@ -68,7 +56,6 @@ const exportSources = function exportSources(
 	return sources;
 };
 
-/** Everything the kernel and the hosted transport read from the policy contract. */
 const CLIENT_EXPORTS = [
 	'collectResolvedPolicyRuleIssues',
 	'POLICY_CONTRACT_HEADER',

@@ -1,20 +1,5 @@
 'use client';
 
-/**
- * The IAB bridge for an externally owned runtime.
- *
- * When a host creates the runtime itself — an Astro page, a SvelteKit
- * layout — that runtime already mounted the CMP and owns its lifecycle.
- * This provider republishes `runtime.iab` into React context instead of
- * calling `createIAB()` a second time, which would install a second
- * `__tcfapi` on the page.
- *
- * It deliberately imports nothing from `@c15t/iab`: the module is a peer of
- * the runtime, not of the component tree, and a preference-centre chunk
- * that pulled in the TCF encoder would cost every visitor bytes only an IAB
- * site needs.
- */
-
 import type { ConsentRuntime } from '@c15t/core/runtime';
 import type { IABHandle } from '@c15t/iab';
 import {
@@ -30,9 +15,7 @@ import { IABContext } from './context/iab-context-value';
 import type { IABContextValue } from './context/iab-context-value';
 import { useCommittedRef } from './hooks/use-committed-ref';
 
-/** Props for {@link ExternalIABProvider}. */
 export interface ExternalIABProviderProps {
-	/** The runtime that owns the CMP. */
 	runtime: ConsentRuntime;
 	children: ReactNode;
 }
@@ -41,7 +24,6 @@ const getServerHandle = function getServerHandle(): IABHandle | null {
 	return null;
 };
 
-// This imperative queue owns pending work independently of React's renders.
 const createActionQueue = (runtime: ConsentRuntime) => {
 	let active = false;
 	let closed = false;
@@ -57,8 +39,6 @@ const createActionQueue = (runtime: ConsentRuntime) => {
 		},
 		deactivate: () => {
 			active = false;
-			// StrictMode replays setup in the same turn. Only cancel once the
-			// provider is gone or has switched to a different runtime.
 			queueMicrotask(() => {
 				if (!active) {
 					closed = true;
@@ -73,12 +53,6 @@ const createActionQueue = (runtime: ConsentRuntime) => {
 	};
 };
 
-/**
- * Publish an externally owned runtime's CMP into React context.
- *
- * @param props - The owning runtime and the tree to render.
- * @returns The children, wrapped in the IAB context.
- */
 export const ExternalIABProvider = ({
 	runtime,
 	children,
@@ -90,12 +64,7 @@ export const ExternalIABProvider = ({
 		getServerHandle
 	);
 
-	// Keep pending actions attached to the runtime they were requested against.
 	const queue = useMemo(() => createActionQueue(runtime), [runtime]);
-	// The queue closes in the passive cleanup, after the switch commit's layout
-	// effects. An action from a result kept across the switch still carries
-	// the previous queue, so compare it with the queue last committed, which
-	// changes before any of those layout effects run.
 	const committedQueueRef = useCommittedRef(queue);
 	useEffect(() => {
 		queue.activate();
@@ -143,8 +112,6 @@ export const ExternalIABProvider = ({
 					queue.actions.push({ cancel, run: invoke });
 				}
 			});
-			// Void IAB actions have no promise consumer. Handle their cancellation,
-			// while returning the original promise so awaiting save still rejects.
 			// oxlint-disable-next-line promise/prefer-await-to-then
 			void pending.catch(() => undefined);
 			return pending;

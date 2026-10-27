@@ -1,9 +1,3 @@
-/**
- * The widget lists the draft's categories in the draft's order: necessary,
- * functionality, measurement, experience, marketing. Neither the policy nor
- * the configured list sets the order; every framework renders the same rows
- * in the same order, which the parity suite compares.
- */
 import { expect, test } from 'vitest';
 import { render } from 'vitest-browser-react';
 

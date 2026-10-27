@@ -1,12 +1,3 @@
-/**
- * `prefetch` as a pending `Promise<KernelConfig>`: the provider mounts with
- * a provisional policy, children render immediately, and the first init is
- * answered from the resolved config instead of the network.
- *
- * How the resolved config is applied (a baseline without a policy, a
- * rejected promise, provider overrides, records cleared while it streams)
- * is the runtime's `streamPrefetch` module, tested in core.
- */
 import type { ConsentKernel, KernelConfig } from '@c15t/core';
 import { useContext, useEffect } from 'react';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
@@ -66,8 +57,6 @@ const InitCounter = ({ counts }: { counts: InitCounts }) => {
 		if (!kernel) {
 			return;
 		}
-		// The eager init starts before any effect can subscribe, so count
-		// completions: those land only after the prefetch promise settles.
 		return kernel.events.on('command:init:completed', () => {
 			counts.completed += 1;
 		});
@@ -181,7 +170,6 @@ describe('a streamed policy', () => {
 		const result = await (kernel as ConsentKernel).commands.save('none');
 		expect(result.ok).toBe(true);
 		expect(fetch).toHaveBeenCalledTimes(1);
-		// The path; the query carries the consent journey.
 		expect(String(fetch.mock.calls[0]?.[0]).split('?')[0]).toBe(
 			'/api/c15t/subjects'
 		);

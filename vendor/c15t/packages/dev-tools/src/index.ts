@@ -1,9 +1,3 @@
-/**
- * Kernel-first developer tools for c15t v3.
- *
- * @packageDocumentation
- */
-
 export {
 	createDevTools,
 	type DevToolsActions,

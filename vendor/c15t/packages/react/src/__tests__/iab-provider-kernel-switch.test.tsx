@@ -23,17 +23,11 @@ import { offline } from '../transports/offline';
 import { policyFixture } from './policy-fixture';
 
 const iab = vi.hoisted(() => ({
-	/** Every handle created, in order, including StrictMode replays. */
 	created: [] as Record<string, ReturnType<typeof vi.fn>>[],
-	/** Kernels whose CMP fails to start, as a broken configuration would. */
 	failing: new Set<unknown>(),
-	/** The latest handle per kernel. */
 	handles: new Map<unknown, Record<string, ReturnType<typeof vi.fn>>>(),
 }));
 
-// IABProvider imports createIAB itself and offers no injection point. Replace
-// only that factory with one fake CMP per kernel, so a test can tell which
-// runtime an action reached; the rest of the module stays real.
 // oxlint-disable-next-line anti-slop/no-module-mocking
 vi.mock('@c15t/iab', async (importOriginal) => ({
 	...(await importOriginal<typeof IABModule>()),
@@ -91,7 +85,6 @@ afterEach(() => {
 	iab.failing.clear();
 });
 
-/** Records what every render sees: the kernel and the published handle. */
 const ContextProbe = ({
 	onRender,
 }: {
@@ -104,7 +97,6 @@ const ContextProbe = ({
 	return null;
 };
 
-/** Takes IAB actions in a layout effect as soon as the kernel changes. */
 const SwitchActor = ({
 	onSwitch,
 }: {
@@ -122,7 +114,6 @@ const SwitchActor = ({
 	return null;
 };
 
-/** Reports every render's kernel and `useIAB()` result. */
 const StateProbe = ({
 	onState,
 }: {
@@ -169,8 +160,6 @@ describe('IABProvider when the context kernel changes', () => {
 		const first = createKernel();
 		const second = createKernel();
 		let saved: Promise<void> | undefined;
-		// Act only on the return to the first kernel, which the provider
-		// already tore a handle down for once.
 		const onSwitch = (state: ReactIABState, kernel: ConsentKernel) => {
 			if (kernel === first) {
 				state.acceptAll();
@@ -243,7 +232,6 @@ describe('IABProvider when the context kernel changes', () => {
 				expect(renders.at(-1)?.handle).toBe(handleOf(second))
 			);
 
-			// (a) No render pairs a kernel with another kernel's handle.
 			const mismatched = renders.filter(
 				(entry) =>
 					entry.handle !== null &&
@@ -251,8 +239,6 @@ describe('IABProvider when the context kernel changes', () => {
 			);
 			expect(mismatched).toEqual([]);
 
-			// (b) A save still addressed to the first kernel, after its handle
-			// was disposed, is aborted rather than recorded anywhere.
 			await expect(staleRun?.((handle) => handle.save())).rejects.toMatchObject(
 				{ name: 'AbortError' }
 			);
@@ -277,8 +263,6 @@ describe('IABProvider when the context kernel changes', () => {
 		};
 		let retained: ReactIABState | null = null;
 		let duringCommit: Promise<void> | undefined;
-		// A descendant layout effect in the switch commit, before any passive
-		// effect of that commit has run, calls the kept result.
 		const onSwitch = () => {
 			retained?.acceptAll();
 			duringCommit = retained?.save();
@@ -293,8 +277,6 @@ describe('IABProvider when the context kernel changes', () => {
 		);
 		const screen = await render(tree(first));
 		try {
-			// Wait for a render on the first kernel with its handle published,
-			// so the kept result would act on that handle directly.
 			await vi.waitFor(() => expect(iab.handles.has(first)).toBe(true));
 			await screen.rerender(tree(first));
 			retained = latest.state;
@@ -324,7 +306,6 @@ describe('IABProvider when the context kernel changes', () => {
 	});
 });
 
-/** Resolves to `'pending'` if `promise` has not settled after `ms`. */
 const settleWithin = function settleWithin(
 	promise: Promise<void> | undefined,
 	ms = 200
@@ -345,7 +326,6 @@ const settleWithin = function settleWithin(
 	]);
 };
 
-/** Calls `onAct` from a layout effect on mount and on every kernel change. */
 const LayoutActor = ({
 	onAct,
 }: {
@@ -363,11 +343,6 @@ const LayoutActor = ({
 	return null;
 };
 
-/**
- * An IABProvider that its child can remove from inside a layout effect,
- * before the provider's passive effects run for that commit. `onAct`
- * returns whether to remove it.
- */
 const RemovableProvider = ({
 	kernel,
 	onAct,
@@ -395,7 +370,6 @@ interface BoundaryProps {
 	children: ReactNode;
 }
 
-/** Catches the provider's start-up failure so it unmounts cleanly. */
 class Boundary extends Component<BoundaryProps, { failed: boolean }> {
 	constructor(props: BoundaryProps) {
 		super(props);
@@ -411,10 +385,6 @@ class Boundary extends Component<BoundaryProps, { failed: boolean }> {
 	}
 }
 
-// React flushes a commit's passive effects before it renders the next
-// update, so a provider removed from a layout effect still creates its
-// handle and runs the queued action first. These two tests lock that in:
-// the action settles against the handle of the kernel it was taken for.
 describe('IABProvider unmount', () => {
 	test('an action queued on mount settles when the provider is removed right away', async () => {
 		const first = createKernel();
@@ -479,7 +449,6 @@ describe('IABProvider unmount', () => {
 			return false;
 		};
 		vi.spyOn(console, 'error').mockImplementation(() => {
-			// React reports the start-up failure the boundary catches.
 		});
 		const screen = await render(
 			<Boundary>
@@ -512,8 +481,6 @@ describe('IABProvider unmount', () => {
 			</StrictMode>
 		);
 		try {
-			// StrictMode replays the provider's cleanup and setup. The action
-			// must survive that replay and run exactly once.
 			expect(await settleWithin(saved)).toBe('resolved');
 			const saves = iab.created.flatMap((handle) => handle.save?.mock.calls);
 			expect(saves).toHaveLength(1);

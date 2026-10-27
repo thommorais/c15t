@@ -1,11 +1,3 @@
-/**
- * Error-behavior conformance suite.
- *
- * Every framework must degrade the same way when configuration is bad:
- * - Malformed translations → falls back to default locale, no crash.
- * - Empty policy list → widget still renders a root element.
- */
-
 import { DriverNotImplementedError } from '../driver';
 import type { TestDriver } from '../driver';
 import { conformanceTest } from './helpers';

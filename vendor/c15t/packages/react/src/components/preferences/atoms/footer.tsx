@@ -10,14 +10,6 @@ import { mergeSlotProps } from '~/utils/merge-slot-props';
 import { Box } from '../../shared/primitives/box';
 import type { BoxProps } from '../../shared/primitives/box';
 
-/**
- * Footer component for consent management actions.
- *
- * @remarks
- * - Contains primary action buttons
- * - Supports customization through theme
- * - Maintains consistent layout
- */
 export const ConsentWidgetFooter = createForwardRef<
 	HTMLDivElement,
 	Omit<BoxProps, 'slotKey'>

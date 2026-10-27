@@ -1,7 +1,3 @@
-/**
- * Shared in-process GVL cache. Honors upstream lifetime and reuse directives,
- * coalesces concurrent requests, and invalidates pending fills when cleared.
- */
 import type { GlobalVendorList } from '@c15t/schema/types';
 
 import { parseCacheDirectiveSeconds } from '../libs/cache-directive';
@@ -15,16 +11,11 @@ export interface CachedGvl {
 export type GvlCache = Map<string, CachedGvl>;
 
 export interface FetchCachedGvlOptions {
-	/** Vendor list endpoint from the manifest's `iab.gvl.url`. */
 	url: string;
-	/** Primary language subtag the list should be localised to. */
 	language: string;
 	fetch: typeof globalThis.fetch;
-	/** Extra request headers (version headers, for example). */
 	headers?: Record<string, string>;
-	/** Error prefix naming the caller. */
 	label?: string;
-	/** Injected for tests. */
 	now?: number;
 	cache?: GvlCache;
 }
@@ -67,7 +58,6 @@ const ttlFromHeaders = function ttlFromHeaders(headers: Headers): number {
 	return Math.max(0, ttl - (Number.isFinite(age) && age > 0 ? age : 0));
 };
 
-/** Drops every cached list; the next call fetches again. */
 export const clearGvlCache = function clearGvlCache(
 	cache: GvlCache = defaultGvlCache
 ): void {
@@ -75,13 +65,6 @@ export const clearGvlCache = function clearGvlCache(
 	inflightByCache.delete(cache);
 };
 
-/**
- * Fetches a vendor list through the cache.
- *
- * @param options - Endpoint, language, and fetch implementation.
- * @returns The list, or `null` when the endpoint answered 204.
- * @throws {Error} When the endpoint fails and no stale entry exists.
- */
 export const fetchCachedGvl = function fetchCachedGvl(
 	options: FetchCachedGvlOptions
 ): Promise<GlobalVendorList | null> {
@@ -108,7 +91,6 @@ export const fetchCachedGvl = function fetchCachedGvl(
 			});
 			if (!response.ok && response.status !== 204) {
 				if (cached) {
-					// Keep serving the last good list while the upstream misbehaves.
 					return cached.gvl;
 				}
 				throw await failedResponseError(`${label}: GVL`, response);
@@ -117,7 +99,6 @@ export const fetchCachedGvl = function fetchCachedGvl(
 				response.status === 204
 					? null
 					: ((await response.json()) as GlobalVendorList);
-			// A cleared cache belongs to newer requests; an old fill cannot repopulate it.
 			if (inflightByCache.get(cache) === inflight) {
 				const ttl = ttlFromHeaders(response.headers);
 				if (ttl > 0) {

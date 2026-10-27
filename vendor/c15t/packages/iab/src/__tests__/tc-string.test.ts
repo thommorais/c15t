@@ -202,9 +202,6 @@ describe('@c15t/iab TC string encode/decode', () => {
 	test.each([0, 1, undefined])(
 		'refuses to encode a TC string for cmpId %p',
 		async (cmpId) => {
-			// The 12-bit core-string field starts at 2. Pinning the encoder rule keeps
-			// the createIAB boundary honest: it may not accept a wider range than the
-			// library can encode, and nothing may default a missing id.
 			await expect(
 				generateTCString(createMockTCFConsentAllGranted(), createMockGVL(), {
 					cmpId: cmpId as number,
@@ -240,8 +237,6 @@ describe('@c15t/iab TC string encode/decode', () => {
 		const tcString = await iab.generateTCString();
 		const decoded = await decodeTCString(tcString);
 
-		// MVP approximation: createIAB currently discloses vendors that have
-		// appeared in consent or LI state, not every vendor in the loaded GVL.
 		expect(decoded.vendorsDisclosed[1]).toBe(true);
 		expect(decoded.vendorsDisclosed[2]).toBe(true);
 		expect(decoded.vendorsDisclosed[10]).toBe(true);
@@ -253,8 +248,6 @@ describe('@c15t/iab TC string encode/decode', () => {
 
 describe('@c15t/iab TCF 2.4 encoding rules', () => {
 	test('clears the vendor LI bit for a vendor that declares only special purposes', async () => {
-		// TCF 2.4 removed the rule that set this bit. The vendor has no
-		// purpose on legitimate interest, so the bit must be 0.
 		const gvl = createMockGVL({
 			vendors: {
 				...createMockVendors(),
@@ -277,7 +270,6 @@ describe('@c15t/iab TCF 2.4 encoding rules', () => {
 		const decoded = await decodeTCString(tcString);
 
 		expect(decoded.vendorLegitimateInterests[42]).toBeUndefined();
-		// A vendor with a real LI purpose keeps its bit.
 		expect(decoded.vendorLegitimateInterests[10]).toBe(true);
 		expect(decoded.vendorsDisclosed[42]).toBe(true);
 	});
@@ -297,8 +289,6 @@ describe('@c15t/iab CMP API disclosed vendors', () => {
 	test('getTCData lists the vendors encoded in the disclosed vendors segment', async () => {
 		const gvl = createMockGVL();
 		const consentData = createMockTCFConsent({
-			// Vendor 0 and false entries are not encoded, so TC data must not
-			// list them either.
 			vendorsDisclosed: { 0: true, 1: true, 10: false, 755: true },
 		});
 		const tcString = await generateTCString(consentData, gvl, { cmpId: 28 });

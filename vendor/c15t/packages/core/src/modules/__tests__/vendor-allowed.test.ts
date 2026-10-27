@@ -1,9 +1,3 @@
-/**
- * The shared vendor reader behind React's `useVendorAllowed`, Vue's
- * composable, the Svelte getter and the Astro and browser clients. A
- * declared vendor follows its denial and its category; an id nothing
- * declares reads as not allowed, so a typo never looks like consent.
- */
 import { afterEach, describe, expect, test, vi } from 'vitest';
 
 import {

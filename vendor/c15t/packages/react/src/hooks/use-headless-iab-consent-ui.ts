@@ -101,10 +101,6 @@ export const useHeadlessIABConsentUI =
 			setActiveUI('none');
 		}, [setActiveUI]);
 
-		// The surface closes in the click task and comes back if the CMP
-		// recorded nothing; see `saveIABConsentSurface`. Closing it with
-		// `setActiveUI('none')` instead would bring the banner back from the
-		// dialog while the TC string is still encoding.
 		const saveChoice = useCallback(
 			async (selection?: 'accept' | 'reject'): Promise<void> => {
 				if (!iab) {

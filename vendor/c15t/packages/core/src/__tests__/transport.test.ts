@@ -1,10 +1,3 @@
-/**
- * Transport + commands.init / commands.save tests.
- *
- * These verify the pluggable transport wiring without hitting a real
- * backend. createHostedTransport is also unit-tested against a mocked
- * fetch so we know the request shape and error handling are correct.
- */
 import { createConsentManifestPolicyPack } from '@c15t/schema/types';
 import type { ConsentManifest, InitOutput } from '@c15t/schema/types';
 import { afterEach, describe, expect, test, vi } from 'vitest';
@@ -27,10 +20,6 @@ import {
 	iabRule,
 } from './fixtures/kernel-fixtures';
 
-/**
- * A kernel with its own in-memory save outbox, so a save one test fails
- * never replays in another.
- */
 const createConsentKernel = function createConsentKernel(
 	config: KernelConfig = {}
 ) {
@@ -42,12 +31,10 @@ afterEach(() => {
 	vi.restoreAllMocks();
 });
 
-/** A request URL without its query string. */
 const withoutQuery = (url: unknown): string => String(url).split('?')[0] ?? '';
 
 const JOURNEY_UUID = '3b241101-e2bb-4255-8caf-4136c566a962';
 
-/** A request URL's query parameters. */
 const queryOf = (url: unknown): URLSearchParams =>
 	new URL(String(url), 'http://c15t.test').searchParams;
 
@@ -238,8 +225,6 @@ describe('kernel transport: init applies response to snapshot', () => {
 
 		await kernel.commands.init();
 
-		// A complete response without any policy field is a malformed init:
-		// failed, strict opt-in permissions, first layer hidden.
 		expect(kernel.getSnapshot().model).toBe('opt-in');
 		expect(kernel.getSnapshot().resolution).toEqual({
 			policy: null,
@@ -289,12 +274,10 @@ describe('kernel transport: init applies response to snapshot', () => {
 		await kernel.commands.init();
 
 		const snap = kernel.getSnapshot();
-		// Booleans without receipts cannot be an explicit choice.
 		expect(snap.explicitChoice).toBeNull();
 		expect(snap.explicitChoice).toBeNull();
 		expect(snap.effectivePermissions.marketing).toBe(false);
 
-		// Missing receipts cannot preselect a later explicit confirmation.
 		await kernel.commands.save();
 		expect(kernel.getSnapshot().effectivePermissions.marketing).toBe(false);
 		expect(kernel.getSnapshot().effectivePermissions.measurement).toBe(false);
@@ -356,7 +339,6 @@ describe('kernel transport: init applies response to snapshot', () => {
 		expect(result.ok).toBe(false);
 		expect(result.error).toBe(boom);
 		expect(errors).toEqual([boom]);
-		// Failure is observable, permissions stay safe, first layer hidden.
 		expect(kernel.getSnapshot().resolution).toEqual({
 			policy: null,
 			reason: 'transport',
@@ -380,7 +362,6 @@ describe('kernel transport: init applies response to snapshot', () => {
 			transport,
 		});
 
-		// Model is populated for SSR ergonomics, but no surface renders.
 		expect(kernel.getSnapshot().model).toBe('opt-in');
 		expect(kernel.getSnapshot().activeUI).toBe('none');
 		expect(kernel.getSnapshot().policyPending).toBe(true);
@@ -536,11 +517,9 @@ describe('kernel transport: init applies response to snapshot', () => {
 
 		await kernel.commands.init();
 		kernel.dispose();
-		// StrictMode-style remount: same kernel, init called again.
 		await kernel.commands.init();
 		await vi.advanceTimersByTimeAsync(1000);
 
-		// 1 (first mount) + 1 (remount) + 2 retries after the remount.
 		expect(initSpy).toHaveBeenCalledTimes(4);
 	});
 
@@ -709,8 +688,6 @@ describe('kernel transport: init applies response to snapshot', () => {
 		expect(server.revision).toBe(0);
 		expect(server.activeUI).toBe('banner');
 
-		// Simulate the client boot mutations that land before hydration
-		// completes: persistence hydrate applies a stored full choice…
 		kernel.hydrate(
 			choiceRecords(
 				{
@@ -724,7 +701,6 @@ describe('kernel transport: init applies response to snapshot', () => {
 		);
 		await kernel.commands.init();
 
-		// …but hydration must still be able to render what the server saw.
 		expect(kernel.getSnapshot().activeUI).toBe('none');
 		expect(kernel.getServerSnapshot()).toBe(server);
 		expect(kernel.getServerSnapshot().activeUI).toBe('banner');
@@ -783,13 +759,10 @@ describe('kernel transport: save flows consents to backend', () => {
 
 		const pending = kernel.commands.save('all');
 
-		// The optimistic commit is synchronous — UI can flip and paint…
 		expect(
 			Object.keys(kernel.getSnapshot().explicitChoice?.categories ?? {})
 		).not.toHaveLength(0);
 		expect(kernel.getSnapshot().activeUI).toBe('none');
-		// …while the network call is deferred a macrotask so it never
-		// contends with the commit/paint task.
 		expect(saveSpy).not.toHaveBeenCalled();
 
 		const result = await pending;
@@ -812,7 +785,6 @@ describe('kernel transport: save flows consents to backend', () => {
 		const result = await kernel.commands.save('all');
 		expect(result.ok).toBe(false);
 		expect(errors).toEqual([boom]);
-		// Snapshot mutation still happened (local optimistic commit).
 		expect(
 			Object.keys(kernel.getSnapshot().explicitChoice?.categories ?? {})
 		).not.toHaveLength(0);
@@ -865,8 +837,6 @@ describe('hosted transport: save refusals', () => {
 	])(
 		'the manifest transport also refuses %i %s for good',
 		async (status, code) => {
-			// Both transports throw through `saveFailure`; this keeps the manifest
-			// one from drifting to a retryable error the kernel would replay.
 			const transport = createManifestTransport({
 				backendURL: 'https://backend.test',
 				domain: 'example.com',
@@ -1033,8 +1003,6 @@ describe('kernel transport: identify forwards to transport', () => {
 	});
 });
 
-// ---- createHostedTransport unit tests ------------------------------------
-
 describe('hosted init: CORS simple request', () => {
 	const respondWithInit = () =>
 		vi.fn(
@@ -1050,8 +1018,6 @@ describe('hosted init: CORS simple request', () => {
 				)
 		);
 
-	// Every input the kernel can hand init at once. A new input that travels
-	// as a custom header makes a cross-origin init preflight, and fails here.
 	test.each([
 		{ label: 'no overrides', overrides: {} },
 		{
@@ -1100,7 +1066,6 @@ describe('hosted init: CORS simple request', () => {
 			stored: '0',
 			v: expect.stringMatching(/^\d+\.\d+\.\d+/u),
 		});
-		// The response is still read against the overrides as headers.
 		expect(request.requestHeaders).toMatchObject({
 			'x-c15t-country': 'US',
 			'x-c15t-gpc': '1',
@@ -1109,9 +1074,6 @@ describe('hosted init: CORS simple request', () => {
 	});
 
 	test('replaces a parameter an app already put on initURL', () => {
-		// The names are generic, so an app's own init route may use one. The
-		// value c15t sends wins and appears once; the app's own parameters
-		// stay.
 		const request = createHostedInitRequest({
 			backendURL: 'https://backend.example',
 			initURL: '/api/consent/init?country=US&site=shop&journey=stale',
@@ -1127,8 +1089,6 @@ describe('hosted init: CORS simple request', () => {
 	});
 
 	test('reads the response against a parameter initURL keeps', () => {
-		// The backend resolves `?gpc=1` from the URL, so the response side must
-		// see it too. A value c15t sends still wins over the URL's.
 		const request = createHostedInitRequest({
 			backendURL: 'https://backend.example',
 			initURL: '/api/consent/init?gpc=1&country=US',
@@ -1222,7 +1182,6 @@ describe('createHostedTransport: request shape', () => {
 		expect(response?.policyResolution?.policy?.id).toBe('de-iab');
 		expect(fetchSpy).toHaveBeenCalledTimes(1);
 		const [url, init] = fetchSpy.mock.calls[0] ?? [];
-		// Trailing slash on backendURL is stripped.
 		expect(withoutQuery(url)).toBe('https://api.example.com/c15t/init');
 		expect(queryOf(url).get('country')).toBe('DE');
 		expect((init as RequestInit).method).toBe('GET');
@@ -1255,7 +1214,6 @@ describe('createHostedTransport: request shape', () => {
 			expect.objectContaining({ method: 'PATCH' })
 		);
 		const [, init] = fetchSpy.mock.calls[0] ?? [];
-		// The token proves the identity; properties stay on the client.
 		expect(JSON.parse((init as RequestInit).body as string)).toEqual({
 			externalId: 'user-42',
 			identityProvider: 'clerk',
@@ -1279,13 +1237,9 @@ describe('createHostedTransport: request shape', () => {
 			identityToken: 'signed.identity.token',
 		};
 
-		// Kernel-local identity: no pending promise waits for a subject that
-		// may never be created, so a later clear has nothing to cancel.
 		await expect(transport.identify(user, null)).resolves.toBeUndefined();
 		expect(fetchSpy).not.toHaveBeenCalled();
 
-		// The next legitimate save carries the identity; the backend links it
-		// when it creates the subject.
 		await transport.save({
 			choice: { categories: {}, version: 3 },
 			confirmed: { actionAt: 0, categories: {} },
@@ -1345,12 +1299,9 @@ describe('createHostedTransport: request shape', () => {
 			uiSource: 'banner',
 			user: null,
 		});
-		// After the kernel cleared its data it passes no subject. The transport
-		// must not reach the subject that earlier save established.
 		await transport.identify({ externalId: 'user-42' }, null);
 		expect(fetchSpy).toHaveBeenCalledTimes(1);
 
-		// With the kernel's real subject it links exactly that subject.
 		await transport.identify({ externalId: 'user-42' }, 'sub-created');
 		expect(fetchSpy).toHaveBeenCalledTimes(2);
 		const [, patchCall] = fetchSpy.mock.calls;
@@ -1387,7 +1338,6 @@ describe('createHostedTransport: request shape', () => {
 			await expect(
 				transportFor(500).identify?.(user, 'sub_unsaved')
 			).rejects.toThrow();
-			// The backend rejects an ID of another form, and so would the save.
 			await expect(
 				transportFor(404).identify?.(user, 'canonical id/1')
 			).rejects.toThrow();
@@ -1724,8 +1674,6 @@ describe('createHostedTransport: request shape', () => {
 
 		await transport.init?.({ overrides: {}, user: null });
 		const [, init] = fetchSpy.mock.calls[0] ?? [];
-		// Caller headers stay headers: they are meant for server callers, and
-		// in a browser they bring the CORS preflight back.
 		expect((init as RequestInit).headers).toEqual({
 			accept: 'application/json',
 			'accept-language': 'de-DE,de;q=0.9',
@@ -1766,7 +1714,6 @@ describe('createHostedTransport: request shape', () => {
 				language: 'de',
 				region: 'BE',
 			},
-			// The detected header signal, kept apart from developer overrides.
 			resolvedPrivacySignals: { gpc: true },
 			translations: { language: 'de' },
 		});
@@ -2220,7 +2167,6 @@ describe('createManifestTransport: local init resolution', () => {
 		const [, subjectsInit] = fetchSpy.mock.calls[0] ?? [];
 		const body = JSON.parse((subjectsInit as RequestInit).body as string);
 		expect(body).toMatchObject({ subjectId: 'sub_test' });
-		// Null distinguishes a successful no-match from missing decision inputs.
 		expect(body).toMatchObject({
 			country: null,
 			language: 'de',
@@ -2256,7 +2202,6 @@ describe('experiment query parameter', () => {
 		});
 		await kernel.commands.init();
 		const [url, init] = fetchSpy.mock.calls[0] ?? [];
-		// The header's `<id>=<arm>` value, URI-encoded parts, as a parameter.
 		expect(queryOf(url).get('experiment')).toBe('banner%20shape=wall');
 		expect(init?.headers).not.toHaveProperty('x-c15t-experiment');
 		kernel.dispose();
@@ -2295,7 +2240,6 @@ describe('x-c15t-version header (issue #916)', () => {
 			[string, RequestInit],
 			[string, RequestInit],
 		];
-		// Init carries it in the query string, so it stays a simple request.
 		expect(queryOf(initURL).get('v')).toMatch(/^\d+\.\d+\.\d+/u);
 		expect(queryOf(initURL).get('contract')).toBe('1');
 		expect(init.headers).not.toHaveProperty('x-c15t-version');
@@ -2343,8 +2287,6 @@ describe('x-c15t-version header (issue #916)', () => {
 
 		const manifestHeaders = ((manifestCall?.[1] as RequestInit)?.headers ??
 			{}) as Record<string, string>;
-		// The manifest/GVL hosts are c15t/tenant-controlled (IAB requires
-		// self-hosting the GVL), so version telemetry rides here too.
 		expect(manifestHeaders['x-c15t-version']).toMatch(/^\d+\.\d+\.\d+/u);
 
 		expect(saveCall?.[1]).toBeDefined();
@@ -2407,7 +2349,6 @@ describe('hosted transport: initialData', () => {
 			policyId: 'de-iab',
 		});
 
-		// The second init goes to the network: the prefetch is single-use.
 		await transport.init?.({ overrides: {}, user: null });
 		expect(withoutQuery(fetchSpy.mock.calls[1]?.[0])).toBe(
 			'/internal/consent/init'
@@ -2507,7 +2448,6 @@ describe('hosted transport: init context', () => {
 			overrides: { country: 'FR', gpc: true, language: 'fr', region: 'IDF' },
 			user: null,
 		});
-		// A backend that echoes nothing back still yields the requested GPC.
 		expect(result?.resolvedOverrides?.gpc).toBe(true);
 
 		const [url, init] = fetchSpy.mock.calls[0] ?? [];
@@ -2515,7 +2455,6 @@ describe('hosted transport: init context', () => {
 		expect(query.get('country')).toBe('FR');
 		expect(query.get('region')).toBe('IDF');
 		expect(query.get('gpc')).toBe('1');
-		// Accept-Language is CORS-safelisted, so the language stays a header.
 		expect((init as RequestInit).headers).toEqual({
 			accept: 'application/json',
 			'accept-language': 'fr',
@@ -3012,7 +2951,6 @@ describe('consent journey query parameters', () => {
 			stored: '1',
 			v: expect.stringMatching(/^\d+\.\d+\.\d+/u),
 		});
-		// Query parameters only: no header a backend would have to allow.
 		const headers = fetchSpy.mock.calls[0]?.[1]?.headers as Record<
 			string,
 			string
@@ -3089,7 +3027,6 @@ describe('consent journey query parameters', () => {
 			overrides: {},
 			user: null,
 		});
-		// No /init and no report named the id, so the save sends none.
 		await transport.save?.({ ...savePayload, journey });
 		expect(fetchSpy.mock.calls.at(-1)?.[0]).toBe(
 			'https://api.example.com/c15t/subjects'

@@ -1,15 +1,3 @@
-/**
- * The consent banner never moves as it enters, and only fades when it
- * arrives late.
- *
- * A banner that shows with the page is part of the first paint, so a slide
- * or scale in reads as layout shift rather than polish. Every adapter mounts
- * the banner with some of the visible and entering classes below, so none of
- * them may carry motion and no `@starting-style` rule may give the mount a
- * hidden start state. The one exception is a mount the adapter marked
- * `data-entry="late"`, after the page has painted: that may fade in, with
- * opacity only.
- */
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
@@ -25,7 +13,6 @@ const LATE_ENTRY = /\[data-entry=['"]?late['"]?\]/u;
 
 const MOTION_PROPERTY = /^(?:transition|animation|transform)(?:-[a-z-]+)?$/u;
 
-/** A transition of opacity alone, such as `opacity 150ms ease-out`. */
 const OPACITY_TRANSITION = /^opacity(?:\s|$)/u;
 
 const allowedLate = function allowedLate(prop: string, value: string): boolean {

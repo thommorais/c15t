@@ -80,13 +80,11 @@ const fakeFetch: typeof globalThis.fetch = (input, init) => {
 const backend = () =>
 	hosted({ backendURL: 'https://consent.example.com', fetch: fakeFetch });
 
-/** `hosted()` on the global `fetch`, which a test stubs, as a page's is. */
 const pageBackend = () => hosted({ backendURL: 'https://consent.example.com' });
 
 const init = () => requests.filter((request) => request.path === '/init');
 const saves = () => requests.filter((request) => request.path === '/subjects');
 
-/** Start a runtime, as a page load does, and wait for its `/init`. */
 const load = async (options: Partial<ConsentRuntimeOptions> = {}) => {
 	const runtime = createConsentRuntime({
 		consentCategories: ['necessary', 'measurement'],
@@ -104,7 +102,6 @@ const load = async (options: Partial<ConsentRuntimeOptions> = {}) => {
 	return runtime;
 };
 
-/** Leave the page: the runtime goes, storage stays. */
 const leave = (runtime: ConsentRuntime) => {
 	runtime.dispose();
 	runtime.kernel.dispose();
@@ -125,7 +122,6 @@ beforeEach(() => {
 	localStorage.clear();
 	sessionStorage.clear();
 	clearStoredConsentRecords();
-	// Each test is a fresh page load.
 	delete (window as Window & { __c15tJourney?: unknown }).__c15tJourney;
 	delete (window as Window & { __c15tInitialDataPromises?: unknown })
 		.__c15tInitialDataPromises;
@@ -164,7 +160,6 @@ describe("journey: 'page' (the default)", () => {
 		const runtime = await load();
 		const id = init()[0]?.journey?.id ?? '';
 		await runtime.kernel.commands.save('all');
-		// The save was queued for replay in localStorage, without the journey.
 		expect(localStorage.length).toBeGreaterThan(0);
 		expect(sessionStorage.length).toBe(0);
 		expect(everythingStored()).not.toContain(id);
@@ -180,11 +175,9 @@ describe("journey: 'page' (the default)", () => {
 		saveStatus = 200;
 		requests = [];
 		const second = await load();
-		// The next page replays the queued save once its init applied.
 		await vi.waitFor(() => expect(saves()).toHaveLength(1));
 		expect(saves()[0]?.journey).toBeNull();
 
-		// A save this page makes itself still carries its own journey.
 		await second.kernel.commands.save('none');
 		expect(saves()[1]?.journey).toEqual({
 			id: init()[0]?.journey?.id,
@@ -199,7 +192,6 @@ describe("journey: 'page' (the default)", () => {
 		leave(first);
 
 		const second = await load();
-		// Hydration applied the dismissal: no notice shows.
 		expect(second.kernel.getSnapshot().activeUI).toBe('none');
 		const sent = init()[1]?.journey;
 		expect(sent?.storedChoice).toBe(true);
@@ -244,12 +236,10 @@ describe("journey: 'tab'", () => {
 		const first = await load({ journey: 'tab' });
 		const id = init()[0]?.journey?.id;
 		expect(init()[0]?.journey?.scope).toBe('tab');
-		// The banner is showing and nothing is stored: the prompt is due.
 		expect(first.kernel.getSnapshot().activeUI).toBe('banner');
 		expect(sessionStorage.getItem(JOURNEY_STORAGE_KEY)).toBe(id);
 		leave(first);
 
-		// The visitor navigated without choosing; the next page continues.
 		const second = await load({ journey: 'tab' });
 		expect(init()[1]?.journey?.id).toBe(id);
 		await second.kernel.commands.save('none');
@@ -257,7 +247,6 @@ describe("journey: 'tab'", () => {
 		expect(sessionStorage.getItem(JOURNEY_STORAGE_KEY)).toBeNull();
 		leave(second);
 
-		// With the choice made, the next page is a new journey.
 		const third = await load({ journey: 'tab' });
 		expect(init()[2]?.journey?.id).not.toBe(id);
 		expect(init()[2]?.journey?.storedChoice).toBe(true);
@@ -288,7 +277,6 @@ describe("journey: 'tab'", () => {
 
 			arrange();
 			const second = await load({ journey: 'tab' });
-			// This page continued the journey but owes no prompt.
 			expect(init()[1]?.journey?.id).toBe(id);
 			expect(second.kernel.getSnapshot().activeUI).toBe('none');
 			expect(sessionStorage.getItem(JOURNEY_STORAGE_KEY)).toBeNull();
@@ -311,14 +299,12 @@ describe("journey: 'tab'", () => {
 
 		await runtime.kernel.commands.dismissNotice();
 		expect(sessionStorage.getItem(JOURNEY_STORAGE_KEY)).toBeNull();
-		// No choice is stored, and the visitor opens preferences again.
 		expect(runtime.kernel.getSnapshot().explicitChoice).toBeNull();
 		runtime.kernel.set.activeUI('dialog');
 		expect(sessionStorage.getItem(JOURNEY_STORAGE_KEY)).toBeNull();
 	});
 
 	test('a server-rendered page is a page journey and drops the tab id', async () => {
-		// An earlier page the browser resolved left a tab id.
 		sessionStorage.setItem(
 			JOURNEY_STORAGE_KEY,
 			'f47ac10b-58cc-4372-a567-0e02b2c3d479'
@@ -334,7 +320,6 @@ describe("journey: 'tab'", () => {
 		});
 		runtimes.push(runtime);
 		runtime.start();
-		// The prompt is due, yet nothing is kept for later pages.
 		expect(runtime.kernel.getSnapshot().activeUI).toBe('banner');
 		expect(sessionStorage.getItem(JOURNEY_STORAGE_KEY)).toBeNull();
 		await runtime.kernel.commands.save('all');
@@ -388,9 +373,7 @@ describe("journey: 'tab'", () => {
 				consentCategories: ['necessary', 'measurement'],
 				mode: custom({ init: () => Promise.resolve({}), save }),
 				persistence: false,
-				// Still pending: only the synchronous adoption can hand it over.
 				prefetch: new Promise(() => {
-					// Never settles.
 				}),
 			},
 			{ ...defaultRuntimeModules, streamPrefetch }
@@ -433,7 +416,6 @@ describe('a journey a server render started', () => {
 		});
 		runtimes.push(runtime);
 		runtime.start();
-		// The server already resolved init; the browser sends none.
 		expect(init()).toEqual([]);
 		await runtime.kernel.commands.save('all');
 		expect(saves()[0]?.journey).toEqual({ id: SERVER_ID, scope: 'page' });
@@ -488,7 +470,6 @@ describe('a journey a server render started', () => {
 	test('a streamed state without a policy: the fallback /init and the save share its id', async () => {
 		const sentIds: (string | undefined)[] = [];
 		const transportInit = vi.fn<NonNullable<KernelTransport['init']>>((ctx) => {
-			// What a transport reads when it builds the request.
 			sentIds.push(ctx.journey?.id);
 			return Promise.resolve({
 				policyResolution: writePolicyResolutionWire(
@@ -510,8 +491,6 @@ describe('a journey a server render started', () => {
 		);
 		runtimes.push(runtime);
 		runtime.start();
-		// The server timed out: its state has a journey and no policy, so
-		// the runtime falls back to its own /init.
 		stream.resolve({ journey: { id: SERVER_ID } });
 		await vi.waitFor(() =>
 			expect(runtime.kernel.getSnapshot().activeUI).toBe('banner')
@@ -598,8 +577,6 @@ describe('a streamed prefetch the runtime cannot stream', () => {
 			Promise.resolve({ ok: true })
 		);
 		const stream = Promise.withResolvers<{ journey: { id: string } }>();
-		// No `streamPrefetch` module: the promise is ignored and the runtime
-		// asks for the policy itself.
 		const runtime = createConsentProviderRuntime(
 			{
 				consentCategories: ['necessary', 'measurement'],
@@ -631,7 +608,6 @@ describe('a journey a request before the runtime started', () => {
 				buildPrefetchScript({ backendURL: 'https://consent.example.com' })
 			);
 			const runtime = await load({ mode: pageBackend() });
-			// The runtime took the script's response: one /init in all.
 			expect(init()).toHaveLength(1);
 			const early = init()[0]?.journey;
 			expect(early).toEqual({
@@ -653,7 +629,6 @@ describe('a journey a request before the runtime started', () => {
 				buildPrefetchScript({ backendURL: 'https://consent.example.com' })
 			);
 			const runtime = await load({ journey: 'tab', mode: pageBackend() });
-			// The script couldn't know the option; the id still links the save.
 			expect(init()).toHaveLength(1);
 			const early = init()[0]?.journey;
 			expect(early?.scope).toBe('page');
@@ -694,7 +669,6 @@ describe('a journey a request before the runtime started', () => {
 				})
 			);
 			const runtime = await load({ mode: pageBackend() });
-			// The script's /init carried none, so it cannot answer this runtime.
 			expect(init()).toHaveLength(2);
 			expect(init()[0]?.journey).toBeNull();
 			const own = init()[1]?.journey;

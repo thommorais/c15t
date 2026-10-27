@@ -3,7 +3,6 @@ import { POLICY_SCENARIOS } from '../fixtures/policy-scenarios';
 import type { SuiteApi } from './helpers';
 import { runPolicyScenarioConformance } from './policy-scenarios';
 
-/** Run the shared store scenarios against real adapter observations. */
 export const runStoreConformance = function runStoreConformance(
 	driver: TestDriver,
 	api: SuiteApi

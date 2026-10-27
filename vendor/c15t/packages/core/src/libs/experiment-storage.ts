@@ -1,18 +1,9 @@
-/**
- * The arm a browser was shown, kept under {@link EXPERIMENT_STORAGE_KEY} so
- * a visitor keeps seeing the banner they saw. Read at start, when c15t picks
- * the arm; written by the experiment controller once the banner has shown
- * it. Holds `{ id, arm }` and nothing that identifies the visitor.
- */
 import { deleteCookie, getRawCookieValue, setCookie } from './cookie';
 import type { StorageConfig } from './cookie';
 import { EXPERIMENT_STORAGE_KEY } from './storage-keys';
 
-/** What the browser keeps between visits: the arm the banner showed. */
 export interface StoredExperimentArm {
-	/** The experiment id. */
 	id: string;
-	/** The arm the banner rendered. */
 	arm: string;
 }
 
@@ -44,12 +35,6 @@ const localStorageAvailable = function localStorageAvailable(): boolean {
 	}
 };
 
-/**
- * Read the stored arm, from localStorage first and the cookie fallback
- * second. Never throws; unreadable storage reads as no record.
- *
- * @returns The stored arm, or `null`.
- */
 export const readStoredExperimentArm =
 	function readStoredExperimentArm(): StoredExperimentArm | null {
 		if (localStorageAvailable()) {
@@ -61,7 +46,6 @@ export const readStoredExperimentArm =
 					return stored;
 				}
 			} catch {
-				// Fall through to the cookie.
 			}
 		}
 		const raw = getRawCookieValue(EXPERIMENT_STORAGE_KEY);
@@ -75,18 +59,8 @@ export const readStoredExperimentArm =
 		}
 	};
 
-/**
- * Window property holding the arm an early `/init` request (the inline
- * prefetch script) picked, so the runtime runs the arm that request sent.
- */
 export const EXPERIMENT_WINDOW_KEY = '__c15tExperiment';
 
-/**
- * The arm an early request of this page picked, if it is well formed.
- *
- * @returns The arm, or `null`.
- * @internal
- */
 export const readEarlyExperimentArm =
 	function readEarlyExperimentArm(): StoredExperimentArm | null {
 		if (typeof window === 'undefined') {
@@ -100,12 +74,6 @@ export const readEarlyExperimentArm =
 			: null;
 	};
 
-/**
- * Record the arm an early request picked, for the runtime to run.
- *
- * @param record - The experiment id and arm.
- * @internal
- */
 export const writeEarlyExperimentArm = function writeEarlyExperimentArm(
 	record: StoredExperimentArm
 ): void {
@@ -117,15 +85,6 @@ export const writeEarlyExperimentArm = function writeEarlyExperimentArm(
 	}
 };
 
-/**
- * Persist the arm the banner showed. Writes localStorage when available and
- * falls back to a cookie otherwise. A successful localStorage write also
- * drops any fallback cookie a previous visit left, so a later read that has
- * to fall back to the cookie cannot restore an older arm. Never throws.
- *
- * @param record - The experiment id and arm.
- * @param storageConfig - Cookie domain and path for the fallback.
- */
 export const writeStoredExperimentArm = function writeStoredExperimentArm(
 	record: StoredExperimentArm,
 	storageConfig?: StorageConfig
@@ -139,7 +98,6 @@ export const writeStoredExperimentArm = function writeStoredExperimentArm(
 			}
 			return;
 		} catch {
-			// Quota or blocked storage: keep the cookie as the fallback.
 		}
 	}
 	setCookie(

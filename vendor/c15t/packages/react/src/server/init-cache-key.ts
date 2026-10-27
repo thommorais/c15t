@@ -2,21 +2,6 @@ import type { Overrides } from '@c15t/core';
 
 import { extractRelevantHeaders } from './headers';
 
-/**
- * Creates a stable cache key for SSR init responses.
- *
- * @remarks
- * This is framework-agnostic and can be used by wrappers (e.g. Next.js)
- * to align cache key construction with the headers/override semantics used
- * for SSR init fetching.
- *
- * @param normalizedURL - Normalized backend URL for /init
- * @param headers - Request headers
- * @param overrides - Optional location/language overrides
- * @returns A stable JSON string key
- *
- * @public
- */
 export const createSSRInitCacheKey = function createSSRInitCacheKey({
 	normalizedURL,
 	headers,

@@ -266,12 +266,6 @@ describe('createConsentRuntimeWith', () => {
 	});
 });
 
-/**
- * A module loaded on demand must import nothing the first-load graph has.
- * Otherwise bundlers that split shared code (Rolldown, esbuild) move each
- * shared module into a chunk of its own, and first load fetches those as
- * extra files. Its first-load dependencies arrive through its tools.
- */
 describe('on-demand chunks', () => {
 	const source = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
 	const valueImports = function valueImports(file: string): string[] {
@@ -331,9 +325,6 @@ describe('on-demand chunks', () => {
 				)
 		);
 		expect(outside).toEqual([]);
-		// The module's tools and its public entry import first-load code, and
-		// the network hold keeps page-wide state: all reach the module only
-		// through the tools it is passed.
 		expect(
 			files.filter((file) => /\/(?:index|tools|hold)\.ts$/u.test(file))
 		).toEqual([]);
@@ -351,8 +342,6 @@ describe('on-demand chunks', () => {
 				)
 			)
 		);
-	// Beyond what every runtime reaches (the save queue, experiment
-	// assignment).
 	const dynamicImports = (entry: string): string[] => {
 		const kernel = allDynamicImports('runtime/assemble.ts');
 		return [...allDynamicImports(entry)]
@@ -360,12 +349,6 @@ describe('on-demand chunks', () => {
 			.sort();
 	};
 
-	// esbuild emits a chunk for every `import()` in a file it reaches, used
-	// or not, and splits a module two such chunks share into a chunk of its
-	// own. A single-module chunk next to the shared one would split both
-	// modules out of it, and a page would fetch the shared chunk and then
-	// each module in a second round. A configure-once host never loads the
-	// provider runtime's update or streamed-prefetch code.
 	test('the on-demand entry reaches only the chunks its modules load', () => {
 		expect(dynamicImports('runtime/on-demand.ts')).toEqual([
 			'modules/clear-on-revocation/clear',
@@ -374,8 +357,6 @@ describe('on-demand chunks', () => {
 		]);
 	});
 
-	// A React provider loads its modules through its own `import()`s; this
-	// entry's unused chunks would split those modules into facade chunks.
 	test('the provider entry reaches only the provider runtime’s own chunks', () => {
 		expect(dynamicImports('runtime/provider.ts')).toEqual([
 			'runtime/provider-update',
@@ -383,10 +364,6 @@ describe('on-demand chunks', () => {
 		]);
 	});
 
-	// A host that imports one factory and the others' modules statically
-	// (an Astro site with `scripts`) must not reach the others' `import()`:
-	// a bundler keeps a module that is also dynamically imported in a chunk
-	// of its own.
 	test.each([
 		[
 			'runtime/on-demand-clear-on-revocation.ts',
@@ -403,7 +380,6 @@ describe('on-demand chunks', () => {
 		],
 		['runtime/on-demand-script-loader.ts', '../modules/script-loader/loader'],
 	])('%s loads only %s on demand', (entry, chunk) => {
-		// Relative only: TSDoc examples name the public entries.
 		const dynamic = reach(join(source, entry)).flatMap((file) =>
 			[
 				...readFileSync(file, 'utf8').matchAll(

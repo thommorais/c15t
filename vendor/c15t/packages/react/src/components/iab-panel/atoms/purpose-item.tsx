@@ -18,13 +18,7 @@ const EMPTY_VENDOR_INTERESTS: Record<string, boolean> = {};
 const EMPTY_PURPOSE_INTERESTS: Record<number, boolean> = {};
 
 interface PurposeItemProps {
-	/** A purpose, or a display-model row carrying `hasConsentBasis`. */
 	purpose: ProcessedPurpose & { hasConsentBasis?: boolean };
-	/**
-	 * The row's `data-testid`. Comes from the shared display model, which
-	 * namespaces it by row kind — a purpose, a special purpose and a
-	 * special feature can all be numbered `1`.
-	 */
 	testId?: string;
 	isEnabled: boolean;
 	onToggle: (value: boolean) => void;
@@ -32,16 +26,12 @@ interface PurposeItemProps {
 	onVendorToggle: (vendorId: VendorId, value: boolean) => void;
 	onVendorClick: (vendorId: VendorId) => void;
 	isLocked?: boolean;
-	/** Legitimate interest objections - true means user has NOT objected (allowed) */
 	vendorLegitimateInterests?: Record<string, boolean>;
-	/** Handler for legitimate interest objection toggle */
 	onVendorLegitimateInterestToggle?: (
 		vendorId: VendorId,
 		value: boolean
 	) => void;
-	/** Purpose-level legitimate interest state - true means NOT objected (allowed) */
 	purposeLegitimateInterests?: Record<number, boolean>;
-	/** Handler for purpose-level legitimate interest objection toggle */
 	onPurposeLegitimateInterestToggle?: (
 		purposeId: number,
 		value: boolean
@@ -59,7 +49,6 @@ const VendorRow: FC<VendorRowProps> = ({
 }) => {
 	const iab = useIABTranslations();
 
-	// For LI vendors, we show an objection control instead of consent toggle
 	const showLIControl = isLegitimateInterest && onLegitimateInterestToggle;
 
 	return (
@@ -129,9 +118,6 @@ const VendorRow: FC<VendorRowProps> = ({
 						: iab.preferenceCenter.purposeItem.objected}
 				</button>
 			) : (
-				// `size="small"` rather than a `scale(0.75)` wrapper: the shared
-				// switch sheet has the variant, and a transform left the control
-				// with a hit area three quarters the size it looks.
 				<Switch.Root
 					aria-label={vendor.name}
 					checked={isConsented}
@@ -174,16 +160,13 @@ export const PurposeItem: FC<PurposeItemProps> = ({
 	const getVendorLegitimateInterest = (vendorId: VendorId) =>
 		vendorLegitimateInterests[String(vendorId)] ?? true;
 
-	// Check if purpose-level LI is allowed (not objected)
 	const isPurposeLIAllowed = purposeLegitimateInterests[purpose.id] ?? true;
 
-	// Handler for purpose-level LI objection - also objects to all LI vendors for this purpose
 	const handlePurposeLIObjection = () => {
 		const newValue = !isPurposeLIAllowed;
 		if (onPurposeLegitimateInterestToggle) {
 			onPurposeLegitimateInterestToggle(purpose.id, newValue);
 		}
-		// Also toggle all LI vendors for this purpose
 		if (onVendorLegitimateInterestToggle) {
 			for (const vendor of legIntVendors) {
 				onVendorLegitimateInterestToggle(vendor.id, newValue);
@@ -191,26 +174,19 @@ export const PurposeItem: FC<PurposeItemProps> = ({
 		}
 	};
 
-	// Ad tech providers can be the only partners of a purpose they need.
 	const adTechProviders = purpose.adTechProviders ?? [];
 	const partnerCount = countIABPartners([purpose]);
 
-	// Separate IAB and custom vendors
 	const iabConsentVendors = consentVendors.filter((v) => !v.isCustom);
 	const customConsentVendors = consentVendors.filter((v) => v.isCustom);
 	const iabLegIntVendors = legIntVendors.filter((v) => !v.isCustom);
 	const customLegIntVendors = legIntVendors.filter((v) => v.isCustom);
 
-	// With no vendor on consent, a consent switch would look like an opt-out
-	// while every vendor kept processing; the objection control is the one
-	// that counts.
 	const showConsentSwitch =
 		purpose.hasConsentBasis !== false || !onPurposeLegitimateInterestToggle;
 
-	// Handle purpose toggle - also toggles all consent-based vendors
 	const handlePurposeToggle = (value: boolean) => {
 		onToggle(value);
-		// Also toggle all consent-based vendors associated with this purpose
 		for (const vendor of consentVendors) {
 			onVendorToggle(vendor.id, value);
 		}
@@ -348,7 +324,6 @@ export const PurposeItem: FC<PurposeItemProps> = ({
 			>
 				<p className={styles.purposeDescription}>{purpose.description}</p>
 
-				{/* Purpose-level Legitimate Interest Objection */}
 				{legIntVendors.length > 0 && onPurposeLegitimateInterestToggle && (
 					<div {...legitimateInterestProps}>
 						<div className={styles.purposeLiSectionHeader}>
@@ -386,7 +361,6 @@ export const PurposeItem: FC<PurposeItemProps> = ({
 					</div>
 				)}
 
-				{/* Legacy badge for when there's no toggle handler */}
 				{legIntVendors.length > 0 && !onPurposeLegitimateInterestToggle && (
 					<div className={styles.legitimateInterestBadge}>
 						<svg
@@ -473,7 +447,6 @@ export const PurposeItem: FC<PurposeItemProps> = ({
 							innerClassName={styles.vendorSection}
 							noStyle={noStyle}
 						>
-							{/* IAB Consent Vendors */}
 							{iabConsentVendors.length > 0 && (
 								<>
 									<h5 className={styles.vendorSectionTitle}>
@@ -491,7 +464,6 @@ export const PurposeItem: FC<PurposeItemProps> = ({
 									))}
 								</>
 							)}
-							{/* IAB Legitimate Interest Vendors */}
 							{iabLegIntVendors.length > 0 && (
 								<>
 									<h5
@@ -533,7 +505,6 @@ export const PurposeItem: FC<PurposeItemProps> = ({
 									))}
 								</>
 							)}
-							{/* Custom Vendors */}
 							{(customConsentVendors.length > 0 ||
 								customLegIntVendors.length > 0) && (
 								<div className={styles.customVendorPurposeSection}>
@@ -632,8 +603,6 @@ interface VendorRowProps {
 	onToggle: (value: boolean) => void;
 	onClick: () => void;
 	isLegitimateInterest?: boolean;
-	/** For LI vendors: true means user has NOT objected (processing allowed) */
 	isLegitimateInterestAllowed?: boolean;
-	/** Handler for LI objection - value true = allow, false = object */
 	onLegitimateInterestToggle?: (value: boolean) => void;
 }

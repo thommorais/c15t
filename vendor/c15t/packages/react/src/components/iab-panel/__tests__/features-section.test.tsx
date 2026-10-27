@@ -1,12 +1,3 @@
-/**
- * IAB Consent Dialog Features section.
- *
- * TCF Policies v5.0.b: the Features standard text sits with the Features,
- * each Feature shows its illustrations, and Features are never displayed
- * next to a control that cannot be disabled. Special purposes keep their
- * locked section.
- */
-
 import type { GlobalVendorList } from '@c15t/core';
 import styles from '@c15t/ui/styles/components/iab-consent-dialog';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';

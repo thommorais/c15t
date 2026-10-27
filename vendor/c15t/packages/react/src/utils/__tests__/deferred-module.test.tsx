@@ -56,7 +56,6 @@ test('reveals cold exports on module completion without waiting for Suspense ret
 	document.body.append(container);
 	const root = createRoot(container);
 	try {
-		// act() bypasses the React throttle this regression exercises.
 		root.render(
 			<>
 				<First label="First" />
@@ -171,14 +170,12 @@ test('reports a failed render import through the error boundary', async () => {
 	const root = createRoot(container);
 	const error = vi.spyOn(console, 'error').mockImplementation(() => undefined);
 	try {
-		// A preload in flight when the export renders shares its failure.
 		const preload = fixture.module.preload();
 		root.render(
 			<Boundary>
 				<Deferred label="Unavailable" />
 			</Boundary>
 		);
-		// Let the render reach the lazy export before the import fails.
 		await frame();
 		await frame();
 		fixture.reject(new Error('chunk unavailable'));

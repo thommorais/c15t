@@ -1,9 +1,5 @@
 import { writePolicyResolutionWire } from '@c15t/schema/types';
 import type { ConsentManifest } from '@c15t/schema/types';
-/**
- * Provider transport factories, `hosted()`, `offline()` and `custom()`, and
- * the data factories from `@c15t/core/modes`.
- */
 import { describe, expect, expectTypeOf, test, vi } from 'vitest';
 
 import type { KernelTransport, SavePayload } from '../index';
@@ -161,7 +157,6 @@ describe('hosted()', () => {
 				fetch: fetchSpy as unknown as typeof globalThis.fetch,
 				...options,
 			})(context);
-			// No init has resolved a decision: an asserting transport refuses.
 			return await transport.save?.(payload).then(
 				() => 'saved',
 				() => 'refused'
@@ -201,8 +196,6 @@ describe('hosted()', () => {
 		expect(readHostedMode(mode)?.fetch).toBe(fetchSpy);
 		expect(readHostedMode(mode)?.initialData).toBe(initialData);
 
-		// `initialData` resolves to nothing, so both inits reach the backend,
-		// each with the options as passed.
 		const transport = mode(context);
 		await transport.init?.({ overrides: {}, user: null }).catch(() => null);
 		await transport.init?.({ overrides: {}, user: null }).catch(() => null);

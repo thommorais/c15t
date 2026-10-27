@@ -1,40 +1,3 @@
-/**
- * Ordering rules shared by storage writes and reconciliation.
- *
- * Several runtimes can share one browser's storage: two tabs, a tab and a
- * restored back/forward page, or two runtimes on one page. Each one writes
- * its own decisions and reads the others' back. These rules keep them from
- * undoing each other:
- *
- * - Category decisions merge per category. Each category keeps the decision
- *   with the newer `confirmedAt`, so a runtime that only decided marketing
- *   never reverts another runtime's newer measurement decision. This holds
- *   in both directions: a queued write stores the merge of what it carries
- *   and what storage holds, and reconciliation merges storage into memory.
- * - The notice dismissal and the vendor record are single decisions: the
- *   one with the newer time (`dismissedAt`, `confirmedAt`) wins.
- * - On equal times, a record another runtime stored since this runtime
- *   last read or wrote it wins, in writes and reads alike, so two runtimes
- *   acting in the same millisecond converge on what storage holds. A
- *   record storage still holds from this runtime is its own, so its later
- *   action in the same millisecond wins.
- * - One subject: a subject this runtime generated on a save or copied from
- *   storage yields to the stored one, in merged writes and in
- *   reconciliation of a changed record. A subject id the server resolved
- *   yields only to a strictly newer stored choice, and an identity set by
- *   `identify()` never yields.
- * - Removing a record is the one way back. Readable storage that lost a
- *   record this runtime last saw present clears the in-memory record;
- *   storage that cannot be read, or bytes that do not decode, leave it as
- *   is. A record this runtime never saw in storage (a receipt merged from
- *   the server, or a choice seeded while storage was blocked) is never
- *   cleared for being absent.
- *
- * Pure. Nothing here reads storage or evaluates expiry; the consent
- * evaluator judges the applied records at the reconciliation time. The
- * per-category merge and the clear-epoch rules come in as tools: they are
- * the kernel's and the read path's own, and this file loads on demand.
- */
 import type {
 	ConsentSubject,
 	ExplicitChoice,
@@ -48,13 +11,11 @@ import type {
 import type { StoredRecords } from '../hydrate';
 import type { PersistenceTools } from './types';
 
-/** The first-load rules reconciliation applies. */
 type Rules = Pick<
 	PersistenceTools,
 	'choiceSince' | 'merge' | 'noticeSince' | 'vendorsSince'
 >;
 
-/** The parts of a storage read that reconciliation consults. */
 export type StoredRead = Pick<
 	StoredRecords,
 	'records' | 'vendorSubject' | 'noticeSubject' | 'subjectCarrier' | 'epoch'
@@ -74,7 +35,6 @@ const canonical = function canonical(value: unknown): unknown {
 	return value;
 };
 
-/** Structural equality for plain record data, ignoring key order. */
 export const sameRecord = function sameRecord(
 	left: unknown,
 	right: unknown
@@ -82,7 +42,6 @@ export const sameRecord = function sameRecord(
 	return JSON.stringify(canonical(left)) === JSON.stringify(canonical(right));
 };
 
-/** Time of the newest category decision, or `-Infinity` without one. */
 const latestDecisionAt = function latestDecisionAt(
 	choice: ExplicitChoice | null | undefined
 ): number {
@@ -95,14 +54,6 @@ const latestDecisionAt = function latestDecisionAt(
 	return latest;
 };
 
-// ---------------------------------------------------------------------------
-// Subjects
-// ---------------------------------------------------------------------------
-
-/**
- * Whether a subject carries an identity the other lacks: an external id or
- * identity provider set by `identify()` in this runtime.
- */
 const hasNewerIdentity = function hasNewerIdentity(
 	subject: ConsentSubject | null | undefined,
 	than: ConsentSubject | null | undefined
@@ -114,24 +65,6 @@ const hasNewerIdentity = function hasNewerIdentity(
 	);
 };
 
-/**
- * The subject to store with a merged record.
- *
- * The in-memory subject yields to the stored one when it is only a copy of
- * what this runtime last read from storage, or an id this runtime generated
- * on a save because it held none: a runtime opened before another one stored
- * a subject then joins that subject. Any other in-memory id came from the
- * server (init, prefetch or a save response) and wins, as does an identity
- * set by `identify()`. A linked identity that is only storage's own copy
- * yields like the id. Fields the winner lacks are filled from the other.
- *
- * @param ours - The subject in memory.
- * @param stored - The subject storage holds now, or `null`.
- * @param oursYields - Whether the in-memory subject is a copy or generated.
- * @param identityYields - Whether the in-memory linked identity is only
- * storage's copy (see {@link SubjectProvenance}).
- * @returns The subject to write.
- */
 export const subjectToWrite = function subjectToWrite(
 	ours: ConsentSubject | null,
 	stored: ConsentSubject | null | undefined,
@@ -150,31 +83,6 @@ export const subjectToWrite = function subjectToWrite(
 	return { ...ours, ...stored };
 };
 
-// ---------------------------------------------------------------------------
-// Writes
-// ---------------------------------------------------------------------------
-
-/**
- * The choice to write over what storage holds, or `null` to skip the write.
- *
- * A write that follows a recorded choice stores the per-category merge of
- * this runtime's choice and the stored one, so a category another runtime
- * decided more recently keeps that decision. On equal times the stored
- * decision wins when another runtime stored it since this runtime last read
- * or wrote the record; otherwise the record is this runtime's own and its
- * later action in the same millisecond wins. A write that only acknowledges
- * the server's subject id carries no new decision, so it lands only on a
- * record storage still holds from this runtime: it never recreates a record
- * another runtime cleared, and never replaces one another runtime wrote.
- *
- * @param ours - The in-memory choice about to be written.
- * @param stored - The choice storage holds now, or `null`.
- * @param subjectOnly - Whether no choice was recorded since the last write.
- * @param storedWinsTies - Whether storage changed since this runtime last
- * read or wrote it.
- * @param merge - The kernel's per-category merge.
- * @returns The choice to write, or `null` when nothing should be written.
- */
 export const choiceToWrite = function choiceToWrite(
 	ours: ExplicitChoice | null,
 	stored: ExplicitChoice | null,
@@ -198,7 +106,6 @@ export const choiceToWrite = function choiceToWrite(
 	return storedWinsTies ? merge(stored, ours) : merge(ours, stored);
 };
 
-/** Whether `ours`, stamped at `oursAt`, may replace a record from `storedAt`. */
 const isNewerThanStored = function isNewerThanStored(
 	oursAt: number,
 	storedAt: number,
@@ -207,12 +114,6 @@ const isNewerThanStored = function isNewerThanStored(
 	return storedWinsTies ? oursAt > storedAt : oursAt >= storedAt;
 };
 
-/**
- * Whether the vendor record may be written over what storage holds. The
- * newer record wins, ties follow the rule of {@link choiceToWrite}, and a
- * subject-only rewrite lands only on a record storage still holds from
- * this runtime. An in-memory `null` never deletes a stored record.
- */
 export const mayWriteVendorChoice = function mayWriteVendorChoice(
 	ours: VendorChoice | null,
 	stored: VendorChoice | null,
@@ -239,10 +140,6 @@ export const mayWriteVendorChoice = function mayWriteVendorChoice(
 	);
 };
 
-/**
- * Whether the notice dismissal may be written over what storage holds. The
- * newer dismissal wins; ties follow the rule of {@link choiceToWrite}.
- */
 export const mayWriteNotice = function mayWriteNotice(
 	ours: NoticeDismissal | null,
 	stored: NoticeDismissal | null,
@@ -258,40 +155,20 @@ export const mayWriteNotice = function mayWriteNotice(
 	);
 };
 
-// ---------------------------------------------------------------------------
-// Reconciliation
-// ---------------------------------------------------------------------------
-
-/** The stored records, each read and written on its own. */
 export type StoredRecordKind = 'choice' | 'notice' | 'vendors';
 
-/**
- * What storage held for each record the last time this runtime read or
- * wrote it. A kind is missing while it was never readable: its state is
- * unknown, which is different from absent.
- */
 export type StorageFingerprints = Partial<Record<StoredRecordKind, string>>;
 
 const fingerprint = function fingerprint(value: unknown): string {
 	return JSON.stringify(canonical(value));
 };
 
-/** Fingerprints of readable storage holding none of the records. */
 const ABSENT: Record<StoredRecordKind, string> = {
 	choice: fingerprint(null),
 	notice: fingerprint([null, null]),
 	vendors: fingerprint([null, null]),
 };
 
-/**
- * Fingerprints of the readable records in a storage read. The envelope's
- * print includes its subject; the vendor record's print includes the
- * subject the vendor record itself carries. An absent envelope prints the
- * same whatever subject the vendor record holds.
- *
- * @param read - A storage read; omitted records were unreadable.
- * @returns One fingerprint per readable record.
- */
 export const fingerprintStoredRecords = function fingerprintStoredRecords(
 	read: StoredRead
 ): StorageFingerprints {
@@ -318,15 +195,11 @@ export const fingerprintStoredRecords = function fingerprintStoredRecords(
 	return prints;
 };
 
-/** How storage moved for one record since this runtime last saw it. */
 interface Movement {
-	/** The record is readable and differs from what was last seen. */
 	changed: (kind: StoredRecordKind) => boolean;
-	/** A record last seen present is now readable and absent. */
 	removed: (kind: StoredRecordKind) => boolean;
 }
 
-/** Whether a changed single-decision record should replace memory. */
 const adoptNewer = function adoptNewer<RecordType>(
 	current: RecordType | null,
 	stored: RecordType | null,
@@ -345,48 +218,18 @@ const adoptNewer = function adoptNewer<RecordType>(
 	return timeOf(stored) >= timeOf(current);
 };
 
-/**
- * The subject a clear leaves: the ID alone. The kernel's
- * `subjectAfterClear` does the same; the write code cannot import it.
- *
- * @internal
- */
 export const subjectAfterClear = function subjectAfterClear(
 	subject: ConsentSubject | null | undefined
 ): ConsentSubject | null {
 	return subject?.subjectId ? { subjectId: subject.subjectId } : null;
 };
 
-/**
- * Where the in-memory subject's linked identity came from, as the writer
- * last saw storage. Storage may replace or clear only an identity it gave.
- *
- * @internal
- */
 export interface SubjectProvenance {
-	/**
-	 * The linked identity is storage's own copy: the records carried it at
-	 * the previous read, and `identify()` did not set it in this runtime.
-	 */
 	identityYields: boolean;
-	/**
-	 * The subject the notice record carried at the previous read or write,
-	 * when no other record carried one.
-	 */
 	noticeCarried: ConsentSubject | null;
-	/** The record that carried the subject at the previous read. */
 	seenCarrier: StoredRead['subjectCarrier'] | undefined;
 }
 
-/**
- * Whether a stored subject should replace the one in memory, given the
- * time of the newest decision each side carries. A subject that yields (see
- * {@link subjectToWrite}) is replaced by a stored one at least as recent; an
- * id the server resolved only by a strictly newer one. An identity from
- * `identify()`, or any other one storage did not give, is never replaced;
- * one storage gave follows the same times. A missing stored subject
- * replaces nothing.
- */
 const prefersStoredSubject = function prefersStoredSubject(
 	memory: ConsentSubject | null,
 	stored: ConsentSubject | null | undefined,
@@ -404,14 +247,6 @@ const prefersStoredSubject = function prefersStoredSubject(
 	return subjectYields ? storedAt >= memoryAt : storedAt > memoryAt;
 };
 
-/**
- * The subject once the stored choice was removed. With no identity left in
- * a stored record the identity goes with the choice and the ID stays, as a
- * clear leaves it. `<key>-sid` alone is not such a record: it holds the ID
- * and never an identity. A subject the vendor record
- * still carries follows the usual precedence, so it never replaces an id
- * the server resolved or an identity from `identify()` it should yield to.
- */
 const subjectAfterRemoval = function subjectAfterRemoval(
 	snapshot: ConsentSnapshot,
 	stored: HydrationRecords,
@@ -436,12 +271,6 @@ const subjectAfterRemoval = function subjectAfterRemoval(
 		: undefined;
 };
 
-/**
- * A notice-only identity follows the acknowledgement that carries it. When
- * that acknowledgement is removed the linked identity goes and the ID
- * stays, as a clear leaves it: a runtime from before the clear epoch clears
- * by removing the records.
- */
 const reconcileNoticeSubject = function reconcileNoticeSubject(
 	snapshot: ConsentSnapshot,
 	stored: HydrationRecords,
@@ -472,12 +301,6 @@ const reconcileNoticeSubject = function reconcileNoticeSubject(
 	return candidate;
 };
 
-/**
- * The notice carried the subject in memory and, removed or rewritten
- * without one, no longer does, as an older runtime that knows nothing of
- * the subject companion leaves it. With no other record carrying a subject,
- * the linked identity goes and the ID stays, as a reload finds it.
- */
 const subjectAfterNoticeLeft = function subjectAfterNoticeLeft(
 	snapshot: ConsentSnapshot,
 	carrier: StoredRead['subjectCarrier'],
@@ -493,18 +316,6 @@ const subjectAfterNoticeLeft = function subjectAfterNoticeLeft(
 		: candidate;
 };
 
-/**
- * The subject to apply, or `undefined` to keep the one in memory.
- *
- * The subject belongs to the record it was stored with: the envelope,
- * a vendor decision, or a notice acknowledgement. A record stored without
- * a subject, as older versions wrote them, does not carry it, so the
- * subject follows the record that does, as a reload selects it. It
- * is only considered when that record changed in storage, so focus or an
- * unrelated key never moves the subject, and follows
- * {@link prefersStoredSubject}. Only the removal of the record that carried
- * it clears the subject.
- */
 const reconcileSubject = function reconcileSubject(
 	snapshot: ConsentSnapshot,
 	stored: HydrationRecords,
@@ -516,13 +327,8 @@ const reconcileSubject = function reconcileSubject(
 	subjectYields: boolean
 ): HydrationRecords['subject'] {
 	const { explicitChoice, vendorChoice } = snapshot;
-	// With no record carrying it, the subject is `<key>-sid` alone and goes
-	// with the records present.
 	const carries = (kind: StoredRecordKind, present: boolean): boolean =>
 		carrier === kind || (carrier === null && present);
-	// The subject moves with the record that carries it: when that record
-	// changed, or when another record that did not change carries it now
-	// because the one that did was removed or lost its subject.
 	const movement: Movement = {
 		changed: (kind) =>
 			recordMovement.changed(kind) ||
@@ -558,8 +364,6 @@ const reconcileSubject = function reconcileSubject(
 		carries('vendors', explicitChoice === null) &&
 		movement.changed('vendors')
 	) {
-		// No choice on either side, an unreadable one, or one stored without
-		// a subject: the vendor record carries the subject.
 		if (stored.choice === null && movement.removed('vendors')) {
 			candidate = subjectAfterClear(snapshot.subject);
 		} else if (
@@ -599,7 +403,6 @@ const reconcileSubject = function reconcileSubject(
 		: undefined;
 };
 
-/** Choice records to apply: a per-category merge, or a clear. */
 const reconcileChoice = function reconcileChoice(
 	snapshot: ConsentSnapshot,
 	stored: HydrationRecords,
@@ -617,10 +420,6 @@ const reconcileChoice = function reconcileChoice(
 			records.choice = null;
 		}
 	} else if (stored.choice && movement.changed('choice')) {
-		// An unchanged record is one this runtime already read or wrote. A
-		// server-seeded runtime read it at mount and kept only its newer
-		// denials, so merging it now would apply grants the load ignored.
-		// On equal times the decision another runtime stored wins.
 		const merged = merge(stored.choice, explicitChoice);
 		if (!sameRecord(merged, explicitChoice)) {
 			records.choice = merged;
@@ -642,22 +441,11 @@ const reconcileChoice = function reconcileChoice(
 	return records;
 };
 
-/** Result of {@link selectReconciledRecords}. */
 export interface ReconciledRecords {
-	/** Records to hydrate, or `null` when the kernel already matches. */
 	records: HydrationRecords | null;
-	/** Fingerprints to keep for the next reconciliation. */
 	seen: StorageFingerprints;
 }
 
-/**
- * The in-memory records as the clear epoch leaves them: decisions confirmed
- * before `epoch` are void. When the epoch moved past the one this runtime
- * last saw, another runtime cleared the records and the identity linked to
- * the subject in memory belongs to the cleared history, so only its ID
- * survives, as it does in the runtime that cleared. A subject a save made
- * after the epoch generated survives whole (`subjectSurvives`).
- */
 const sinceEpoch = function sinceEpoch(
 	snapshot: ConsentSnapshot,
 	epoch: number,
@@ -688,10 +476,6 @@ const EPOCH_FIELDS = [
 	['vendorChoice', 'vendorChoice'],
 ] as const;
 
-/**
- * Adds the records the epoch voided in memory and reconciliation left
- * alone, so the kernel drops them too.
- */
 const applyVoided = function applyVoided(
 	records: HydrationRecords,
 	view: ConsentSnapshot,
@@ -707,27 +491,6 @@ const applyVoided = function applyVoided(
 	}
 };
 
-/**
- * Records to apply so the kernel reflects what storage holds, by the rules
- * at the top of this file. Only differences are returned, so an unchanged
- * read never touches the kernel or notifies anyone.
- *
- * @param snapshot - The kernel's current snapshot.
- * @param read - A storage read; omitted records were unreadable.
- * @param seen - Fingerprints from the previous read or write.
- * @param now - Read time, used as the evaluation time.
- * @param subjectYields - Whether the in-memory subject yields to a stored
- * one (see {@link subjectToWrite}).
- * @param unadopted - Records this runtime wrote with parts memory lacks;
- * they count as changed even when storage still holds what was written.
- * @param memoryEpoch - The clear epoch the in-memory records belong to.
- * @param subjectBornAfterEpoch - Whether a save made after the stored epoch
- * generated the in-memory subject, so it survives a clear this runtime
- * missed.
- * @param provenance - Where the in-memory linked identity came from.
- * @param rules - The per-category merge and the clear-epoch rules.
- * @returns The records to hydrate and the fingerprints to keep.
- */
 export const selectReconciledRecords = function selectReconciledRecords(
 	snapshot: ConsentSnapshot,
 	read: StoredRead,
@@ -742,8 +505,6 @@ export const selectReconciledRecords = function selectReconciledRecords(
 ): ReconciledRecords {
 	const { records: stored } = read;
 	const clearMissed = read.epoch > memoryEpoch;
-	// Reconcile against memory as the clear left it, then drop from the
-	// kernel whatever the clear voided.
 	const view = sinceEpoch(
 		snapshot,
 		read.epoch,
@@ -764,8 +525,6 @@ export const selectReconciledRecords = function selectReconciledRecords(
 	const records = reconcileChoice(
 		view,
 		stored,
-		// The identity a vendor or notice record still carries once the
-		// choice is gone.
 		read.vendorSubject ?? read.noticeSubject ?? null,
 		read.subjectCarrier,
 		provenance,

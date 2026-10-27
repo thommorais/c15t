@@ -39,8 +39,6 @@ export default mergeConfig(
 		},
 		test: {
 			coverage: {
-				// Coverage ratchet: floors below current coverage so regressions
-				// fail CI. Raise as coverage improves; never lower.
 				thresholds: {
 					branches: 45,
 					functions: 65,

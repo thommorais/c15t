@@ -30,7 +30,6 @@ const SRC = 'https://cdn.example.com/pixel.js';
 const CONFIRMED_AT = NOW - 1000;
 const mode = custom({ init: () => Promise.resolve({}) });
 
-/** Tells the vendor its consent from setup and on every change. */
 const signal = (hasConsent: boolean): void => {
 	const page = window as SignalWindow;
 	page.__signals = [...(page.__signals ?? []), hasConsent];
@@ -152,7 +151,6 @@ const cases: Case[] = [
 	},
 ];
 
-/** Writes a real denial through the runtime's own persistence. */
 const storeDenial = async function storeDenial(at: number): Promise<void> {
 	vi.useFakeTimers({ now: at, toFake: ['Date'] });
 	const writer = createConsentRuntime({
@@ -181,7 +179,6 @@ const resetPage = function resetPage(): void {
 	delete page.__signals;
 };
 
-/** The vendor elements the page ends with, and the consent it last signaled. */
 const runPage = async function runPage(
 	scenario: Case,
 	withServerStart: boolean
@@ -203,7 +200,6 @@ const runPage = async function runPage(
 	if (withServerStart) {
 		const code = serverScriptStart(options);
 		if (code) {
-			// A hidden page runs the work at once, before the loader mounts.
 			const hidden = vi.spyOn(document, 'hidden', 'get').mockReturnValue(true);
 			// oxlint-disable-next-line no-new-func -- Runs the inline script, as the page would.
 			new Function(code)();

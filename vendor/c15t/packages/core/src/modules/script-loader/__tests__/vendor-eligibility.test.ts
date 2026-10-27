@@ -14,7 +14,6 @@ import { normalizeScripts } from '../normalize';
 import { scriptLoaderTools } from '../tools';
 import type { Script } from '../types';
 
-/** The slugs these tests deny, declared so the gate honors the denial. */
 const declaredVendors = (ids: readonly string[]) => ({
 	declared: ids.map((id) => ({
 		category: 'marketing' as const,
@@ -146,13 +145,11 @@ describe('script-owned vendor declarations', () => {
 		});
 		const loader = createScriptLoader({ kernel, scripts: [] });
 		expect(kernel.getSnapshot().vendors).toBeNull();
-		// No DOM in this suite, so the script must not try to mount.
 		loader.updateScripts([script({ callbackOnly: true })]);
 		const declared = kernel.getSnapshot().vendors?.declared ?? [];
 		expect(declared.map((vendor) => [vendor.id, vendor.source])).toEqual([
 			['meta-pixel', 'script'],
 		]);
-		// The script moves category: the vendor moves with it.
 		loader.updateScripts([
 			script({ callbackOnly: true, category: 'measurement' }),
 		]);
@@ -164,9 +161,6 @@ describe('script-owned vendor declarations', () => {
 	});
 
 	test('a loader puts its slug back when another source sweeps it away', () => {
-		// A provider replacing its own script entries, or a backend init
-		// dropping the vendor, removes every script-sourced entry. The loader
-		// still names the slug, so the stored denial must keep gating it.
 		const kernel = createConsentKernel({
 			initialRecords: {
 				...choiceRecords({ marketing: true, measurement: true }),

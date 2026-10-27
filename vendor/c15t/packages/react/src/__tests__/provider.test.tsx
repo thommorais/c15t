@@ -157,7 +157,6 @@ test('keeps the kernel across rerenders and synchronizes identity and geographic
 	);
 	expect(kernel).toBe(first);
 	expect(kernel.getSnapshot().overrides.country).toBe('FR');
-	// Identity follows once the runtime's update module has loaded.
 	await vi.waitFor(() =>
 		expect(kernel.getSnapshot().user?.externalId).toBe('second')
 	);
@@ -440,7 +439,6 @@ test('onSurfaceShown fires for a prefetched banner without init and for an opene
 			<ConsentBanner />
 		</ConsentProvider>
 	);
-	// The prepared branch hydrates and marks the kernel live; no init runs.
 	await vi.waitFor(() => expect(onSurfaceShown).toHaveBeenCalledTimes(1));
 	expect(init).not.toHaveBeenCalled();
 	expect(onSurfaceShown.mock.calls[0]?.[0]).toMatchObject({
@@ -677,7 +675,6 @@ test.each(['header', 'browser'] as const)(
 				prepared.initialRecords?.choice
 			);
 			expect(localStorage.getItem(`${key}-privacy`)).toBeNull();
-			// The restriction ends with the signal; the stored grant applies again.
 			kernel.set.privacySignals({ gpc: false });
 			expect(kernel.getSnapshot().effectivePermissions.marketing).toBe(true);
 			expect(init).not.toHaveBeenCalled();
@@ -805,7 +802,6 @@ test('storage is read once: a new storage key warns and records stay where they 
 		</ConsentProvider>
 	);
 	const screen = await render(provider(firstKey));
-	// A new options object with the same storage is not a change.
 	await screen.rerender(provider(firstKey));
 	expect(warn).not.toHaveBeenCalledWith(expect.stringContaining('read once'));
 
@@ -813,11 +809,9 @@ test('storage is read once: a new storage key warns and records stay where they 
 	expect(warn).toHaveBeenCalledWith(expect.stringContaining('read once'));
 
 	await kernel.commands.save('all');
-	// Persistence batches writes in a macrotask; save resolves before storage.
 	await vi.waitFor(() => expect(localStorage.getItem(firstKey)).not.toBeNull());
 	expect(localStorage.getItem(nextKey)).toBeNull();
 
-	// Data clearing protects the key persistence writes, not the new one.
 	const acceptedRecord = localStorage.getItem(firstKey);
 	localStorage.setItem('cleanup-visitor', 'visitor');
 	const removeItem = vi.spyOn(Storage.prototype, 'removeItem');

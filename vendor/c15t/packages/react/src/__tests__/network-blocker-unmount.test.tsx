@@ -1,15 +1,3 @@
-/**
- * A provider that unmounts before its network blocker loads.
- *
- * The provider holds matching requests from its first render, and the
- * blocker takes them over once its chunk loads. When the provider goes
- * away first, nothing ever checked consent for what it held, so those
- * requests must fail the way the blocker fails a blocked one: never sent,
- * and never left pending.
- *
- * The blocker chunk is held back until the end of the test, so the unmount
- * lands before it loads.
- */
 import type { NetworkBlockerRule } from '@c15t/core/modules/network-blocker';
 import {
 	holdNetworkRequests,
@@ -25,7 +13,6 @@ import { policyFixture } from './policy-fixture';
 
 const chunk = vi.hoisted(() => {
 	let open = () => {
-		/* replaced below */
 	};
 	const gate = new Promise<void>((resolve) => {
 		open = resolve;
@@ -71,7 +58,6 @@ const flush = () =>
 	});
 
 test('unmounting before the blocker loads fails held requests closed', async () => {
-	// Another caller holds its own rules and must keep holding.
 	holdNetworkRequests([{ category: 'marketing', domain: 'ads.example' }]);
 	let adsSettled = false;
 	const ads = window.fetch('https://ads.example/pixel').finally(() => {
@@ -84,7 +70,6 @@ test('unmounting before the blocker loads fails held requests closed', async () 
 				mode: offline({ acknowledgeNoRecords: true }),
 				networkBlocker: { logBlockedRequests: false, rules },
 				persistence: false,
-				// Stored consent allows it: still unchecked, so still blocked.
 				prefetch: policyFixture({ measurement: true }),
 			}}
 		>
@@ -104,12 +89,9 @@ test('unmounting before the blocker loads fails held requests closed', async () 
 	expect(network).not.toHaveBeenCalled();
 	expect(adsSettled).toBe(false);
 
-	// End the other caller's hold so its request settles before cleanup.
 	releaseNetworkRequests()();
 	await ads;
 
-	// Let the chunk finish loading before the browser closes. The provider
-	// is gone, so it installs nothing and the answer above stands.
 	chunk.open();
 	await import('@c15t/core/modules/network-blocker');
 	expect((await requests[0])?.status).toBe(451);

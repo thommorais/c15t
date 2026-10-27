@@ -43,7 +43,6 @@ describe('ExperimentArmName', () => {
 
 		expectTypeOf<BannerArm>().toEqualTypeOf<'control' | 'bar' | 'wall'>();
 		expectTypeOf<'grid'>().not.toExtend<BannerArm>();
-		// Every name is one `arm` accepts, so a typed flag value passes as is.
 		expectTypeOf<BannerArm>().toExtend<
 			NonNullable<(typeof bannerLayout)['arm']>
 		>();
@@ -250,7 +249,6 @@ describe('validateExperiment', () => {
 		expect(() => validateExperiment(zero, choice)).toThrow(
 			/finite positive weight/u
 		);
-		// A host-resolved arm never reads the split.
 		expect(validateExperiment({ ...zero, arm: 'bar' }, choice)).toEqual({});
 	});
 });
@@ -357,8 +355,6 @@ describe('validateExperiment with arm themes', () => {
 		expect(Object.keys(diagnostics)).toEqual(['loud']);
 	});
 	it('merges the arm theme over the host theme before checking', () => {
-		// The host styles accept and reject unequally; the arm evens them out,
-		// so only the merged theme passes.
 		expect(
 			validateExperiment(
 				{

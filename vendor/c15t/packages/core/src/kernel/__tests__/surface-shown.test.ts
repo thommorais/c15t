@@ -57,7 +57,6 @@ describe('surface:shown', () => {
 		});
 		expect(kernel.getSnapshot().surfaceShownAt.banner).toBe(NOW + 500);
 
-		// Unrelated commits do not repeat the impression.
 		kernel.set.language('fr');
 		kernel.refresh(NOW + 900);
 		expect(shown).toHaveLength(1);
@@ -112,8 +111,6 @@ describe('surface:shown', () => {
 		kernel.set.activeUI('dialog');
 		expect(shown).toHaveLength(2);
 
-		// The save clears the prompt, which derives activeUI to none. The
-		// adapter keeps its dialog open for the save and puts it back.
 		vi.spyOn(Date, 'now').mockReturnValue(NOW + 2100);
 		await kernel.commands.save('none');
 		expect(kernel.getSnapshot().activeUI).toBe('none');
@@ -121,7 +118,6 @@ describe('surface:shown', () => {
 		kernel.set.activeUI('dialog');
 		expect(shown).toHaveLength(2);
 
-		// The visitor closes it and reopens it later: a fresh impression.
 		kernel.set.activeUI('none');
 		vi.spyOn(Date, 'now').mockReturnValue(NOW + 9000);
 		kernel.set.activeUI('dialog');
@@ -134,9 +130,6 @@ describe('surface:shown', () => {
 		await kernel.commands.init();
 		expect(shown).toHaveLength(1);
 
-		// A synchronous listener re-enters the kernel and hides the dialog
-		// before the outer commit finished emitting. The impression happened:
-		// the stamp is recorded, so the event must describe that commit.
 		const unsubscribe = kernel.subscribe((next) => {
 			if (next.activeUI === 'dialog') {
 				kernel.set.activeUI('none');
@@ -161,8 +154,6 @@ describe('surface:shown', () => {
 		kernel.set.activeUI('dialog');
 		expect(shown).toHaveLength(2);
 
-		// The adapter keeps its dialog open and puts it back inside the very
-		// snapshot notification that announced the save hid it.
 		const unsubscribe = kernel.subscribe((next) => {
 			if (next.activeUI === 'none') {
 				kernel.set.activeUI('dialog');
@@ -175,7 +166,6 @@ describe('surface:shown', () => {
 		expect(kernel.getSnapshot().activeUI).toBe('dialog');
 		expect(shown).toHaveLength(2);
 
-		// A later close and reopen is a fresh impression.
 		kernel.set.activeUI('none');
 		vi.spyOn(Date, 'now').mockReturnValue(NOW + 9000);
 		kernel.set.activeUI('dialog');
@@ -202,14 +192,11 @@ describe('surface:shown', () => {
 		await kernel.commands.init();
 		expect(shown).toHaveLength(1);
 
-		// The save hides the banner without an explicit `set.activeUI`.
 		vi.spyOn(Date, 'now').mockReturnValue(NOW + 1000);
 		await kernel.commands.save('all');
 		expect(kernel.getSnapshot().activeUI).toBe('none');
 		expect(kernel.getSnapshot().nextDeadline).toBe(NOW + 1000 + DAY);
 
-		// The choice lapses and the deadline re-evaluation shows the banner
-		// again: the visitor is asked afresh, so this is a fresh impression.
 		vi.spyOn(Date, 'now').mockReturnValue(NOW + 2 * DAY);
 		kernel.refresh(NOW + 2 * DAY);
 		expect(kernel.getSnapshot().activeUI).toBe('banner');
@@ -322,8 +309,6 @@ describe('notice:dismissed attribution', () => {
 			id: 'banner-shape',
 		} as const;
 		kernel.set.experiment(original);
-		// A subscriber reacting to the dismissal commit swaps the arm before
-		// the event is built.
 		const unsubscribe = kernel.subscribe((snapshot) => {
 			if (snapshot.noticeDismissal) {
 				kernel.set.experiment({ ...original, arm: 'floating' });
@@ -334,7 +319,6 @@ describe('notice:dismissed attribution', () => {
 		unsubscribe();
 
 		expect(dismissed[0]?.experiment).toEqual(original);
-		// The event carries the dismissal's own snapshot; the swap lands after.
 		expect(dismissed[0]?.snapshot.experiment?.arm).toBe('wall');
 		expect(kernel.getSnapshot().experiment?.arm).toBe('floating');
 	});

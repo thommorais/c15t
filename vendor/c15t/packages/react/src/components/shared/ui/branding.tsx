@@ -113,10 +113,6 @@ export const BrandingLink = ({
 	const { noStyle } = useTheme();
 	const { common } = useTranslations();
 	const resolvedBranding = resolveBranding(branding);
-	// The referral hostname only exists in the browser. Reading `window` during
-	// the hydration render would make the client href differ from the
-	// server-rendered one and trip React's attribute-mismatch check, so the
-	// parameter is added after hydration instead.
 	const isHydrated = useIsHydrated();
 	const refParam = isHydrated ? `?ref=${window.location.hostname}` : '';
 	const context = slotContext;

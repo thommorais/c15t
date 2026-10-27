@@ -192,7 +192,6 @@ test('clearing records cancels an action queued behind the list fetch', async ()
 	disposers.push(handle.dispose);
 	handle.acceptAll();
 	const save = handle.save();
-	// What clearing records announces; only core's modules emit kernel events.
 	(
 		kernel.events as typeof kernel.events & {
 			emit: (event: { type: 'records:cleared' }) => void;
@@ -409,7 +408,6 @@ test('TCF listeners receive tcloaded only after the replacement list arrives', a
 	const handle = createIAB({ cmpId: 28, kernel, persistence: false });
 	disposers.push(handle.dispose);
 	await handle.whenReady();
-	// A saved TC string, which the replacement list keeps.
 	handle.acceptAll();
 	await handle.save();
 	const listener = vi.fn();
@@ -484,8 +482,6 @@ test('hosted fetching reproduces the server geo and privacy inputs', async () =>
 	);
 	kernel.set.iab({ gvlReference: deferred.gvlReference });
 	const fetch = vi.fn((url: RequestInfo | URL, _init?: RequestInit) => {
-		// In the query string, as the hosted transport sends them, so a
-		// cross-origin `/init` stays a CORS simple request.
 		const query = new URL(String(url)).searchParams;
 		const matched =
 			query.get('country') === 'DE' &&
@@ -552,7 +548,6 @@ test('stub-queued listeners receive loaded data, but no tcloaded without a TC st
 			true
 		)
 	);
-	// TCF CMP API v2: tcloaded means a valid TC string is available.
 	expect(listener).not.toHaveBeenCalledWith(
 		expect.objectContaining({ eventStatus: 'tcloaded' }),
 		true

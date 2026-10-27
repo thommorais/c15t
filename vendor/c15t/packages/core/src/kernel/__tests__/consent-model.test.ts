@@ -1,8 +1,3 @@
-/**
- * Behavioral coverage for the consolidated consent model, driven through
- * the public kernel boundaries (config, hydrate, commands, events, refresh)
- * and the shared conformance fixtures.
- */
 import {
 	normalizePolicyRule,
 	policyRulePresets,
@@ -35,11 +30,6 @@ import { createConsentKernel } from '../../kernel';
 import { readStoredRecordsFromCookieHeader } from '../../modules/persistence/hydrate';
 import type { HydrationRecords, InitResponse, KernelConfig } from '../../types';
 
-/**
- * The fixture policy: opt-in, strict scope over marketing and measurement,
- * one-day validity, opaque fixture fingerprints. Built once per test file;
- * nothing hashes inside the kernel.
- */
 const fixtureResolution = function fixtureResolution(
 	overrides: Partial<PolicyRule> = {}
 ): Extract<PolicyResolution, { status: 'matched' }> {
@@ -70,7 +60,6 @@ const fixtureResolution = function fixtureResolution(
 	};
 };
 
-/** Read a raw shared fixture the way a server would read the cookie. */
 const recordsFor = function recordsFor(id: PolicyRecordId): HydrationRecords {
 	return readStoredRecordsFromCookieHeader(
 		`c15t=${POLICY_RECORDS[id].raw}`,
@@ -311,8 +300,6 @@ describe('explicit saves', () => {
 		await kernel.commands.save('none');
 		await kernel.commands.save('none');
 
-		// Unlike v2's onConsentChanged, a repeated save is still a recorded
-		// choice: it renews the confirmation time. The migration guide relies on it.
 		expect(choice).toHaveBeenCalledTimes(2);
 		expect(choice.mock.calls[1]?.[0].confirmed).toEqual([
 			'marketing',
@@ -424,7 +411,6 @@ describe('explicit saves', () => {
 
 		vi.setSystemTime(POLICY_NOW + 5000);
 		await kernel.commands.init();
-		// The replay loads the queue module first.
 		await vi.waitFor(() => expect(save).toHaveBeenCalledTimes(2));
 		expect(save.mock.calls[1]?.[0]).toEqual(first);
 		expect(save.mock.calls[1]?.[0].givenAt).toBe(POLICY_NOW);
@@ -517,7 +503,6 @@ describe('notice prompts', () => {
 			kind: 'notice',
 			reason: 'expired',
 		});
-		// Notice expiry re-asks; it never changes permissions.
 		expect(kernel.getSnapshot().effectivePermissions.marketing).toBe(true);
 	});
 
@@ -541,7 +526,6 @@ describe('notice prompts', () => {
 		expect(kernel.getSnapshot().noticeDismissal).toMatchObject({
 			fingerprint: NOTICE_FINGERPRINT,
 		});
-		// The choice is the outcome; no second notice event double-counts it.
 		expect(dismissed).not.toHaveBeenCalled();
 		expect(await kernel.commands.dismissNotice()).toEqual({
 			ok: false,
@@ -594,8 +578,6 @@ describe('privacy signals', () => {
 		expect(kernel.getSnapshot().restrictions.marketing).toEqual(['gpc']);
 		expect(choice).not.toHaveBeenCalled();
 
-		// GPC is a live signal: once the browser stops sending it, the stored
-		// grant applies again.
 		kernel.set.privacySignals({ gpc: false });
 		expect(kernel.getSnapshot().effectivePermissions.marketing).toBe(true);
 		expect(kernel.getSnapshot().restrictions.marketing).toBeUndefined();

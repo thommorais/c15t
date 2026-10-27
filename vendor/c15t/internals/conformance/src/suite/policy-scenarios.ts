@@ -24,7 +24,6 @@ import type { SuiteApi } from './helpers';
 const isRecordId = (id: string): id is PolicyRecordId =>
 	Object.hasOwn(POLICY_RECORDS, id);
 
-/** Resolve only raw inputs; normalization expectations never cross the boundary. */
 export const policySessionSetup = function policySessionSetup(
 	scenario: PolicyScenario,
 	now: () => number
@@ -219,7 +218,6 @@ const assertStorage = function assertStorage(
 			api.expect(bytes.notice).toEqual(before.notice);
 			return;
 		}
-		// The same save acknowledged the owed notice.
 		api.expect(bytes.notice.localStorage).not.toBeNull();
 		api
 			.expect(JSON.parse(bytes.notice.localStorage ?? 'null'))
@@ -360,7 +358,6 @@ const assertPolicyTransition = function assertPolicyTransition(
 	}
 };
 
-/** Assertions use measured values only; this function does not evaluate policy. */
 export const assertPolicyObservation = function assertPolicyObservation(
 	api: SuiteApi,
 	expected: PolicyObservation,
@@ -420,8 +417,6 @@ export const assertPolicyObservation = function assertPolicyObservation(
 			throw new Error('Allowed IAB target lacks confirmed authority');
 		}
 		const decoded = TCString.decode(authority.tcString);
-		// Every probe-iab operation uses vendor 755 and purpose 1. Decode
-		// the raw TC independently of the adapter's authority maps and gate.
 		api.expect(decoded.vendorConsents.has(755)).toBe(true);
 		api.expect(decoded.purposeConsents.has(1)).toBe(true);
 		api.expect(decoded.vendorsDisclosed.has(755)).toBe(true);
@@ -474,7 +469,6 @@ export const assertPolicyObservation = function assertPolicyObservation(
 	}
 };
 
-/** Execute one scenario with cleanup on operation, observation or assertion failure. */
 export const executePolicyScenario = async function executePolicyScenario(
 	driver: TestDriver,
 	api: SuiteApi,
@@ -516,7 +510,6 @@ export const executePolicyScenario = async function executePolicyScenario(
 				if (step.operation.kind === 'apply-policy' && step.operation.policy) {
 					({ policy } = step.operation);
 				}
-				// Each step depends on the previous operation and its measured evidence.
 				// oxlint-disable-next-line no-await-in-loop
 				await session.execute(structuredClone(step.operation));
 				// oxlint-disable-next-line no-await-in-loop
@@ -553,7 +546,6 @@ export const executePolicyScenario = async function executePolicyScenario(
 	}
 };
 
-/** Same scenarios and expectations for every supported adapter. */
 export const runPolicyScenarioConformance =
 	function runPolicyScenarioConformance(
 		driver: TestDriver,

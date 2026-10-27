@@ -1,12 +1,3 @@
-/**
- * Vendor rows nested under a category in the consent widget.
- *
- * A vendor switch stages a per-vendor grant on the same draft as the
- * category switches; nothing is recorded until Save. Saving with one vendor
- * off denies exactly that vendor, keeps the category granted, and leaves the
- * other vendor in that category loading. A category that is off in the
- * draft disables its vendor switches. Accept all clears the denial.
- */
 import type { Vendor } from '@c15t/core';
 import { useEffect } from 'react';
 import { describe, expect, test, vi } from 'vitest';
@@ -80,7 +71,6 @@ const readProbe = () =>
 		document.querySelector('[data-testid="probe"]')?.textContent ?? '{}'
 	) as { ads: boolean; denied: string[]; marketing: boolean; meta: boolean };
 
-/** Expand a category so its vendor cards render. */
 const openVendors = async (category: string) => {
 	await page
 		.getByTestId(`consent-widget-accordion-trigger-${category}`)
@@ -114,9 +104,6 @@ describe('consent widget vendor rows', () => {
 	test('lists a category’s vendors and denies exactly the one turned off', async () => {
 		renderWidget({ marketing: true, measurement: true });
 
-		// Vendors sit inside the category description, one collapsed card
-		// each, so a long list stays one line per vendor. The description and
-		// privacy link are behind the card's own trigger.
 		await openVendors('marketing');
 		const list = page.getByTestId('consent-widget-vendor-list-marketing');
 		await expect.element(list).toBeVisible();
@@ -125,8 +112,6 @@ describe('consent widget vendor rows', () => {
 			'consent-widget-vendor-trigger-marketing-meta-pixel'
 		);
 		await expect.element(trigger).toHaveTextContent('Meta Pixel');
-		// The name carries a test id so the switch's `aria-describedby` target
-		// is addressable in every framework's parity snapshot.
 		await expect
 			.element(
 				page.getByTestId('consent-widget-vendor-name-marketing-meta-pixel')
@@ -143,7 +128,6 @@ describe('consent widget vendor rows', () => {
 			.element(content)
 			.toHaveTextContent('Ad conversion measurement.');
 		await expect.element(content).toHaveTextContent('Privacy policy');
-		// The measurement vendor lives under its own category, not this one.
 		await openVendors('measurement');
 		const marketingList = document.querySelector(
 			'[data-testid="consent-widget-vendor-list-marketing"]'
@@ -161,15 +145,11 @@ describe('consent widget vendor rows', () => {
 				)
 		).not.toBeNull();
 
-		// The switch is addressed by its accessible name, which is part of the
-		// contract; test ids keep category-scoped membership assertions. The
-		// marketing rows stay mounted after the accordion closes them.
 		await openVendors('marketing');
 		const meta = list.getByRole('switch', { name: 'Allow Meta Pixel' });
 		await expect.element(meta).toHaveAttribute('aria-checked', 'true');
 		await meta.click();
 		await expect.element(meta).toHaveAttribute('aria-checked', 'false');
-		// A draft toggle records nothing.
 		expect(readProbe().meta).toBe(true);
 
 		await page.getByTestId('consent-widget-footer-save-button').click();
@@ -188,8 +168,6 @@ describe('consent widget vendor rows', () => {
 		const content = page.getByTestId(
 			'consent-widget-accordion-content-marketing'
 		);
-		// The content element stays for the trigger's aria-controls, empty
-		// until the category first opens.
 		await expect.element(content).toHaveAttribute('data-state', 'closed');
 		const trigger = page.getByTestId(
 			'consent-widget-accordion-trigger-marketing'
@@ -209,7 +187,6 @@ describe('consent widget vendor rows', () => {
 			'consent-widget-vendor-item-marketing-meta-pixel'
 		);
 		await expect.element(card).toBeInTheDocument();
-		// A vendor card's own details mount the same way.
 		const details = page.getByTestId(
 			'consent-widget-vendor-content-marketing-meta-pixel'
 		);
@@ -222,8 +199,6 @@ describe('consent widget vendor rows', () => {
 			.element(details)
 			.toHaveTextContent('Ad conversion measurement.');
 
-		// Opening another category closes marketing; its rows, and the open
-		// vendor card, stay mounted for the close transition.
 		await openVendors('measurement');
 		await expect.element(content).toHaveAttribute('data-state', 'closed');
 		await expect.element(card).toBeInTheDocument();
@@ -248,8 +223,6 @@ describe('consent widget vendor rows', () => {
 		}
 		const outer = item.getBoundingClientRect();
 		const inner = card.getBoundingClientRect();
-		// A card indented on the left by the icon width but flush on the
-		// right reads as a layout mistake; both insets must match.
 		expect(Math.round(inner.left - outer.left)).toBe(
 			Math.round(outer.right - inner.right)
 		);
@@ -288,7 +261,6 @@ describe('consent widget vendor rows', () => {
 			'marketing-shared-vendor',
 			'measurement-shared-vendor',
 		]);
-		// The switch points at the label of its own instance.
 		const meta = document.querySelector(
 			'[data-testid="consent-widget-vendor-switch-marketing-meta-pixel"]'
 		);
@@ -360,8 +332,6 @@ describe('consent widget vendor rows', () => {
 });
 
 describe('vendor switches are opt-in', () => {
-	// What an `@c15t/integrations` helper puts on its script: a vendor slug
-	// and the vendor's name and privacy policy.
 	const helperScript = {
 		category: 'measurement' as const,
 		id: 'posthog',

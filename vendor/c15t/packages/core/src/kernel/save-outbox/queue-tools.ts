@@ -1,13 +1,3 @@
-/**
- * The first-load functions the stored save queue calls, passed to
- * `queue.ts` rather than imported there, so the queue loads on demand as one
- * chunk that imports nothing the first load has. The kernel already uses
- * every one of them, so passing them adds no code to first load.
- *
- * Imported by the outbox, never by the queue itself.
- *
- * @internal
- */
 import { OPTIONAL_CONSENT_CATEGORIES } from '../../consent-record/types';
 import {
 	isPlainRecord,
@@ -22,7 +12,6 @@ import type { QueueTools } from './queue';
 import { supersededBy, withoutSuperseded, withSubjectId } from './supersession';
 import { warnInDevelopment } from './warn';
 
-/** @internal */
 export const queueTools: QueueTools = {
 	generateSubjectId,
 	isConsentSaveRejection,

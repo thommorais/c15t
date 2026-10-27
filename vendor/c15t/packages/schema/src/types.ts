@@ -1,29 +1,15 @@
-/**
- * @packageDocumentation
- * Pure TypeScript types for c15t consent management.
- *
- * This module exports only TypeScript types without any Valibot runtime code,
- * making it safe to use in frontend applications without adding bundle size.
- *
- * For validation schemas with Valibot, import from '@c15t/schema'
- */
-
-// Import constants directly to avoid Zod
 import { brandingValues, hostingValues } from './shared/constants';
 
-// API types - Consent (v2.0: only check endpoint remains)
 export type {
 	CheckConsentOutput,
 	CheckConsentQuery,
 	ConsentCheckResult,
 } from './api/consent';
-// API types - Experiment
 export type {
 	ExperimentSummaryOutput,
 	ExperimentSummaryQuery,
 	ExperimentArmSummary,
 } from './api/experiment';
-// API types - Init
 export type {
 	InitOutput,
 	LocationResponse,
@@ -34,12 +20,9 @@ export type {
 	LegalDocumentCurrentOutput,
 	LegalDocumentCurrentParams,
 } from './api/legal-document';
-// API types - Meta
 export type { StatusOutput } from './api/meta';
 export type { ResolveBackendURLOptions } from './shared';
-// API types - Session
 export type { ConsentSessionReport, ConsentSessionSource } from './api/session';
-// API types - Subject
 export type {
 	ConsentItem,
 	GetSubjectInput,
@@ -58,7 +41,6 @@ export type {
 	SubjectItem,
 	VendorChoiceWire,
 } from './api/subject';
-// Domain types
 export type {
 	AuditLog,
 	Consent,
@@ -77,7 +59,6 @@ export {
 	LEGAL_DOCUMENT_TYPE_PREFIXES,
 } from './shared/legal-document-types';
 
-// Shared types - derived from constants without Zod
 export type Branding = (typeof brandingValues)[number];
 export type Hosting = (typeof hostingValues)[number];
 
@@ -164,7 +145,6 @@ export {
 	generateDeterministicId,
 	generateEntityId,
 } from './shared/entity-id';
-// GVL types - IAB TCF Global Vendor List
 export type {
 	GlobalVendorList,
 	GVLDataCategory,
@@ -178,14 +158,12 @@ export type {
 	GVLVendorUrl,
 } from './shared/gvl';
 export { globalVendorListSchema } from './shared/gvl';
-// Client IP derivation, for hosts that report sessions server-to-server.
 export {
 	DEFAULT_IP_HEADERS_LIST,
 	getIpAddress,
 	type IpAddressConfig,
 	maskIpAddress,
 } from './shared/client-ip';
-// Google Additional Consent providers - ad tech outside the GVL
 export {
 	ADDITIONAL_CONSENT_V2_PATTERN,
 	AD_TECH_PROVIDER_FETCH_TIMEOUT_MS,
@@ -198,12 +176,10 @@ export {
 	normalizeAdTechProviderIds,
 	parseAdTechProviderList,
 } from './shared/ad-tech-provider';
-// Non-IAB vendor types - Custom vendors not registered with IAB
 export type {
 	NonIABVendor,
 	NonIABVendorConsent,
 } from './shared/non-iab-vendor';
-// Vendor-level consent outside IAB
 export type { Vendor, VendorCategoryCondition } from './shared/vendor';
 export {
 	createDeterministicFingerprint,
@@ -221,9 +197,6 @@ export {
 	matchPolicyRules,
 	resolvePolicyRules,
 } from './shared/policy-resolution';
-// The wire contract and the resolved-rule invariants come straight from their
-// own modules, so a client that only reads a resolution never pulls in the
-// authoring validator or fingerprint hashing behind `resolvePolicyRules`.
 export type {
 	PolicyResolution,
 	PolicyResolutionFailed,
@@ -326,7 +299,6 @@ export type {
 	PolicyScopeMode,
 	PolicyValidationResult,
 } from './shared/policy-runtime';
-// Re-export constants for runtime checks (no Zod involved)
 export { brandingValues, hostingValues };
 
 export type {

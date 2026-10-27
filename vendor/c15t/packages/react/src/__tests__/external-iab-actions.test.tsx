@@ -151,7 +151,6 @@ test.each(['unmount', 'replace'] as const)(
 			const saved = expect(iab.save()).rejects.toMatchObject({
 				name: 'AbortError',
 			});
-			// Void actions must not create unhandled rejections during teardown.
 			iab.acceptAll();
 			if (operation === 'unmount') {
 				screen.unmount();
@@ -242,7 +241,6 @@ test('accepts new actions after a hidden provider resumes', async () => {
 	}
 });
 
-/** Reports each `useIAB()` result and calls `onSwitch` when the runtime changes. */
 const SwitchProbe = ({
 	onState,
 	onSwitch,
@@ -278,8 +276,6 @@ test('a useIAB result kept across a borrowed-runtime switch cannot act on either
 					latest = iab;
 				}}
 				onSwitch={() => {
-					// A descendant layout effect in the switch commit, before the
-					// external bridge's passive cleanup closes the first queue.
 					retained?.acceptAll();
 					duringCommit = retained?.save();
 				}}

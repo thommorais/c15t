@@ -1,12 +1,3 @@
-/**
- * Policy fixtures for the policies conformance suite.
- *
- * "Policies" here refers to the set of purposes/vendor policies that the
- * consent store exposes to UI components. The fixtures are intentionally
- * small — we want stable, readable snapshots, not realistic production
- * payloads.
- */
-
 export interface PolicyFixture {
 	id: string;
 	label: Record<string, string>;

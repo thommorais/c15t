@@ -1,16 +1,5 @@
-/**
- * URL / method matching utilities.
- *
- * Pure functions: no globals beyond `window.location` (consulted only
- * by `parseUrl` for relative-URL resolution). Each helper takes plain
- * data and returns a boolean / `URL`.
- */
 import type { NetworkBlockerRule } from './types';
 
-/**
- * Normalize an HTTP method to upper-case. `null`/`undefined`/empty
- * defaults to `'GET'`, matching the XHR / fetch spec defaults.
- */
 export const normalizeMethod = function normalizeMethod(
 	method: string | undefined | null
 ): string {
@@ -20,18 +9,6 @@ export const normalizeMethod = function normalizeMethod(
 	return method.toUpperCase();
 };
 
-/**
- * Best-effort URL parsing across the inputs `fetch` and XHR accept.
- *
- * Returns `null` (rather than throwing) when:
- * - input is `null`/`undefined`,
- * - input is a string and `window.location` isn't available to resolve
- *   a relative URL,
- * - the URL constructor throws (malformed inputs).
- *
- * Callers treat `null` as "let the request through" — we don't have
- * enough information to gate on it.
- */
 export const parseUrl = function parseUrl(
 	rawUrl: string | URL | Request
 ): URL | null {
@@ -54,11 +31,6 @@ export const parseUrl = function parseUrl(
 	}
 };
 
-/**
- * Match a hostname against a rule's `domain`, treating the rule as a
- * suffix match: `example.com` rule matches both `example.com` and
- * `cdn.example.com`. Case-insensitive.
- */
 export const hostnameMatchesRule = function hostnameMatchesRule(
 	hostname: string,
 	rule: NetworkBlockerRule
@@ -77,11 +49,6 @@ export const hostnameMatchesRule = function hostnameMatchesRule(
 	return targetHost.endsWith(`.${ruleDomain}`);
 };
 
-/**
- * Match a request pathname against a rule's optional `pathIncludes`
- * filter (substring match). When the rule has no `pathIncludes`, every
- * pathname matches.
- */
 export const pathMatchesRule = function pathMatchesRule(
 	pathname: string,
 	rule: NetworkBlockerRule
@@ -95,11 +62,6 @@ export const pathMatchesRule = function pathMatchesRule(
 	return pathname.includes(rule.pathIncludes);
 };
 
-/**
- * Match an HTTP method against a rule's optional `methods` allow-list.
- * When the rule has no `methods`, every method matches. Comparison is
- * normalized to upper-case on both sides.
- */
 export const methodMatchesRule = function methodMatchesRule(
 	method: string,
 	rule: NetworkBlockerRule

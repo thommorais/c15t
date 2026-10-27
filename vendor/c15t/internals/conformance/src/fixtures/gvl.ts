@@ -1,19 +1,3 @@
-/**
- * Minimal Global Vendor List fixture for IAB TCF conformance mounts.
- *
- * Mirrors the shape of the GVL served by IAB Europe (and the `mockGVL`
- * fixture used by the React IAB unit tests / storybook IAB stories) but
- * trimmed to the smallest payload that still exercises every section an
- * IAB preference centre renders: two purposes (one standalone, one the
- * stack absorbs), a stack, a special feature, a special purpose and a
- * feature. The single vendor declares all of them, because a purpose no
- * vendor claims is filtered out of the display model and would leave the
- * section it belongs to untested.
- *
- * Typed loosely on purpose — this package stays zero-import on runtime
- * framework/schema code. Drivers cast it to their `GlobalVendorList` type.
- */
-
 export const MINIMAL_GVL = {
 	features: {
 		1: {
@@ -86,6 +70,5 @@ export const MINIMAL_GVL = {
 	},
 } as const;
 
-/** CMP registration fixture used alongside {@link MINIMAL_GVL}. */
 export const IAB_FIXTURE_CMP_ID = 160;
 export const IAB_FIXTURE_CMP_VERSION = 1;

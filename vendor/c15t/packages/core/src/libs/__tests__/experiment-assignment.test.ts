@@ -26,7 +26,6 @@ const choiceRule: PolicyRule = {
 	scopeMode: 'strict',
 };
 
-/** A notice prompt: a `wall` arm is invalid under it, valid under a choice. */
 const noticeRule: PolicyRule = {
 	categories: ['marketing'],
 	id: 'notice',
@@ -44,7 +43,6 @@ const experiment: ConsentExperiment = {
 	id: 'banner-shape',
 };
 
-/** Host arm that only a choice policy accepts. */
 const wallExperiment: ConsentExperiment = {
 	arm: 'wall',
 	arms: {
@@ -55,7 +53,6 @@ const wallExperiment: ConsentExperiment = {
 
 const quietReport = { error: () => undefined, warn: () => undefined };
 
-/** A transport whose successive inits answer with the given rules. */
 const sequencedTransport = function sequencedTransport(
 	rules: PolicyRule[][]
 ): KernelTransport {
@@ -94,7 +91,6 @@ const hostWall = {
 	id: 'banner-shape',
 } as const;
 
-/** A kernel that runs `rules`, holding the prompt with `arm` on it. */
 const heldKernel = function heldKernel(
 	rules: PolicyRule[],
 	arm?: Partial<ExperimentAssignment>
@@ -132,9 +128,6 @@ describe('createExperimentController', () => {
 			...hostWall,
 			arm: 'filled',
 		});
-		// The arm keeps accept and reject in the same fill: `default` supplies
-		// the variant and mode for both, and the arm repeats the mode on
-		// accept. Without the host theme, reject would fall back to a stroke.
 		const controller = createExperimentController({
 			experiment: {
 				arm: 'filled',
@@ -306,14 +299,9 @@ describe('createExperimentController', () => {
 	});
 });
 
-/**
- * A permissive opt-in rule: with no categories declared on the page, the
- * banner asks about none of them.
- */
 const permissiveRule: PolicyRule = { ...choiceRule, scopeMode: 'permissive' };
 
 describe('an experiment whose banner asks about no categories', () => {
-	// A saved choice would keep the next test's banner from showing.
 	beforeEach(() => {
 		for (const cookie of document.cookie.split(';')) {
 			const name = cookie.split('=')[0]?.trim();
@@ -323,7 +311,6 @@ describe('an experiment whose banner asks about no categories', () => {
 		}
 	});
 
-	/** Run the experiment through a runtime until the banner has shown. */
 	const showBanner = async function showBanner(
 		consentCategories?: ConsentRuntimeOptions['consentCategories']
 	) {
@@ -392,7 +379,6 @@ describe('stored arm', () => {
 		vi.stubGlobal('localStorage', store);
 		writeStoredExperimentArm({ ...stale, arm: 'floating' });
 		expect(document.cookie).not.toContain(`${EXPERIMENT_STORAGE_KEY}=`);
-		// localStorage gone again: nothing old comes back through the cookie.
 		vi.stubGlobal('localStorage', null);
 		expect(readStoredExperimentArm()).toBeNull();
 	});

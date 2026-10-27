@@ -13,7 +13,6 @@ const PRINTABLE = Array.from({ length: 0x7f - 0x20 }, (_, index) =>
 	String.fromCharCode(0x20 + index)
 );
 
-/** Small deterministic generator so a failure reproduces. */
 const random = function random(seed: number): () => number {
 	let state = seed;
 	return () => {

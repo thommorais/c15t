@@ -1,5 +1,3 @@
-/** URL query helpers shared by the request-parameter modules. */
-
 const PLUS = /\+/gu;
 
 const decodeKey = function decodeKey(raw: string): string {
@@ -10,19 +8,6 @@ const decodeKey = function decodeKey(raw: string): string {
 	}
 };
 
-/**
- * Set query parameters on a URL. A relative URL stays relative and a
- * fragment stays last.
- *
- * Each parameter replaces any the URL already has under the same name, so
- * it appears once and the new value wins. The URL's other parameters keep
- * their order and their original encoding.
- *
- * @param url - The request URL, possibly empty.
- * @param params - The parameters. Nothing changes when empty.
- * @returns The URL with the parameters.
- * @internal
- */
 export const appendSearchParams = function appendSearchParams(
 	url: string,
 	params: URLSearchParams

@@ -8,14 +8,6 @@ interface IABConsentDialogContentProps extends HTMLAttributes<HTMLDivElement> {
 	children: ReactNode;
 }
 
-/**
- * Content container component for the IAB Consent Dialog.
- *
- * @remarks
- * Scrollable area containing purpose/vendor content.
- *
- * @public
- */
 const IABConsentDialogContent = createForwardRef<
 	HTMLDivElement,
 	IABConsentDialogContentProps

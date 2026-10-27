@@ -1,9 +1,3 @@
-/**
- * A banner built with the headless hooks streams like the stock one when it
- * sits inside `StreamedConsentSurface`: it follows the shell in a later
- * chunk of the same response, before hydration, and only when the resolved
- * policy shows one.
- */
 import type { KernelConfig } from '@c15t/core';
 import type { PolicyRule } from '@c15t/schema/types';
 import { act } from 'react';
@@ -41,7 +35,6 @@ const policyConfig = function policyConfig(
 const transportInit = vi.fn(() => Promise.resolve({}));
 const transportSave = vi.fn(() => Promise.resolve({ ok: true as const }));
 
-/** A headless banner with the markup the harness looks for. */
 const HeadlessBanner = () => {
 	const { banner } = useHeadlessConsentUI();
 	if (!banner.isVisible) {
@@ -88,7 +81,6 @@ const tick = (ms = 50) =>
 			})
 	);
 
-/** The banner's states in a timeline, marks and repeats left out. */
 const states = (timeline: string[]) =>
 	timeline
 		.filter((entry) => !entry.startsWith('@'))
@@ -110,10 +102,6 @@ afterEach(() => {
 	page = undefined;
 });
 
-/**
- * Streams the shell, resolves the server's prefetch, writes the rest, and
- * hydrates with the client's copy already settled.
- */
 const streamThenHydrate = async function streamThenHydrate(
 	config: KernelConfig,
 	wrapped = true
@@ -147,7 +135,6 @@ test('a headless banner in the surface streams before hydration and hydrates in 
 	expect(streamed).toBe(true);
 	expect(hydrated.recoverableErrors).toEqual([]);
 	expect(page?.serverErrors).toEqual([]);
-	// One banner state from the chunk on: no blink through hydration.
 	expect(states(page?.timeline ?? [])).toHaveLength(2);
 	await hydrated.unmount();
 });
@@ -175,7 +162,6 @@ test('a policy without a prompt streams no headless banner', async () => {
 test('without a pending prefetch the surface adds no boundary', () => {
 	const html = renderToString(<Page prefetch={policyConfig()} />);
 
-	// React marks a Suspense boundary with `<!--$-->` comments.
 	expect(html).not.toContain('<!--$');
 	expect(html).toContain('<main>content</main>');
 });

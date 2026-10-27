@@ -46,10 +46,6 @@ const readStored = function readStored(config?: { storageKey: string }) {
 	return readStoredConsentRecord(config, Date.now()).selected;
 };
 
-/**
- * Run the macrotask write scheduler without firing the kernel's expiry
- * deadline timer, which would move the fake clock past the grant lifetime.
- */
 const flushWrites = function flushWrites(): void {
 	vi.advanceTimersByTime(0);
 };
@@ -219,7 +215,6 @@ describe('persistence: explicit choices still write', () => {
 			confirmedAt: NOW + DAY,
 			value: true,
 		});
-		// The omitted category keeps its legacy time and basis.
 		expect(stored?.choice.categories.measurement).toEqual({
 			basis: { kind: 'legacy-v2', materialFingerprint: 'fp-old' },
 			confirmedAt: ORIGINAL_TIME,
@@ -243,7 +238,6 @@ describe('persistence: explicit choices still write', () => {
 		const stored = readStored();
 		expect(stored?.choice.categories.marketing?.confirmedAt).toBe(NOW + DAY);
 		expect(stored?.choice.categories.marketing?.value).toBe(true);
-		// Undecided categories were presented with the opt-in default: denied.
 		expect(stored?.choice.categories.measurement?.value).toBe(false);
 	});
 
@@ -350,8 +344,6 @@ describe('persistence: explicit choices still write', () => {
 		handle.clear();
 		expect(localStorage.getItem('custom-key')).toBeNull();
 		expect(readLocalStorage()).toEqual(defaultPayload);
-		// Only the custom key's subject ID and clear epoch are added;
-		// default-key data stays.
 		expect(document.cookie).toBe(`${defaultCookie}; ${customCookies}`);
 		expect(kernel.getSnapshot().explicitChoice).toBeNull();
 		expect(kernel.getSnapshot().effectivePermissions.marketing).toBe(false);

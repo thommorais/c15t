@@ -1,10 +1,3 @@
-/**
- * The provider builds one consent runtime per mounted instance during its
- * first render. A runtime with network rules holds matching requests from
- * construction, so a render React throws away must not leave its runtime
- * (and that hold) behind, and a replayed StrictMode mount must not start a
- * second one.
- */
 import type { InitContext, InitResponse } from '@c15t/core';
 import type { NetworkBlockerRule } from '@c15t/core/modules/network-blocker';
 import { releaseNetworkRequests } from '@c15t/core/modules/network-hold';
@@ -33,7 +26,6 @@ beforeEach(() => {
 });
 
 afterEach(() => {
-	// A failed test can leave a hold behind; don't let it leak.
 	releaseNetworkRequests()();
 	window.fetch = nativeFetch;
 	vi.restoreAllMocks();
@@ -42,7 +34,6 @@ afterEach(() => {
 const trackerCalls = () =>
 	network.mock.calls.filter(([input]) => String(input).startsWith(TRACKER));
 
-/** A transport whose `/init` grants measurement (opt-out), counting calls. */
 const countingMode = () => {
 	const fixture = policyFixture({}, { model: 'opt-out' });
 	const init = vi.fn((_context: InitContext): Promise<InitResponse> =>
@@ -72,15 +63,11 @@ test('StrictMode starts one runtime: one /init, one hold, nothing left holding',
 		</StrictMode>
 	);
 
-	// The resolved prefetch is adopted, so the replayed mount must not
-	// fall back to a network init either.
 	await new Promise((resolve) => {
 		setTimeout(resolve, 50);
 	});
 	expect(init).not.toHaveBeenCalled();
 
-	// The blocker took over the only hold: an allowed request goes out now
-	// instead of waiting on a hold a discarded runtime kept.
 	await vi.waitFor(async () => {
 		const response = await window.fetch(`${TRACKER}?when=late`);
 		expect(response.status).toBe(200);
@@ -89,7 +76,6 @@ test('StrictMode starts one runtime: one /init, one hold, nothing left holding',
 
 	expect((window as { c15t?: unknown }).c15t).toBeDefined();
 	await view.unmount();
-	// A real unmount disposes the runtime, after StrictMode's replay did not.
 	await vi.waitFor(() =>
 		expect((window as { c15t?: unknown }).c15t).toBeUndefined()
 	);
@@ -133,8 +119,6 @@ test('a render that suspends before its first commit leaves no runtime holding',
 		persistence: false as const,
 	};
 
-	// The boundary sits above the provider, so the first render's provider,
-	// runtime and hold are thrown away; the retry builds another.
 	await render(
 		<Suspense fallback={null}>
 			<ConsentProvider options={options}>
@@ -145,9 +129,6 @@ test('a render that suspends before its first commit leaves no runtime holding',
 	resume();
 	const late = window.fetch(`${TRACKER}?when=late`);
 
-	// Once the retry commits, /init grants measurement and the blocker
-	// loads; the allowed request must not wait for the first render's hold
-	// to expire.
 	await vi.waitFor(() => expect(trackerCalls()).toHaveLength(1), {
 		timeout: 3000,
 	});
@@ -201,7 +182,6 @@ test('a runtime whose render never commits disposes itself and fails its hold cl
 		run();
 	}
 
-	// Never started: no /init, and what it held fails as blocked.
 	expect(await held).toBe(451);
 	expect(trackerCalls()).toHaveLength(0);
 	expect(window.fetch).toBe(network);

@@ -48,9 +48,6 @@ const pushClassNames = function pushClassNames(
 	}
 };
 
-/**
- * Framework-agnostic class merging for c15t UI packages.
- */
 export const cn = function cn(...classes: ClassValue[]) {
 	const tokens: string[] = [];
 

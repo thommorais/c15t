@@ -50,7 +50,6 @@ const clearCookies = function clearCookies(): void {
 	}
 };
 
-/** Let queued storage writes run. */
 const nextTask = () =>
 	new Promise<void>((resolve) => {
 		setTimeout(resolve, 0);
@@ -116,7 +115,6 @@ test('reconciles a denial another runtime persisted and notifies subscribers', a
 	await nextTask();
 	expect(measurement(start())).toBe(false);
 
-	// Neither re-evaluation nor re-initialization reads storage again.
 	active.kernel.refresh();
 	await active.reinit();
 	expect(measurement(active)).toBe(true);
@@ -131,7 +129,6 @@ test('reconciles a denial another runtime persisted and notifies subscribers', a
 	expect(listener).toHaveBeenCalledTimes(1);
 	expect(permissionsChanged).toHaveBeenCalledTimes(1);
 
-	// Nothing changed since: no second notification.
 	expect(active.reconcileStorage()).toBe(false);
 	expect(listener).toHaveBeenCalledTimes(1);
 });
@@ -153,7 +150,6 @@ test.each([
 
 		expect(active.reconcileStorage()).toBe(true);
 		expect(active.kernel.getSnapshot().explicitChoice).toBeNull();
-		// A clear keeps the subject ID.
 		expect(active.kernel.getSnapshot().subject).toEqual({ subjectId });
 		expect(measurement(active)).toBe(after);
 	}
@@ -165,7 +161,6 @@ test('reconciles records stored under a custom storage key', async () => {
 	await active.kernel.commands.save('all');
 	await nextTask();
 
-	// A runtime on the default key neither sees nor disturbs it.
 	await start().kernel.commands.save('none');
 	await nextTask();
 	expect(active.reconcileStorage()).toBe(false);
@@ -214,7 +209,6 @@ test.each([
 
 test('keeps a record held only in memory while storage is unchanged', () => {
 	const active = start();
-	// A receipt merged from the server lives in memory; storage never had it.
 	const now = Date.now();
 	(active.kernel as InternalKernel).hydrate({
 		choice: explicitChoice(
@@ -238,7 +232,6 @@ test("lands this runtime's queued write before reading storage", async () => {
 	await active.kernel.commands.save('all');
 	await nextTask();
 
-	// Recorded, but the storage write is still queued for a later task.
 	void active.kernel.commands.save('none');
 	expect(active.reconcileStorage()).toBe(false);
 	expect(measurement(active)).toBe(false);
@@ -252,12 +245,9 @@ test('a queued older write never overwrites a newer stored denial', async () => 
 	await active.kernel.commands.save('none');
 	await nextTask();
 
-	// This runtime grants; its write is still queued.
 	void active.kernel.commands.save('all');
 	expect(measurement(active)).toBe(true);
 
-	// Another runtime denies a second later. Closing it lands its write
-	// synchronously, while this runtime's write is still queued.
 	vi.setSystemTime(1_800_000_001_000);
 	const other = start();
 	void other.kernel.commands.save('none');
@@ -291,7 +281,6 @@ test.each([
 		await act(other);
 		await nextTask();
 
-		// The slow save response resolves the subject and queues a rewrite.
 		response.resolve({ ok: true, subjectId: 'sub_server' });
 		await vi.waitFor(() => {
 			expect(active.kernel.getSnapshot().subject?.subjectId).toBe('sub_server');
@@ -319,7 +308,6 @@ test('reconciles on storage events for its own keys, focus and visibility', asyn
 	const other = start({ persistence: { sync: false }, storageConfig });
 	await other.kernel.commands.save('none');
 	await nextTask();
-	// Same-document writes raise no event; unrelated keys are ignored.
 	window.dispatchEvent(storageEvent('c15t'));
 	window.dispatchEvent(storageEvent('unrelated'));
 	await nextTask();
@@ -391,7 +379,6 @@ test("a stale runtime's partial save keeps another runtime's newer category deci
 	vi.setSystemTime(1_800_000_000_000);
 	await start(threeCategories).kernel.commands.save('all');
 	await nextTask();
-	// Both runtimes read the grant for every category.
 	const stale = start(threeCategories);
 	const other = start(threeCategories);
 
@@ -399,8 +386,6 @@ test("a stale runtime's partial save keeps another runtime's newer category deci
 	await other.kernel.commands.save({ measurement: false });
 	await nextTask();
 
-	// Later, the stale runtime decides marketing alone. Its envelope still
-	// carries the old measurement grant.
 	vi.setSystemTime(1_800_000_002_000);
 	await stale.kernel.commands.save({ marketing: false });
 	await nextTask();
@@ -420,11 +405,9 @@ test("reconciling keeps this runtime's newer queued category decision", async ()
 	await nextTask();
 	const active = start(threeCategories);
 
-	// This runtime denies measurement; its write is still queued.
 	vi.setSystemTime(1_800_000_001_000);
 	void active.kernel.commands.save({ measurement: false });
 
-	// Another runtime denies marketing later and lands its write first.
 	vi.setSystemTime(1_800_000_002_000);
 	const other = start(threeCategories);
 	void other.kernel.commands.save({ marketing: false });
@@ -471,8 +454,6 @@ test('on equal decision times, the record another runtime stored wins', async ()
 	const stale = start();
 	const other = start();
 
-	// Both runtimes act in the same millisecond. The other runtime's denial
-	// lands first; this runtime's grant is still queued.
 	vi.setSystemTime(1_800_000_001_000);
 	void stale.kernel.commands.save('all');
 	void other.kernel.commands.save('none');
@@ -554,7 +535,6 @@ test('on an equal vendor decision time, the vendor record another runtime stored
 test("a stale runtime's save keeps the subject another runtime stored", async () => {
 	vi.useFakeTimers({ toFake: ['Date'] });
 	vi.setSystemTime(1_800_000_000_000);
-	// Opened before anything was stored.
 	const stale = start(threeCategories);
 	const other = start(threeCategories);
 	await other.kernel.commands.save('all');
@@ -619,8 +599,6 @@ test('a seeded choice survives storage becoming readable and empty', () => {
 	localStorageGetter.mockRestore();
 	cookieGetter.mockRestore();
 
-	// Storage was never seen holding this choice, so empty storage is no
-	// evidence that it was removed.
 	expect(active.reconcileStorage()).toBe(false);
 	expect(measurement(active)).toBe(true);
 });
@@ -674,7 +652,6 @@ test('a late subject acknowledgement does not replace a subject another runtime 
 		{ vendors },
 		createTransport({ save: vi.fn(() => response.promise) })
 	);
-	// Without the stored subject ID, the other runtime starts its own.
 	clearCookies();
 	localStorage.clear();
 	const other = start({ vendors });
@@ -744,10 +721,8 @@ test('a record merged into on write is still cleared when another runtime remove
 			privacyPolicyUrl: 'https://example.com/privacy',
 		},
 	];
-	// Opened on empty storage.
 	const active = start({ vendors });
 
-	// Another runtime stores a choice and a vendor record under its subject.
 	const other = start({ vendors });
 	await other.kernel.commands.save({
 		measurement: false,
@@ -755,8 +730,6 @@ test('a record merged into on write is still cleared when another runtime remove
 	});
 	await nextTask();
 
-	// This runtime decides later; its writes merge into those records and
-	// carry the stored subject.
 	vi.setSystemTime(1_800_000_001_000);
 	await active.kernel.commands.save({
 		measurement: true,
@@ -766,7 +739,6 @@ test('a record merged into on write is still cleared when another runtime remove
 	expect(active.kernel.getSnapshot().explicitChoice).not.toBeNull();
 	expect(active.kernel.getSnapshot().vendorChoice).not.toBeNull();
 
-	// The other runtime clears before this one reconciles.
 	other.clearRecords();
 
 	active.reconcileStorage();
@@ -810,8 +782,6 @@ test('a clear and a partial save reconciled together do not bring back cleared c
 	await nextTask();
 	const other = start(threeCategories);
 
-	// The other runtime clears, then saves one category, before this one
-	// reconciles even once.
 	vi.setSystemTime(1_800_000_001_000);
 	other.clearRecords();
 	vi.setSystemTime(1_800_000_002_000);
@@ -835,7 +805,6 @@ test('a runtime that missed a clear cannot write back decisions from before it',
 	const stale = start(threeCategories);
 	const other = start(threeCategories);
 
-	// Recorded before the clear; the write is still queued.
 	vi.setSystemTime(1_800_000_000_500);
 	void stale.kernel.commands.save({ measurement: true });
 
@@ -845,7 +814,6 @@ test('a runtime that missed a clear cannot write back decisions from before it',
 	void other.kernel.commands.save({ marketing: false });
 	other.dispose();
 
-	// Lands the queued write, then reads.
 	stale.reconcileStorage();
 	const fresh = start(threeCategories);
 	expect(decision(fresh, 'measurement')).toBeUndefined();
@@ -867,14 +835,12 @@ test('a runtime that missed a clear keeps only what it decided after it', async 
 	await other.kernel.commands.save({ marketing: false });
 	await nextTask();
 
-	// A new decision in the runtime that has not seen the clear yet.
 	vi.setSystemTime(1_800_000_003_000);
 	await stale.kernel.commands.save({ marketing: true });
 	await nextTask();
 
 	const fresh = start(threeCategories);
 	expect(decision(fresh, 'marketing')).toBe(true);
-	// Granted before the clear and never decided again.
 	expect(decision(fresh, 'measurement')).toBeUndefined();
 	stale.reconcileStorage();
 	expect(decision(stale, 'marketing')).toBe(true);
@@ -904,7 +870,6 @@ test('a server read voids decisions from before the clear epoch', () => {
 });
 
 test.each([
-	// Within an hour ahead counts as a clock set back; see the test below.
 	['a clear epoch far in the future', () => `${Date.now() + 2 * 3_600_000}`],
 	['a malformed clear epoch', () => 'not-a-time'],
 ])('%s voids nothing', async (_case, epoch) => {
@@ -924,8 +889,6 @@ test('a subject generated right after a clear still yields to one another runtim
 	await active.kernel.commands.save('all');
 	await nextTask();
 
-	// Something clears the records as the next save starts, after this
-	// runtime noted its pre-clear subject.
 	let cleared = false;
 	active.kernel.events.on('command:save:started', () => {
 		if (!cleared) {
@@ -937,7 +900,6 @@ test('a subject generated right after a clear still yields to one another runtim
 	void active.kernel.commands.save('none');
 	expect(active.kernel.getSnapshot().subject?.subjectId).toBeTruthy();
 
-	// Another runtime stores a subject before this one's write lands.
 	const other = start();
 	void other.kernel.commands.save('all');
 	const storedId = other.kernel.getSnapshot().subject?.subjectId;
@@ -962,7 +924,6 @@ test.each([
 		await start().kernel.commands.save('none');
 		await nextTask();
 
-		// Corrupt the epoch field of both projections.
 		const cookie = document.cookie
 			.split('; ')
 			.find((part) => part.startsWith('c15t='))
@@ -985,10 +946,8 @@ test('an epoch ahead of a clock set back is kept, and the next clear keeps the m
 
 	vi.setSystemTime(T);
 	start().clearRecords();
-	// A writer that knows nothing of the clear puts the old record back.
 	writeStoredConsentEnvelope(cleared, { now: T });
 
-	// The clock goes back ten minutes.
 	vi.setSystemTime(T - 10 * 60_000);
 	expect(measurement(start())).toBe(false);
 	expect(readStoredClearEpoch(undefined, Date.now())).toBe(T);
@@ -1016,7 +975,6 @@ test("a stale runtime's decision in the clearing millisecond does not survive th
 	const stale = start(threeCategories);
 	const other = start(threeCategories);
 
-	// Same millisecond: the stale runtime grants, the other one clears.
 	vi.setSystemTime(T);
 	void stale.kernel.commands.save({ measurement: true });
 	other.clearRecords();
@@ -1081,7 +1039,6 @@ test('a removed choice does not replace a server subject with an older vendor su
 	await nextTask();
 	expect(active.kernel.getSnapshot().subject?.subjectId).toBe('sub_server');
 
-	// Only the envelope goes; the vendor record keeps an older subject.
 	const now = Date.now();
 	writeStoredVendorChoice(
 		{
@@ -1111,7 +1068,6 @@ test('reconciling prefers the newer localStorage copy when the cookie write was 
 		.split('; ')
 		.find((part) => part.startsWith('c15t='));
 
-	// Another runtime denies; its cookie write is lost, localStorage lands.
 	vi.setSystemTime(T + 1000);
 	const other = start();
 	await other.kernel.commands.save('none');
@@ -1125,7 +1081,6 @@ test('reconciling prefers the newer localStorage copy when the cookie write was 
 test('a subject created with the first choice after a missed clear is kept', async () => {
 	vi.useFakeTimers({ toFake: ['Date'] });
 	vi.setSystemTime(T - 2000);
-	// Opened on empty storage, with no subject.
 	const active = start(threeCategories);
 	const other = start(threeCategories);
 	await other.kernel.commands.save('all');
@@ -1133,7 +1088,6 @@ test('a subject created with the first choice after a missed clear is kept', asy
 	vi.setSystemTime(T - 1000);
 	other.clearRecords();
 
-	// This runtime missed the clear and now makes its first choice.
 	vi.setSystemTime(T);
 	await active.kernel.commands.save({ marketing: false });
 	await nextTask();
@@ -1155,8 +1109,6 @@ test('a decision lost to a concurrent write is written back on the next reconcil
 	const stored = readStoredConsentRecord(undefined, T).selected;
 	expect(stored?.choice.categories.marketing?.value).toBe(false);
 
-	// Another tab read storage before this write landed and then wrote its
-	// own category over it, dropping the denial.
 	vi.setSystemTime(T + 1000);
 	writeStoredConsentEnvelope(
 		{
@@ -1214,18 +1166,15 @@ test('write-back never restores an older grant it did not write over a newer den
 	const active = start(threeCategories);
 	expect(decision(active, 'marketing')).toBe(true);
 
-	// Another runtime denies marketing; this one has not reconciled.
 	vi.setSystemTime(T + 1000);
 	const denier = start(threeCategories);
 	await denier.kernel.commands.save({ marketing: false });
 	await nextTask();
 
-	// This runtime decides measurement; its write merges the newer denial.
 	vi.setSystemTime(T + 2000);
 	await active.kernel.commands.save({ measurement: true });
 	await nextTask();
 
-	// A stale third writer drops marketing.
 	vi.setSystemTime(T + 3000);
 	writeStoredConsentEnvelope(envelopeWith({ measurement: [true, T + 2000] }), {
 		now: T + 3000,
@@ -1235,7 +1184,6 @@ test('write-back never restores an older grant it did not write over a newer den
 	await nextTask();
 	expect(decision(start(threeCategories), 'marketing')).not.toBe(true);
 
-	// The runtime that stored the denial restores it.
 	denier.reconcileStorage();
 	await nextTask();
 	expect(decision(start(threeCategories), 'marketing')).toBe(false);
@@ -1250,7 +1198,6 @@ test("write-back restores a decision made in the millisecond of this runtime's o
 	await nextTask();
 	expect(decision(start(threeCategories), 'marketing')).toBe(false);
 
-	// A writer that knew the clear drops marketing.
 	vi.setSystemTime(T + 1000);
 	writeStoredConsentEnvelope(
 		envelopeWith({ measurement: [true, T + 1000] }, T),
@@ -1273,8 +1220,6 @@ test('a server-seeded runtime applies a newer denial that only reached localStor
 		categories: { measurement: { basis, confirmedAt: T - 2000, value: true } },
 		version: 3 as const,
 	};
-	// The cookie (what the server rendered with) still holds the grant; the
-	// newer denial reached only localStorage.
 	document.cookie = `c15t=${encodeStoredConsentEnvelopeCompact(grant)}; path=/`;
 	localStorage.setItem(
 		'c15t',
@@ -1306,8 +1251,6 @@ test('a server-seeded runtime applies a same-millisecond denial that only reache
 		categories: { measurement: { basis, confirmedAt: T - 1000, value: true } },
 		version: 3 as const,
 	};
-	// Two tabs decided in the same millisecond. The denial's cookie write was
-	// dropped, so the server rendered with the grant.
 	document.cookie = `c15t=${encodeStoredConsentEnvelopeCompact(grant)}; path=/`;
 	localStorage.setItem(
 		'c15t',
@@ -1341,8 +1284,6 @@ test('reconciling adopts a subject a server response set in the cookie alone', a
 	const stored = readStoredConsentRecord(undefined, T).selected;
 	expect(stored?.subject?.subjectId).toBeTruthy();
 
-	// Server-side consent restoration answers with a Set-Cookie carrying the
-	// same decisions and the subject the backend holds them under.
 	document.cookie = `c15t=${encodeStoredConsentEnvelopeCompact({
 		categories: stored?.choice.categories ?? {},
 		subject: { subjectId: 'sub_restored' },
@@ -1363,7 +1304,6 @@ test('a clear after the clock went back more than an hour keeps a readable epoch
 	active.clearRecords();
 	expect(readStoredClearEpoch(undefined, Date.now())).toBeGreaterThan(0);
 
-	// A writer that missed both clears puts back a decision from before them.
 	writeStoredConsentEnvelope(
 		{
 			categories: {
@@ -1390,8 +1330,6 @@ test('a server-seeded runtime keeps ignoring a grant only localStorage holds whe
 	await accepted.kernel.commands.save('all');
 	await nextTask();
 	accepted.dispose();
-	// The visitor deleted cookies and kept localStorage, so the server read
-	// no record and rendered the banner.
 	clearCookies();
 	expect(
 		readStoredConsentRecord(undefined, T).selected?.choice.categories
@@ -1406,8 +1344,6 @@ test('a server-seeded runtime keeps ignoring a grant only localStorage holds whe
 	});
 	expect(active.kernel.getSnapshot().explicitChoice).toBeNull();
 
-	// Switching tabs reconciles with storage, which still holds the same
-	// grant. The load ignored it, so reconciling does too.
 	window.dispatchEvent(new Event('focus'));
 	await nextTask();
 	expect(active.reconcileStorage()).toBe(false);

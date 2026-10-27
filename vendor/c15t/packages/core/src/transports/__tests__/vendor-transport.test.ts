@@ -1,9 +1,4 @@
 import { writePolicyResolutionWire } from '@c15t/schema/types';
-/**
- * Vendor consent across the transport boundary: the save body carries the
- * grant map, a subject read maps grants back to denials, and init output
- * round-trips backend vendor declarations through the kernel config.
- */
 import { describe, expect, test } from 'vitest';
 
 import type { SavePayload } from '../../types';
@@ -59,9 +54,6 @@ describe('save body', () => {
 	});
 
 	test('a vendor-only save sends an empty receipt, not none', () => {
-		// The backend reads a cookie-banner body without `choice` as a 2.x
-		// submission and stamps fresh receipts for every preference at
-		// `givenAt`. A vendor toggle must not renew the category receipts.
 		const body = buildSubjectPostBody(
 			{ ...payload, confirmed: { actionAt: NOW - 1000, categories: {} } },
 			{ domain: 'example.com' }
@@ -106,8 +98,6 @@ describe('subject record', () => {
 	});
 
 	test('an all-granted map keeps its time as an empty denial list', () => {
-		// Carried through so a newer "grant everything" can supersede an older
-		// local denial in the newest-wins merge; the kernel folds it to null.
 		expect(
 			mapSubjectRecordToHydrationRecords(
 				{
@@ -124,8 +114,6 @@ describe('subject record', () => {
 	});
 
 	test('a map with a non-slug key is malformed, and the receipts survive it', () => {
-		// The kernel validates the denial list on hydration; an invalid id
-		// there would reject the whole response, receipts and subject too.
 		const records = mapSubjectRecordToHydrationRecords(
 			{
 				...base,
@@ -273,10 +261,7 @@ describe('init output', () => {
 			}),
 			vendors: [],
 		});
-		// The old label described the old list. A replacement without a
-		// version and without entries leaves nothing to keep.
 		expect(cleared.initialVendors).toBeUndefined();
-		// A version-only response relabels the current declarations.
 		const relabelled = mergeInitResponseIntoKernelConfig(withVendors, {
 			policyResolution: undefined,
 			vendorListVersion: '2026-10',

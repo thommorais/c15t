@@ -200,7 +200,6 @@ describe('themeToVars', () => {
 		const theme: Theme = {
 			colors: {
 				primary: '#ff0000',
-				// other colors undefined
 			},
 		};
 		const vars = themeToVars(theme);
@@ -376,8 +375,6 @@ describe('generateThemeCSS', () => {
 			},
 		};
 		const css = generateThemeCSS(theme);
-		// Should have opening and closing braces
-		// (light, dark, and no-transitions utility with pseudo-elements = 4 selectors)
 		const openBraces = css.match(/\{/gu)?.length ?? 0;
 		const closeBraces = css.match(/\}/gu)?.length ?? 0;
 		expect(openBraces).toBe(closeBraces);
@@ -395,13 +392,11 @@ describe('generateThemeCSS', () => {
 		};
 		const css = generateThemeCSS(theme);
 
-		// Should use compound selectors (:root.dark) not descendant selectors (.dark :root)
 		expect(css).toContain(':root.dark');
 		expect(css).toContain(':root.c15t-dark');
 		expect(css).not.toContain('.dark :root');
 		expect(css).not.toContain('.c15t-dark :root');
 
-		// Descendant selectors for .c15t-theme-root should still be used
 		expect(css).toContain('.dark .c15t-theme-root');
 		expect(css).toContain('.c15t-dark .c15t-theme-root');
 	});

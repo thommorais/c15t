@@ -1,7 +1,3 @@
-/**
- * Shared InitOutput/InitResponse mapping — the single fold every framework
- * server helper and transport uses (shared-logic audit #4).
- */
 import { enTranslations } from '@c15t/translations';
 import { describe, expect, test } from 'vitest';
 
@@ -35,9 +31,6 @@ describe('mapInitOutputToInitResponse: consent inference', () => {
 			{}
 		);
 		expect(mapped).not.toHaveProperty('consents');
-		// Without this, opt-in fresh-visitor defaults would reset the values
-		// and re-show the banner — and the client fold would disagree with
-		// the server prefetch merge.
 		expect(mapped).not.toHaveProperty('hasConsented');
 	});
 
@@ -74,7 +67,6 @@ describe('mergeInitResponseIntoKernelConfig', () => {
 				translations: { language: 'de', translations: enTranslations },
 			}
 		);
-		// base < derived < resolvedOverrides
 		expect(merged.initialOverrides).toEqual({
 			country: 'FR',
 			gpc: true,
@@ -107,8 +99,6 @@ describe('mergeInitResponseIntoKernelConfig', () => {
 	});
 
 	test('hosting survives a prefetch round trip', () => {
-		// SSR prefetch folds /init into a config and replays it as the
-		// client's init; hosting has to come out the other side.
 		const response = kernelConfigToInitResponse({
 			initialHosting: 'inth',
 			initialPolicyResolution: matchedResolution(optInRule({ id: 'p1' })),
@@ -185,15 +175,12 @@ describe('mergeInitResponseIntoKernelConfig', () => {
 			country: 'DE',
 			language: 'de',
 		});
-		// The detected header signal is a privacy signal, not an override.
 		expect(config.initialPrivacySignals).toEqual({ gpc: true });
 		expect(config.initialPolicyResolution).toMatchObject({
 			policyId: 'p1',
 			status: 'matched',
 		});
 		expect(config.initialBranding).toBe('c15t');
-		// A producer that sent no `policyResolution` and declared no contract
-		// is a legacy producer: its policy is lifted on the server, once.
 		expect(config.initialPolicyResolution).toMatchObject({
 			policyId: 'p1',
 			status: 'matched',

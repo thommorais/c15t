@@ -1,8 +1,3 @@
-/**
- * Consent journey ids: a random UUID on requests c15t already makes, so a
- * backend can link an init to the save that follows. Never the subject id.
- */
-
 import { parseJourneyId, parseJourneyScope } from '@c15t/schema/types';
 import type { ConsentJourneyScope } from '@c15t/schema/types';
 
@@ -13,34 +8,14 @@ import {
 	STORAGE_KEY_V2,
 } from './storage-keys';
 
-/**
- * Whether and how long a runtime keeps a consent journey id.
- *
- * - `'page'`: one id per page load, in memory only.
- * - `'tab'`: the id survives navigations in the same tab while a prompt is
- *   due, through `sessionStorage`, and is dropped once a choice is recorded.
- * - `false`: no journey; requests carry no journey parameters.
- */
 export type ConsentJourneyOption = ConsentJourneyScope | false;
 
-/** The journey a server render hands the browser in its state. */
 export interface JourneyState {
-	/**
-	 * The journey the server started, which the browser continues. `null`
-	 * when the server resolved the page without one: the browser sends none.
-	 */
 	journey?: { id: string } | null;
 }
 
 const toHex = (byte: number): string => byte.toString(16).padStart(2, '0');
 
-/**
- * A new random journey id, or `undefined` when the runtime has no Web
- * Crypto. `crypto.randomUUID` needs a secure context, so a page served over
- * plain `http` builds the same version 4 UUID from `getRandomValues`.
- *
- * @returns A version 4 UUID, or `undefined`.
- */
 export const createJourneyId = function createJourneyId(): string | undefined {
 	const webCrypto = globalThis.crypto;
 	if (typeof webCrypto?.randomUUID === 'function') {
@@ -50,40 +25,25 @@ export const createJourneyId = function createJourneyId(): string | undefined {
 		return undefined;
 	}
 	const bytes = webCrypto.getRandomValues(new Uint8Array(16));
-	// Version 4 in the high nibble of byte 6, the RFC 4122 variant in the
-	// top two bits of byte 8.
 	bytes[6] = ((bytes[6] ?? 0) % 16) + 0x40;
 	bytes[8] = ((bytes[8] ?? 0) % 64) + 0x80;
 	const hex = Array.from(bytes, toHex).join('');
 	return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
 };
 
-/** The part of Web Storage a `'tab'` journey uses. */
 export type JourneyStorage = Pick<
 	Storage,
 	'getItem' | 'removeItem' | 'setItem'
 >;
 
-/** `window.sessionStorage`, or `null` outside a browser. May throw. */
 export const sessionStorageOf = (): JourneyStorage | null =>
 	typeof window === 'undefined' ? null : window.sessionStorage;
 
-/** A journey that was opened, and whether an earlier page started it. */
 export interface OpenedJourney {
 	journey: KernelJourney;
-	/** The id came from `sessionStorage`: an earlier page of this tab. */
 	continued: boolean;
 }
 
-/**
- * Open a journey: a `'tab'` journey continues the id in `sessionStorage`,
- * otherwise `adopted`, otherwise a new id. Unusable storage makes it a
- * `'page'` journey; a `'page'` journey never touches storage.
- *
- * @param options - The option, the stored flag, storage and an id to adopt.
- * @returns The journey, or `undefined` when it is off or no id can be made.
- * @internal
- */
 export const openJourney = function openJourney(options: {
 	option: ConsentJourneyOption | undefined;
 	storedChoice: boolean;
@@ -117,16 +77,6 @@ export const openJourney = function openJourney(options: {
 	};
 };
 
-/**
- * The journey option of an early request that wasn't given one: `'tab'`
- * when this tab already holds a journey id, which only a `'tab'` runtime
- * writes, otherwise `'page'`. The inline prefetch script runs the same
- * check.
- *
- * @param storage - Where a `'tab'` journey is kept.
- * @returns The option to start the early journey with.
- * @internal
- */
 export const detectJourneyOption = function detectJourneyOption(
 	storage: () => JourneyStorage | null = sessionStorageOf
 ): ConsentJourneyScope {
@@ -139,20 +89,10 @@ export const detectJourneyOption = function detectJourneyOption(
 	}
 };
 
-/**
- * Window property holding the journey an early request (React's early
- * `/init`, the inline prefetch script) sent, for the runtime to continue.
- */
 export const JOURNEY_WINDOW_KEY = '__c15tJourney';
 
 type JourneyWindow = Window & { [JOURNEY_WINDOW_KEY]?: unknown };
 
-/**
- * The journey an early request of this page started, if it is well formed.
- *
- * @returns The journey, or `undefined`.
- * @internal
- */
 export const readEarlyJourney = function readEarlyJourney():
 	| KernelJourney
 	| undefined {
@@ -170,15 +110,6 @@ export const readEarlyJourney = function readEarlyJourney():
 		: undefined;
 };
 
-/**
- * The journey a request sent before the runtime starts carries: this page's
- * early journey when one exists, otherwise a new one under the
- * {@link openJourney} rules, recorded for the runtime to continue.
- *
- * @param options - The `journey` option and whether a choice is stored.
- * @returns The journey, or `undefined` when it is off or outside a browser.
- * @internal
- */
 export const claimEarlyJourney = function claimEarlyJourney(options: {
 	option: ConsentJourneyOption | undefined;
 	storedChoice: boolean;
@@ -198,14 +129,6 @@ export const claimEarlyJourney = function claimEarlyJourney(options: {
 	return opened?.journey;
 };
 
-/**
- * Where a choice is stored, as cookie names and localStorage keys (with the
- * legacy one) for `storageKey`, and the key a notice dismissal uses for both.
- *
- * @param storageKey - The consent storage key.
- * @returns The choice's cookie names and localStorage keys, and the notice key.
- * @internal
- */
 export const storedAnswerKeys = function storedAnswerKeys(storageKey: string): {
 	cookies: string[];
 	local: string[];
@@ -218,19 +141,6 @@ export const storedAnswerKeys = function storedAnswerKeys(storageKey: string): {
 	};
 };
 
-/**
- * Whether a consent choice, or with `notice` a notice dismissal too, is
- * stored under `storageKey`, without decoding it. The inline prefetch script
- * runs the same check.
- *
- * The journey's stored flag counts a dismissal. The experiment arm does not:
- * the runtime sends an arm until the visitor makes a choice.
- *
- * @param storageKey - The consent storage key. Defaults to `c15t`.
- * @param notice - Whether a notice dismissal counts. Defaults to `true`.
- * @returns `true` when a record is present.
- * @internal
- */
 export const hasStoredConsentRecord = function hasStoredConsentRecord(
 	storageKey: string = STORAGE_KEY_V2,
 	notice = true
@@ -255,7 +165,6 @@ export const hasStoredConsentRecord = function hasStoredConsentRecord(
 			return true;
 		}
 	} catch {
-		// Cookies blocked; localStorage may still answer.
 	}
 	try {
 		return local.some((key) => window.localStorage.getItem(key) !== null);
@@ -264,29 +173,19 @@ export const hasStoredConsentRecord = function hasStoredConsentRecord(
 	}
 };
 
-/**
- * Journeys an init resolved locally with no request that carried them; a
- * save of one sends no journey, so it never names an unreported id.
- *
- * @returns What a transport records and checks.
- * @internal
- */
 export const createUnreportedJourneys = function createUnreportedJourneys() {
 	const ids = new Set<string>();
 	return {
-		/** An init carried this journey in a request (an `/init` or a report). */
 		reported(journey: Pick<KernelJourney, 'id'> | undefined): void {
 			if (journey) {
 				ids.delete(journey.id);
 			}
 		},
-		/** An init resolved this journey locally; nothing carried it. */
 		resolvedLocally(journey: Pick<KernelJourney, 'id'> | undefined): void {
 			if (journey) {
 				ids.add(journey.id);
 			}
 		},
-		/** The save without its journey when no request carried that id. */
 		strip<Payload extends { journey?: Pick<KernelJourney, 'id'> }>(
 			payload: Payload
 		): Payload {

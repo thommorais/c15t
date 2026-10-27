@@ -13,33 +13,12 @@ import { useIABTranslations } from '../use-iab-translations';
 
 interface IABConsentDialogHeaderProps {
 	children?: ReactNode;
-	/**
-	 * Custom title. If not provided, uses translation.
-	 */
 	headerTitle?: ReactNode;
-	/**
-	 * Custom description. If not provided, uses translation.
-	 */
 	description?: ReactNode;
-	/**
-	 * Whether to show the close button.
-	 * @default true
-	 */
 	showCloseButton?: boolean;
-	/**
-	 * Additional class name.
-	 */
 	className?: string;
 }
 
-/**
- * Header component for the IAB Consent Dialog.
- *
- * @remarks
- * Contains title, description, and close button.
- *
- * @public
- */
 const IABConsentDialogHeader = createForwardRef<
 	HTMLDivElement,
 	IABConsentDialogHeaderProps

@@ -85,9 +85,6 @@ describe('@c15t/iab headless dialog data', () => {
 });
 
 describe('@c15t/iab headless publisher restrictions', () => {
-	// Vendor 755 declares purposes 1 to 11 for consent and is flexible on
-	// 2, 7, 9, 10 and 11. Vendor 10 declares 2, 7, 9 and 10 for LI and is
-	// not flexible.
 	const vendorsFor = (
 		purposeId: number,
 		publisherRestrictions: Parameters<typeof applyPublisherRestrictionsToGVL>[1]
@@ -141,7 +138,6 @@ describe('@c15t/iab headless publisher restrictions', () => {
 	});
 
 	test('a basis change the vendor list does not allow drops the purpose', () => {
-		// Vendor 10 is not flexible on purpose 7, so it may not process it at all.
 		expect(
 			vendor(
 				vendorsFor(7, [{ purposeId: 7, restrictionType: 1, vendorIds: [10] }]),
@@ -156,7 +152,6 @@ describe('@c15t/iab headless publisher restrictions', () => {
 	] as const)(
 		'type %i lists a purpose declared on both bases once',
 		(restrictionType, expected) => {
-			// Out of spec, but seen in lists: the purpose appears in both arrays.
 			const both = {
 				...completeGVL,
 				vendors: {
@@ -274,7 +269,6 @@ describe('@c15t/iab headless vendor counts with Google ad tech providers', () =>
 	test('shows the purposes ad tech providers need even when no vendor declares them', () => {
 		const storageOnly: typeof completeGVL = {
 			...completeGVL,
-			// Vendor 755 alone, declaring only storage and access.
 			vendors: Object.fromEntries(
 				Object.entries(completeGVL.vendors)
 					.filter(([id]) => id === '755')
@@ -297,7 +291,6 @@ describe('@c15t/iab headless vendor counts with Google ad tech providers', () =>
 
 		expect(purposeIds(false)).toEqual([1]);
 		expect(purposeIds(true)).toEqual([1, 3, 4]);
-		// Purposes 3 and 4 make up most of the personalised advertising stack.
 		expect(bannerItems(true)).toEqual([
 			bannerItems(false)[0],
 			completeGVL.stacks[2]?.name,
@@ -311,8 +304,6 @@ describe('@c15t/iab headless vendor counts with Google ad tech providers', () =>
 	])(
 		'purposes providers need offer consent %s, even with LI-only vendors',
 		(_name, providers, expected) => {
-			// Vendor 755 alone, processing purposes 3 and 4 only on legitimate
-			// interest, so no vendor gives them a consent basis.
 			const liOnly: typeof completeGVL = {
 				...completeGVL,
 				vendors: Object.fromEntries(

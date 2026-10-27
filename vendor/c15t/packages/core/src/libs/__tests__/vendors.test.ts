@@ -190,12 +190,9 @@ describe('script vendor details', () => {
 	});
 
 	test('helper vendors get no row until the site declares a vendor', () => {
-		// Vendor switches are opt-in. A helper alone still gates loading by
-		// its slug, but the dialog shows only its category.
 		const helpersOnly = resolveVendors({ owners: [hotjar] });
 		expect(vendorsListedUnder(helpersOnly, 'measurement')).toEqual([]);
 
-		// Declaring any vendor opts in, and the helper is then listed by name.
 		const optedIn = resolveVendors({ config: [meta], owners: [hotjar] });
 		expect(
 			vendorsListedUnder(optedIn, 'measurement').map((vendor) => vendor.id)
@@ -342,9 +339,6 @@ describe('owner fallback across manifest replacement', () => {
 	});
 
 	test('a manifest entry that replaces a script fallback remembers its owner category', () => {
-		// Re-initialisation resolves the backend list against the existing
-		// declarations without the owners, so the manifest entry has to pick
-		// the owner category up from the fallback it replaces.
 		const fromOwners = resolveVendors({
 			manifest: [meta],
 			owners: [{ category: 'measurement', vendor: 'meta-pixel' }],
@@ -379,8 +373,6 @@ describe('owner fallback across manifest replacement', () => {
 		expect(afterRemoval).toHaveLength(1);
 		expect(afterRemoval[0]?.source).toBe('manifest');
 		expect(afterRemoval[0]?.name).toBe('Meta (backend)');
-		// The owners travel with the restored copy, so dropping the backend
-		// entry later still leaves the script fallback.
 		expect(afterRemoval[0]?.ownerCategory).toBe('measurement');
 		expect(
 			withoutSourceVendors(afterRemoval, 'manifest').map((v) => v.source)
@@ -393,14 +385,12 @@ describe('owner fallback across manifest replacement', () => {
 			manifest: [{ ...meta, name: 'Meta (backend)' }],
 			owners: [{ category: 'measurement', vendor: 'meta-pixel' }],
 		});
-		// A later init refreshes the backend copy while config still wins.
 		const refreshed = resolveVendors({
 			existing: withoutManifestVendors(first),
 			manifest: [{ ...meta, name: 'Meta (backend v2)' }],
 		});
 		expect(refreshed[0]?.shadowed?.name).toBe('Meta (backend v2)');
 		expect(refreshed[0]?.shadowed?.ownerCategory).toBe('measurement');
-		// Config goes, then the backend: the script fallback is still there.
 		const backendOnly = withoutSourceVendors(refreshed, 'config');
 		expect(backendOnly[0]?.source).toBe('manifest');
 		expect(
@@ -414,7 +404,6 @@ describe('owner fallback across manifest replacement', () => {
 			owners: [{ category: 'measurement', vendor: 'meta-pixel' }],
 		});
 		expect(owned[0]?.ownerCategory).toBe('measurement');
-		// The script went away: a host re-resolves against the current owners.
 		const refreshed = mergeDeclaredVendors(owned, [
 			{ ...meta, presentable: true, source: 'manifest' },
 		]);
@@ -589,7 +578,6 @@ describe('declareOwnedVendors', () => {
 			[{ category: 'marketing', vendor: 'ga' }],
 			script
 		);
-		// The rule still owns it under measurement.
 		expect(declared(kernel)).toEqual([
 			['ga', { or: ['marketing', 'measurement'] }],
 		]);
@@ -623,18 +611,12 @@ describe('declareOwnedVendors', () => {
 			[{ category: 'marketing', vendor: 'ga' }],
 			rule
 		);
-		// A disposed module's declarations are not evidence any more, so the
-		// slug it shared is rebuilt from the survivor without waiting for
-		// another update.
 		forgetOwnedVendors(kernel, script);
 		expect(declared(kernel)).toEqual([['ga', 'marketing']]);
 		kernel.dispose();
 	});
 
 	test('a disposed module takes the slug only it named with it', () => {
-		// A standalone loader disposed while the kernel lives on: nothing
-		// else names its slug, so it must stop being toggleable rather than
-		// keep influencing vendor saves from a module that is gone.
 		const kernel = kernelFor();
 		const script = Symbol('script');
 		const rule = Symbol('rule');
@@ -650,7 +632,6 @@ describe('declareOwnedVendors', () => {
 		);
 		forgetOwnedVendors(kernel, script);
 		expect(declared(kernel)).toEqual([['ga', 'measurement']]);
-		// Forgetting a module that never declared commits nothing.
 		const before = kernel.getSnapshot().vendors;
 		forgetOwnedVendors(kernel, Symbol('never'));
 		expect(kernel.getSnapshot().vendors).toBe(before);
@@ -668,7 +649,6 @@ describe('declareOwnedVendors', () => {
 			source: 'config',
 		};
 		kernel.set.vendors({ declared: [declaration] });
-		// The snapshot is frozen; the caller's own object must not be.
 		expect(() => {
 			declaration.name = 'Meta (renamed)';
 			(declaration.category as { or: string[] }).or.push('experience');
@@ -744,8 +724,6 @@ describe('vendorsListedUnder', () => {
 		).map((vendor) => vendor.id);
 
 	test('lists presentable vendors naming the category, negations and slug-only excluded', () => {
-		// A shared condition sits under both rows; a negated one under
-		// neither; a `disabled` vendor is still listed, without a switch.
 		expect(listed('marketing')).toEqual(['meta-pixel', 'shared', 'fixed']);
 		expect(listed('measurement')).toEqual(['shared']);
 	});

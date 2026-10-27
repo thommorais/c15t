@@ -51,31 +51,25 @@ const TABS: readonly { id: DevToolsTab; label: string }[] = [
 
 let nextViewId = 0;
 
-/** In a wide pane, these sections sit side by side instead of stacking. */
 const asColumn = (section: HTMLElement): HTMLElement => {
 	section.classList.add('c15t-dev-tools__section--column');
 	return section;
 };
 const LIGHT_DOM_STYLE_ID = 'c15t-dev-tools-styles';
 
-/** DOM view owned by a DevTools instance. */
 export interface DevToolsView {
-	/** Root node, or null when no DOM is available. */
 	element: HTMLElement | null;
-	/** Remove the view and release subscriptions. Safe to call repeatedly. */
 	destroy: () => void;
 }
 
 interface ViewOptions {
 	actions: DevToolsActions;
 	getPresentation?: () => ConsentPresentation | undefined;
-	/** Wrap the panel in a shadow root carrying its stylesheet. */
 	shadow?: boolean;
 	kernel: ConsentKernel;
 	getConsentCategories: () => readonly (keyof ConsentState)[];
 	stateManager: StateManager;
 	container?: HTMLElement;
-	/** Fill the container; no launcher, close button, or Escape to close. */
 	embedded?: boolean;
 }
 
@@ -86,14 +80,11 @@ interface ViewState {
 	iab: IABPanelState;
 }
 
-/** Declared vendors with their source and current grant, read-only. */
 const renderVendors = function renderVendors(
 	document: Document,
 	container: HTMLElement,
 	snapshot: DevToolsState['snapshot']
 ): void {
-	// Only reached outside IAB mode: `renderConsents` returns before this under
-	// an IAB policy, where the slugs and stored denials are inert.
 	const declared = snapshot.vendors?.declared ?? [];
 	if (declared.length === 0) {
 		return;
@@ -105,11 +96,7 @@ const renderVendors = function renderVendors(
 			? `Vendor list ${snapshot.vendors.listVersion}. A denied vendor stays blocked inside a granted category.`
 			: 'A denied vendor stays blocked inside a granted category.'
 	);
-	// The kernel's own gate view: a stale denial for a vendor now declared
-	// `disabled` does not count, so DevTools agrees with what loads.
 	const denied = deniedVendorIds(snapshot) ?? new Set<string>();
-	// What the gate answers for this vendor right now: its own denial first,
-	// then its category, so a row never reads as allowed while blocked.
 	const status = (
 		vendor: ResolvedVendor
 	): 'Denied' | 'Allowed' | 'Blocked by category' => {
@@ -369,7 +356,6 @@ const renderScripts = (
 				script.src ??
 					(script.callbackOnly ? 'Callback-only integration' : 'Inline script')
 			);
-			// The body repeats the source; a wide pane shows it in the row too.
 			source.setAttribute('aria-hidden', 'true');
 			summary.append(name, source, status);
 			summary.dataset.focusKey = `script:${key}`;
@@ -449,8 +435,6 @@ const renderScripts = (
 	const results = createElement(document, 'div', 'c15t-dev-tools__script-list');
 	const scanPage = (): void => {
 		results.replaceChildren();
-		// Scan the page running this code, which owns the kernel. An
-		// embedded panel can render into a devtools iframe's document.
 		const page = globalThis.document ?? document;
 		for (const element of page.querySelectorAll<
 			HTMLScriptElement | HTMLIFrameElement
@@ -605,11 +589,6 @@ function renderLocation(
 	container.append(asColumn(location), asColumn(overrides));
 }
 
-/**
- * The presentation experiment arm this visitor runs, with the impression
- * times a choice or dismissal is measured from. Shows a developer the arm
- * their flag provider (or c15t) assigned without opening the console.
- */
 const createExperimentSection = function createExperimentSection(
 	document: Document,
 	snapshot: ConsentSnapshot
@@ -749,7 +728,6 @@ function renderEvents(
 	clearEvents: () => void,
 	viewState: ViewState
 ): void {
-	// Forget events that were cleared or fell off the end of the log.
 	const eventIds = new Set(state.events.map((event) => event.id));
 	for (const id of viewState.expandedEvents) {
 		if (!eventIds.has(id)) {
@@ -796,7 +774,6 @@ function renderEvents(
 		);
 		item.append(header, createElement(document, 'p', undefined, event.message));
 		if (event.data) {
-			// Collapsed so the log stays one line per event.
 			const data = createElement(
 				document,
 				'details',
@@ -874,7 +851,6 @@ function renderActions(
 	}
 	section.append(actions);
 	container.append(asColumn(section));
-	// Destructive, so it sits apart from the everyday actions above.
 	if (controller.clearRecords) {
 		const reset = createSection(
 			document,
@@ -958,10 +934,6 @@ const POSITIONS = [
 	'top-left',
 ] as const satisfies readonly DevToolsPosition[];
 
-/**
- * Move the floating root to the configured corner, or to the host's dock.
- * A docked root hides its launcher and offsets the panel past the host.
- */
 // oxlint-disable-next-line func-style -- Named helpers aid stack traces.
 function applyPlacement(root: HTMLElement, state: DevToolsState): void {
 	const position = state.dock?.position ?? state.position;
@@ -984,11 +956,6 @@ function applyPlacement(root: HTMLElement, state: DevToolsState): void {
 	}
 }
 
-/**
- * Create a view for a kernel-bound state manager.
- * @param options - Kernel, scope getter, state manager, and optional container.
- * @returns A disposable view; element is null without a browser document.
- */
 // oxlint-disable-next-line func-style -- Preserve the public view factory declaration.
 export function createDevToolsView(options: ViewOptions): DevToolsView {
 	const document = options.container?.ownerDocument ?? globalThis.document;
@@ -1130,8 +1097,6 @@ export function createDevToolsView(options: ViewOptions): DevToolsView {
 				}
 			}
 		}
-		// Inside a shadow root `document.activeElement` is the host; the
-		// root node of the panel knows the real one.
 		const { activeElement } = root.getRootNode() as Document | ShadowRoot;
 		const focusKey =
 			activeElement && root.contains(activeElement)
@@ -1276,21 +1241,14 @@ export function createDevToolsView(options: ViewOptions): DevToolsView {
 	const unsubscribe = options.stateManager.subscribe(render);
 	const unsubscribeIAB = subscribeIABControls(options.kernel, render);
 	const parent = options.container ?? document.body;
-	// A shadow root keeps the host page's `button {}` rules off the panel
-	// and the panel's rules off the page. The stylesheet travels with it,
-	// so nothing is injected into `<head>`.
 	const host =
 		options.shadow === false || typeof parent.attachShadow !== 'function'
 			? null
 			: createElement(document, 'div', 'c15t-dev-tools-host');
 	if (host) {
 		host.dataset.c15tDevToolsHost = viewId;
-		// Shadow content is not a child, so the host matches `:empty`, and
-		// themes such as Shopify's Dawn hide `div:empty`. Page rules beat
-		// `:host`, so only an inline `!important` keeps the host displayed.
 		host.style.setProperty('display', 'block', 'important');
 		if (options.embedded) {
-			// The panel fills the container only if its host does.
 			host.style.height = '100%';
 		}
 		const shadowRoot = host.attachShadow({ mode: 'open' });
@@ -1300,8 +1258,6 @@ export function createDevToolsView(options: ViewOptions): DevToolsView {
 		shadowRoot.append(root);
 		parent.append(host);
 	} else {
-		// Light-DOM mount: the sheet goes in <head>, once, and stays for the
-		// life of the document so other instances can reuse it.
 		if (!document.getElementById(LIGHT_DOM_STYLE_ID)) {
 			const style = createElement(document, 'style', undefined, devToolsStyles);
 			style.id = LIGHT_DOM_STYLE_ID;
@@ -1318,7 +1274,6 @@ export function createDevToolsView(options: ViewOptions): DevToolsView {
 			unsubscribe();
 			root.remove();
 			host?.remove();
-			// Keep the shared light-DOM stylesheet for other or future instances.
 		},
 		element: root,
 	};

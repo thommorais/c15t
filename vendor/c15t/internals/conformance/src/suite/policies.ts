@@ -1,10 +1,3 @@
-/**
- * Policies conformance suite.
- *
- * Verifies that the consent widget renders exactly one entry per policy
- * in the configured list and that required policies render as locked.
- */
-
 import type { TestDriver } from '../driver';
 import { EMPTY_POLICIES, MINIMAL_POLICIES } from '../fixtures/policies';
 import { conformanceTest } from './helpers';

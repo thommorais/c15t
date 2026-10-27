@@ -18,7 +18,6 @@ const loads = { count: 0, failures: 0 };
 
 const runtimes: ConsentProviderRuntime[] = [];
 
-/** A started provider runtime from a fresh module graph. */
 const startProvider = async function startProvider(
 	options: ConsentProviderRuntimeOptions
 ) {
@@ -37,7 +36,6 @@ const transport = () =>
 	});
 
 beforeEach(() => {
-	// Each test imports the runtime afresh and counts its own loads.
 	vi.resetModules();
 	loads.count = 0;
 	loads.failures = 0;
@@ -56,11 +54,6 @@ afterEach(async () => {
 	for (const runtime of runtimes.splice(0)) {
 		runtime.dispose();
 	}
-	// A started runtime is still importing its network blocker chunk. Vitest
-	// applies queued `doMock`/`doUnmock` calls from inside the next import,
-	// and an import that started applying the queue before the next test's
-	// `doMock` drops that mock when it finishes: the next test would load
-	// the real update module. Let those imports land before queueing more.
 	await vi.dynamicImportSettled();
 	vi.doUnmock('../provider-update');
 	delete (window as { c15t?: unknown }).c15t;
@@ -79,8 +72,6 @@ describe('update() and the update module', () => {
 		};
 		const runtime = await startProvider(options);
 
-		// What Svelte's update effect passes on mount: a copy holding the
-		// same values.
 		await runtime.update({ ...options });
 		await runtime.update({ ...options });
 
@@ -105,7 +96,6 @@ describe('update() and the update module', () => {
 		await expect(
 			runtime.update({ ...options, user: { externalId: 'user_2' } })
 		).rejects.toThrow();
-		// One failed chunk request does not fail every later update.
 		await runtime.update({ ...options, user: { externalId: 'user_3' } });
 
 		expect(loads.count).toBe(2);

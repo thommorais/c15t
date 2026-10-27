@@ -1,17 +1,3 @@
-/**
- * Vendor declaration resolution.
- *
- * Vendors reach the kernel from three places: the runtime's `vendors`
- * option, the `vendor` slug on scripts and network rules, and the backend's
- * `/init` response. Existence is the union of all three. Presentation
- * (name, privacy policy, description) follows config, then manifest, then
- * the `vendorDetails` a script carries with its slug. The category follows
- * config, then manifest, then an `or` of every owning script's or rule's
- * category.
- *
- * Pure. No DOM, no kernel access.
- */
-
 import type { Vendor } from '@c15t/schema/types';
 import { compareCanonical } from '@c15t/schema/types';
 
@@ -21,29 +7,17 @@ import type { HasCondition } from './has';
 import { extractConsentNamesFromCondition } from './has';
 import type { VendorDetails } from './script-loader/types';
 
-/** A script or network rule that names the vendor it belongs to. */
 export interface VendorOwner {
 	vendor?: string;
 	category: HasCondition<AllConsentNames>;
-	/** What the owner knows about the vendor, listed when nothing declares it. */
 	vendorDetails?: VendorDetails;
 }
 
 export interface ResolveVendorsInput {
-	/**
-	 * Already-resolved vendors to merge over. Pass only the entries that
-	 * should survive: a caller applying a fresh manifest list drops the
-	 * previous manifest entries first, so the backend can update or remove
-	 * a vendor.
-	 */
 	existing?: readonly ResolvedVendor[];
-	/** Vendors declared in code through the runtime option. */
 	config?: readonly Vendor[];
-	/** Vendors declared by the backend or a manifest. */
 	manifest?: readonly Vendor[];
-	/** Scripts and network rules that carry a `vendor` slug. */
 	owners?: readonly VendorOwner[];
-	/** Called once per vendor that is dropped or has no presentable declaration. */
 	onWarn?: (message: string) => void;
 }
 const SOURCE_RANK: Record<VendorSource, number> = {
@@ -52,17 +26,11 @@ const SOURCE_RANK: Record<VendorSource, number> = {
 	script: 2,
 };
 
-/**
- * The slug shape the wire accepts as a `vendorChoice.grants` key. A script
- * or rule slug that does not match would make every save fail backend
- * validation, so it is dropped at declaration with a warning instead.
- */
 const VENDOR_ID_PATTERN = /^[a-z0-9][a-z0-9._-]{0,63}$/u;
 
 const invalidSlugWarning = (id: string): string =>
 	`[c15t] Vendor id "${id}" is not a lowercase slug of up to 64 characters (letters, digits, ".", "_" and "-"). It is ignored: anything it names is gated by its category only.`;
 
-/** Whether a string is a slug the wire schema accepts. */
 export const isValidVendorId = function isValidVendorId(
 	value: string
 ): boolean {
@@ -80,7 +48,6 @@ const isPresentable = function isPresentable(
 	);
 };
 
-/** Whether a category condition only ever resolves to `necessary`. */
 const onlyNecessary = function onlyNecessary(
 	category: HasCondition<AllConsentNames>
 ): boolean {
@@ -88,7 +55,6 @@ const onlyNecessary = function onlyNecessary(
 	return names.length > 0 && names.every((name) => name === 'necessary');
 };
 
-/** Plain JSON copy so freezing the snapshot never freezes caller config. */
 const copyCategory = function copyCategory(
 	category: HasCondition<AllConsentNames>
 ): HasCondition<AllConsentNames> {
@@ -97,11 +63,6 @@ const copyCategory = function copyCategory(
 		: (JSON.parse(JSON.stringify(category)) as HasCondition<AllConsentNames>);
 };
 
-/**
- * Own copy of an owner's details, limited to the presentation fields, so
- * freezing the snapshot never freezes the caller's script and a stray key
- * on it never reaches the preference surface.
- */
 const copyDetails = function copyDetails(
 	details: VendorDetails
 ): VendorDetails {
@@ -121,7 +82,6 @@ const copyDetails = function copyDetails(
 	return copy;
 };
 
-/** The details a script-sourced entry was built from, if it is listable. */
 const detailsOf = function detailsOf(
 	vendor: ResolvedVendor
 ): VendorDetails | undefined {
@@ -148,8 +108,6 @@ const toResolved = function toResolved(
 	return {
 		...vendor,
 		category: copyCategory(vendor.category),
-		// A vendor that only ever falls under `necessary` can never be turned
-		// off, whatever the declaration says.
 		disabled: onlyNecessary(vendor.category) ? true : vendor.disabled,
 		presentable: isPresentable(vendor),
 		source,
@@ -176,10 +134,6 @@ const sameVendor = function sameVendor(
 	);
 };
 
-/**
- * The script-sourced entry a set of owners would produce: their condition as
- * the category, listed by name when one of them carries details.
- */
 const scriptEntry = function scriptEntry(
 	id: string,
 	category: HasCondition<AllConsentNames>,
@@ -199,14 +153,6 @@ const scriptEntry = function scriptEntry(
 	return entry;
 };
 
-/**
- * An entry brought up to date with the current owners of its slug. A
- * script-sourced entry takes the owners' condition as its category, so a
- * script that moves to another category moves the vendor with it. A declared
- * entry keeps its own category and remembers the condition, on itself and on
- * the copy it shadows, so whichever declaration is left after a removal
- * still knows its owners.
- */
 const withOwners = function withOwners(
 	vendor: ResolvedVendor,
 	ownerCategory: HasCondition<AllConsentNames>,
@@ -226,7 +172,6 @@ const withOwners = function withOwners(
 	return next;
 };
 
-/** Whether two resolved lists hold the same vendors, in any order. */
 export const sameDeclaredVendors = function sameDeclaredVendors(
 	left: readonly ResolvedVendor[],
 	right: readonly ResolvedVendor[]
@@ -241,7 +186,6 @@ export const sameDeclaredVendors = function sameDeclaredVendors(
 	});
 };
 
-/** One condition for every owner of a slug. */
 const ownerCondition = function ownerCondition(
 	categories: readonly HasCondition<AllConsentNames>[]
 ): HasCondition<AllConsentNames> {
@@ -250,12 +194,6 @@ const ownerCondition = function ownerCondition(
 		: { or: [...categories] };
 };
 
-/**
- * The lower-priority declaration an entry shadows, when its own source is
- * removed: the manifest copy a config entry replaced, or the script-sourced
- * entry the owners of the slug would produce. `null` when nothing else
- * declares the vendor.
- */
 export const ownerFallback = function ownerFallback(
 	vendor: ResolvedVendor
 ): ResolvedVendor | null {
@@ -268,7 +206,6 @@ export const ownerFallback = function ownerFallback(
 	return scriptEntry(vendor.id, vendor.ownerCategory, vendor.ownerDetails);
 };
 
-/** The entry without its shadow, keeping the owners the shadow knew. */
 const withoutShadow = function withoutShadow(
 	vendor: ResolvedVendor
 ): ResolvedVendor {
@@ -283,17 +220,6 @@ const withoutShadow = function withoutShadow(
 	return next;
 };
 
-/**
- * One incoming declaration merged onto the entry already held for its id.
- * Returns `existing` itself when nothing changes, so callers can detect a
- * no-op by reference.
- *
- * A higher- or equal-priority copy replaces the entry and takes over what it
- * remembered: a config entry arriving over a backend one shadows it, one
- * arriving over a script fallback keeps the owners, and a newer copy of the
- * same source inherits the shadow. A backend copy arriving under a config
- * entry becomes that entry's shadow instead.
- */
 const mergeEntry = function mergeEntry(
 	existing: ResolvedVendor,
 	incoming: ResolvedVendor
@@ -304,9 +230,6 @@ const mergeEntry = function mergeEntry(
 		if (!shadowable) {
 			return existing;
 		}
-		// The refreshed shadow keeps the owners the entry already knows, so a
-		// later removal of the config source restores a copy that can still
-		// fall back to the scripts naming the slug.
 		const shadowed = existing.ownerCategory
 			? withOwners(incoming, existing.ownerCategory)
 			: incoming;
@@ -317,9 +240,6 @@ const mergeEntry = function mergeEntry(
 	}
 	const next: ResolvedVendor = { ...incoming };
 	if (existing.source === incoming.source) {
-		// The shadow travels; the owners do not. A same-source refresh comes
-		// from a caller that resolved against the current scripts and rules,
-		// so an incoming copy without owners means nothing names the slug now.
 		next.shadowed ??= existing.shadowed;
 	} else if (existing.source === 'script') {
 		if (next.ownerCategory === undefined) {
@@ -335,12 +255,6 @@ const mergeEntry = function mergeEntry(
 	return sameVendor(existing, next) ? existing : next;
 };
 
-/**
- * A resolved list with one source's entries removed, each replaced by the
- * declaration it shadowed, if any. The input to a fresh merge of that
- * source, so a vendor the backend or the runtime option dropped keeps the
- * copy another source still declares.
- */
 export const withoutSourceVendors = function withoutSourceVendors(
 	declared: readonly ResolvedVendor[],
 	source: VendorSource
@@ -348,8 +262,6 @@ export const withoutSourceVendors = function withoutSourceVendors(
 	const kept: ResolvedVendor[] = [];
 	for (const vendor of declared) {
 		if (vendor.source !== source) {
-			// A shadow of the removed source goes too, or a later removal of
-			// the winner would restore a copy that source no longer declares.
 			kept.push(
 				vendor.shadowed?.source === source ? withoutShadow(vendor) : vendor
 			);
@@ -363,18 +275,12 @@ export const withoutSourceVendors = function withoutSourceVendors(
 	return kept;
 };
 
-/** `withoutSourceVendors` for the backend's entries. */
 export const withoutManifestVendors = function withoutManifestVendors(
 	declared: readonly ResolvedVendor[]
 ): ResolvedVendor[] {
 	return withoutSourceVendors(declared, 'manifest');
 };
 
-/**
- * Merge two resolved lists by id. The entry with the higher-priority source
- * keeps its presentation; when the sources tie the incoming entry wins so a
- * newer declaration of the same vendor updates its copy.
- */
 export const mergeDeclaredVendors = function mergeDeclaredVendors(
 	current: readonly ResolvedVendor[],
 	incoming: readonly ResolvedVendor[]
@@ -403,12 +309,6 @@ export const mergeDeclaredVendors = function mergeDeclaredVendors(
 	);
 };
 
-/**
- * Resolve every declaration source into one list sorted by id.
- *
- * @param input - Declarations from config, manifest and owning integrations.
- * @returns Resolved vendors. Empty when nothing is declared.
- */
 export const resolveVendors = function resolveVendors(
 	input: ResolveVendorsInput
 ): readonly ResolvedVendor[] {
@@ -423,9 +323,6 @@ export const resolveVendors = function resolveVendors(
 			existing ? mergeEntry(existing, candidate) : candidate
 		);
 	};
-	// A declared id that the wire cannot carry as a grant key is dropped with
-	// a warning, the same way an owner slug is: one bad id would otherwise
-	// make every save fail backend validation.
 	const declare = (vendor: Vendor, source: 'config' | 'manifest') => {
 		if (!isValidVendorId(vendor.id)) {
 			input.onWarn?.(invalidSlugWarning(vendor.id));
@@ -440,10 +337,6 @@ export const resolveVendors = function resolveVendors(
 		declare(vendor, 'manifest');
 	}
 
-	// Scripts and rules know the slug, their own category and, from an
-	// integration helper, the vendor's details. Collect every owner's
-	// category so an undeclared vendor still lands under the categories that
-	// gate it, and the first owner's details so it is listed by name.
 	const ownerCategories = new Map<string, HasCondition<AllConsentNames>[]>();
 	const ownerDetails = new Map<string, VendorDetails>();
 	for (const owner of input.owners ?? []) {
@@ -455,8 +348,6 @@ export const resolveVendors = function resolveVendors(
 			continue;
 		}
 		const list = ownerCategories.get(owner.vendor) ?? [];
-		// A plain copy: the snapshot freezes what it holds, and the caller's
-		// script or rule configuration must stay theirs to mutate.
 		list.push(copyCategory(owner.category));
 		ownerCategories.set(owner.vendor, list);
 		if (
@@ -470,10 +361,6 @@ export const resolveVendors = function resolveVendors(
 	for (const [id, categories] of ownerCategories) {
 		const existing = byId.get(id);
 		const details = ownerDetails.get(id);
-		// A declared vendor keeps its own presentation, but its owners'
-		// categories and details are remembered so that dropping the
-		// declaration later leaves a script-sourced fallback rather than
-		// nothing.
 		if (existing) {
 			byId.set(id, withOwners(existing, ownerCondition(categories), details));
 			continue;
@@ -493,7 +380,6 @@ export const resolveVendors = function resolveVendors(
 	);
 };
 
-/** Whether a category condition contains a `not` anywhere in its tree. */
 const hasNegation = function hasNegation(
 	condition: HasCondition<AllConsentNames>
 ): boolean {
@@ -507,38 +393,12 @@ const hasNegation = function hasNegation(
 	return (Array.isArray(branches) ? branches : [branches]).some(hasNegation);
 };
 
-/**
- * Whether a declared vendor can appear as a row anywhere: presentable and
- * without a negation in its condition. A script registering only its slug
- * is not presentable, and a vendor under `{ not: 'marketing' }` gates on a
- * category it cannot be listed under. The preference surfaces use this to
- * decide what a draft was staged against, so an invisible declaration
- * cannot stale a draft.
- *
- * @param vendor - A declared vendor.
- * @returns Whether some category row can list it.
- * @public
- */
 export const vendorRenders = function vendorRenders(
 	vendor: ResolvedVendor
 ): boolean {
 	return vendor.presentable && !hasNegation(vendor.category);
 };
 
-/**
- * The declared vendors a preference surface can show as rows. Vendor
- * switches are opt-in: a site turns them on by declaring a vendor in
- * `vendors` or on the backend. Until then a vendor known only from a
- * script's `vendor` slug, such as an integration helper's, gates loading
- * but gets no row, so the stock dialog shows categories only. Once any
- * vendor is declared, helpers are listed by name alongside it.
- * A helper with a saved denial stays visible so the visitor can change it.
- *
- * @param declared - The kernel's declared vendors.
- * @param denied - Vendor denials honored by the kernel's gates.
- * @returns The vendors that render, in declared order.
- * @internal
- */
 export const listedVendors = function listedVendors(
 	declared: readonly ResolvedVendor[],
 	denied?: ReadonlySet<string> | null
@@ -551,20 +411,6 @@ export const listedVendors = function listedVendors(
 	);
 };
 
-/**
- * The vendors a preference center lists under one category: listed (see
- * {@link listedVendors}) and naming that category in their condition. A
- * vendor under `{ not: 'marketing' }` gates on marketing but cannot sit in
- * the marketing row, since turning the category on would switch it off.
- * Every framework's preference center uses this one filter so their rows
- * agree.
- *
- * @param declared - The kernel's declared vendors.
- * @param category - The category row being rendered.
- * @param denied - Vendor denials honored by the kernel's gates.
- * @returns The vendors to list, in declared order.
- * @public
- */
 export const vendorsListedUnder = function vendorsListedUnder(
 	declared: readonly ResolvedVendor[],
 	category: AllConsentNames,
@@ -575,15 +421,8 @@ export const vendorsListedUnder = function vendorsListedUnder(
 	);
 };
 
-/**
- * What each live module has declared on a kernel, keyed by the module. A
- * module only knows its own list, so the union across modules is what a
- * slug's owners really are; the registry is what makes an update from one
- * module leave the others' contributions in place, identical or not.
- */
 const registries = new WeakMap<object, Map<symbol, readonly VendorOwner[]>>();
 
-/** An entry with every owner condition removed; `null` for a script entry. */
 const withoutOwnerConditions = function withoutOwnerConditions(
 	vendor: ResolvedVendor
 ): ResolvedVendor | null {
@@ -603,23 +442,6 @@ const withoutOwnerConditions = function withoutOwnerConditions(
 	return next;
 };
 
-/**
- * Declare the vendors a module's scripts, rules or frames own on the kernel,
- * merging over the entries it already holds. Called by an integration when
- * its list is set or swapped, so a slug introduced later still becomes
- * toggleable, a slug whose script moved category follows it, and a declared
- * vendor learns its new owner.
- *
- * `source` identifies the calling module. Its previous contribution is
- * replaced, and every slug either list names is rebuilt from what all
- * registered modules currently declare: a slug a measurement script and a
- * marketing rule share stays under both categories whichever module
- * updates, two modules owning a slug under the same condition keep it when
- * one of them moves away, and a slug nothing names any more loses its
- * script-sourced entry. A vendor declared in config or by the backend keeps
- * its own presentation and only its owners change. Without a `source` the
- * owners are merged in once and not remembered.
- */
 export const declareOwnedVendors = function declareOwnedVendors(
 	kernel: Pick<ConsentKernel, 'getSnapshot' | 'set'>,
 	owners: readonly VendorOwner[],
@@ -657,8 +479,6 @@ export const declareOwnedVendors = function declareOwnedVendors(
 		return;
 	}
 	const existing = kernel.getSnapshot().vendors?.declared ?? [];
-	// Owner conditions on a named slug are rebuilt from the union, so they
-	// are stripped first; a declared vendor keeps everything else.
 	const stripped = existing.flatMap((vendor) => {
 		if (!named.has(vendor.id)) {
 			return [vendor];
@@ -667,19 +487,9 @@ export const declareOwnedVendors = function declareOwnedVendors(
 		return bare ? [bare] : [];
 	});
 	const declared = resolveVendors({ existing: stripped, owners: union });
-	// The script source is replaced rather than merged: a slug no module
-	// names any more must lose its script entry, and a merge cannot remove.
-	// Every other script entry is in `declared`, so it comes straight back.
 	kernel.set.vendors({ declared }, { replaceSource: 'script' });
 };
 
-/**
- * Forget a module's contribution when it is disposed. The slugs it named
- * are rebuilt from what the other modules still declare, the same as an
- * update to an empty list: a slug only the disposed module named loses its
- * script entry and stops being toggleable, a shared slug keeps the
- * survivors' categories, and a declared vendor keeps its presentation.
- */
 export const forgetOwnedVendors = function forgetOwnedVendors(
 	kernel: Pick<ConsentKernel, 'getSnapshot' | 'set'>,
 	source: symbol

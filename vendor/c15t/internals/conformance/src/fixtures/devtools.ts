@@ -37,8 +37,6 @@ export const devToolsPrefetch = {
 			})
 		)
 	),
-	// A fixed subject, so every framework's Policy tab shows the same ID
-	// instead of one generated at startup.
 	initialRecords: { subject: { subjectId: 'sub_2VZxR7YmNpKq3WfLs8TgHd' } },
 	now: Date.UTC(2026, 0, 1, 12),
 } satisfies KernelConfig;
@@ -71,20 +69,17 @@ export const devToolsScripts: Script[] = [
 	},
 ];
 
-/** The same explicit host presentation is supplied by every framework fixture. */
 export const devToolsPresentation = {
 	preferences: { uiProfile: 'balanced' },
 	prompt: { uiProfile: 'balanced' },
 } satisfies ConsentPresentation;
 
-/** No external requests or persisted consent in comparison stories. */
 export const devToolsProviderOptions = {
 	consentCategories: [...devToolsCategories],
 	mode: custom(transport),
 	persistence: false,
 	prefetch: devToolsPrefetch,
 	presentation: devToolsPresentation,
-	// Keep the accept/reject play sequence in one document.
 	reloadOnConsentRevoked: false,
 	scripts: devToolsScripts,
 };

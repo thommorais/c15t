@@ -1,11 +1,5 @@
 'use client';
 
-/**
- * Button component for the ConsentDialogTrigger compound component.
- *
- * @packageDocumentation
- */
-
 import styles from '@c15t/ui/styles/components/consent-dialog-trigger';
 import { forwardRef as createForwardRef } from 'react';
 import type { FocusEvent, MouseEvent, PointerEvent, ReactNode } from 'react';
@@ -19,9 +13,6 @@ import { mergeSlotProps } from '~/utils/merge-slot-props';
 import type { CornerPosition, TriggerSize } from '../types';
 import { useTriggerContext } from './root';
 
-/**
- * Maps corner position to CSS class name.
- */
 const cornerClassMap = {
 	'bottom-left': styles.bottomLeft,
 	'bottom-right': styles.bottomRight,
@@ -29,58 +20,26 @@ const cornerClassMap = {
 	'top-right': styles.topRight,
 } as const satisfies Record<CornerPosition, string | undefined>;
 
-/**
- * Maps size to CSS class name.
- */
 const sizeClassMap = {
 	lg: styles.lg,
 	md: styles.md,
 	sm: styles.sm,
 } as const;
 
-/**
- * Props for the Button component.
- */
 export interface TriggerButtonProps {
 	children: ReactNode;
 
-	/**
-	 * Size of the trigger button.
-	 * @default 'md'
-	 */
 	size?: TriggerSize;
 
-	/**
-	 * Accessible label for the button.
-	 * @default 'Open privacy settings'
-	 */
 	ariaLabel?: string;
 
-	/**
-	 * Additional CSS class names.
-	 */
 	className?: string;
 
-	/**
-	 * When true, removes default styling.
-	 * @default false
-	 */
 	noStyle?: boolean;
 
 	'data-testid'?: string;
 }
 
-/**
- * The clickable button element for the trigger.
- *
- * @example
- * ```tsx
- * <ConsentDialogTrigger.Button>
- *   <ConsentDialogTrigger.Icon />
- *   <span>Privacy Settings</span>
- * </ConsentDialogTrigger.Button>
- * ```
- */
 export const TriggerButton = createForwardRef<
 	HTMLButtonElement,
 	TriggerButtonProps
@@ -109,12 +68,9 @@ export const TriggerButton = createForwardRef<
 			openDialog,
 		} = useTriggerContext();
 
-		// The trigger only opens the dialog, so it preloads it like every other
-		// dialog opener: in idle time while mounted, and on hover or focus.
 		useIdleDialogWarming(true);
 
 		const handleClick = (event: MouseEvent<HTMLButtonElement>) => {
-			// Don't open dialog if this was a drag interaction
 			if (event.detail !== 0 && wasDragged()) {
 				return;
 			}
@@ -137,8 +93,6 @@ export const TriggerButton = createForwardRef<
 			...handlers,
 		});
 
-		// These replace the `trigger.root` slot's handlers in `buttonStyle`, so
-		// they call them before warming the dialog chunk.
 		const handleFocus = (event: FocusEvent<HTMLButtonElement>) => {
 			buttonStyle.onFocus?.(event);
 			warmDialogChunk();
@@ -155,7 +109,6 @@ export const TriggerButton = createForwardRef<
 				type="button"
 				data-c15t-trigger="true"
 				data-c15t-rights={policy.rights.join(' ')}
-				// Stops the hover and snap transitions, as on the other surfaces.
 				data-disable-animation={disableAnimation ? '' : undefined}
 				aria-label={ariaLabel}
 				onClick={handleClick}

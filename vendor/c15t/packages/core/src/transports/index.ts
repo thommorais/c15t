@@ -1,12 +1,3 @@
-/**
- * Transport factories. Each export is optional — consumers pick the one
- * that matches their backend shape. Adapter authors who want to build
- * their own transport should import from `./contract` (re-exports below)
- * for the typed surface.
- *
- * Public subpath: `@c15t/core/transports`.
- */
-
 export type {
 	InitContext,
 	InitResponse,

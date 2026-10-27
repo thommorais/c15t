@@ -12,11 +12,6 @@ import { mergeSlotProps } from '~/utils/merge-slot-props';
 import type { VendorId } from '../types';
 import { useIABTranslations } from '../use-iab-translations';
 
-/**
- * Providers matching the vendor search. A vendor selected from the Purposes
- * tab is never an ad tech provider, since providers process no TCF
- * purposes, so a selection hides them all.
- */
 export const filterAdTechProviders = function filterAdTechProviders(
 	providers: AdTechProvider[],
 	searchTerm: string,
@@ -32,18 +27,11 @@ export const filterAdTechProviders = function filterAdTechProviders(
 };
 
 interface AdTechProviderSectionProps {
-	/** Providers to list, already filtered by the vendor search. */
 	providers: AdTechProvider[];
-	/** Consent switches keyed by provider ID. */
 	consents: Record<string, boolean>;
 	onToggle?: (providerId: number, value: boolean) => void;
 }
 
-/**
- * Google Additional Consent providers in the vendor list. Each row shows the
- * provider's name and privacy policy without expanding, which is what the
- * Additional Consent spec requires before a provider counts as disclosed.
- */
 export const AdTechProviderSection: FC<AdTechProviderSectionProps> = ({
 	providers,
 	consents,

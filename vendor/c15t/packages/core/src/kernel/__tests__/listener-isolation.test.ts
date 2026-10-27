@@ -1,9 +1,3 @@
-/**
- * Snapshot subscribers and event listeners observe committed transitions.
- * A listener that throws cannot hide a transition from the others or fail
- * the command that caused it, and a listener that updates consent while
- * being notified cannot reorder or skip transitions for later listeners.
- */
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
 import { NOW } from '../../__tests__/fixtures/kernel-fixtures';
@@ -99,7 +93,6 @@ describe('a throwing subscriber', () => {
 	});
 
 	test('a server runtime logs instead of calling its global reportError', async () => {
-		// Bun and Deno define reportError, where it ends the process.
 		const reportError = vi.fn();
 		vi.stubGlobal('reportError', reportError);
 		vi.stubGlobal('document', undefined);
@@ -218,8 +211,6 @@ describe('a subscriber that updates consent while notified', () => {
 
 		await kernel.commands.save({ measurement: true });
 
-		// A listener mid-work (a script mount) must learn about a revocation
-		// it caused before its own call returns.
 		expect(seenByNestedCaller).toEqual([true, false]);
 		expect(observed).toEqual([true, false]);
 	});
@@ -243,8 +234,6 @@ describe('a subscriber that updates consent while notified', () => {
 
 		const denied = kernel.commands.save({ measurement: false });
 
-		// Delivery is synchronous: every transition landed before the save
-		// yielded to the transport.
 		expect(log).toEqual([
 			'changed:true->false',
 			'recorded:false',
@@ -266,7 +255,6 @@ describe('a subscriber that updates consent while notified', () => {
 
 		await kernel.commands.save({ measurement: false });
 
-		// The feedback listener is called once more in the final pass.
 		expect(calls).toBeLessThanOrEqual(MAX_DELIVERY_DEPTH + 1);
 		expect(reported).toHaveBeenCalledWith(
 			expect.stringContaining('[c15t]'),
@@ -297,8 +285,6 @@ describe('a subscriber that updates consent while notified', () => {
 
 			await kernel.commands.save({ measurement: false });
 
-			// A network blocker holding an older snapshot could let through
-			// requests the current one denies.
 			expect(last).toBe(kernel.getSnapshot());
 		}
 	);

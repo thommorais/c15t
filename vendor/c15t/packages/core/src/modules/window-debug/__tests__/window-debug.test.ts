@@ -1,6 +1,3 @@
-/**
- * Tests for @c15t/core/modules/window-debug.
- */
 import { afterEach, describe, expect, test, vi } from 'vitest';
 
 import { version } from '../../../version';

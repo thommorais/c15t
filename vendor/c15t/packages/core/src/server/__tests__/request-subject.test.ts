@@ -69,9 +69,6 @@ describe('resolveRequestSubject', () => {
 		expect(subject?.cookie).toBe(`${RECORDED}; c15t-sid=sub_recorded`);
 	});
 
-	// A record cookie can be stale after the browser dropped its rewrite,
-	// while `c15t-sid` already holds the newer ID. Only the browser can
-	// tell, so the server renders the records' ID and leaves the cookie.
 	test('the ID the stored choice carries never replaces the subject cookie', () => {
 		const cookie = `c15t-sid=sub_other; ${RECORDED}`;
 		const subject = resolve(cookie);
@@ -97,9 +94,6 @@ describe('resolveRequestSubject', () => {
 		}
 	});
 
-	// A Headers implementation from a polyfill or another realm, such as an
-	// edge runtime shim: not an instance of this realm's Headers, and with
-	// no enumerable entries.
 	class OtherHeaders {
 		readonly #values = new Map<string, string>();
 
@@ -202,8 +196,6 @@ describe('resolveRequestSubject', () => {
 		});
 	});
 
-	// Header names are case-insensitive, and some runtimes keep the casing
-	// the client sent.
 	test.each(['Cookie', 'COOKIE', 'cOoKiE'])(
 		'a Node header record with a %s header keeps the visitor ID',
 		(name) => {
@@ -252,8 +244,6 @@ describe('resolveRequestSubject', () => {
 		}
 	);
 
-	// A URL host may contain `;`, so a host the request names could add
-	// cookie attributes through the derived `Domain`.
 	test.each([
 		['a Host header', { headers: { host: 'a.b;samesite=none' } }, false],
 		[
@@ -308,10 +298,6 @@ describe('resolveRequestSubject', () => {
 	});
 });
 
-// The browser keeps an opaque ID with no URI encoding, such as one with a
-// lone surrogate, in localStorage and a JSON record, and writes no
-// `<storageKey>-sid` cookie for it (`writeStoredSubjectId`). The server
-// does the same: it keeps the recorded ID and sets no cookie.
 describe('resolveRequestSubject: a recorded ID with no URI encoding', () => {
 	const envelopeCookie = function envelopeCookie(
 		subject: Record<string, string>

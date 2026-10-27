@@ -1,8 +1,3 @@
-/**
- * The manifest-mode provider loader must never hold an init open: the
- * Additional Consent string only supplements the TC String, so a stalled
- * list endpoint gives up after the request deadline.
- */
 import { AD_TECH_PROVIDER_FETCH_TIMEOUT_MS } from '@c15t/schema/types';
 import { afterEach, describe, expect, test, vi } from 'vitest';
 
@@ -15,7 +10,6 @@ import type { AdTechProviderCache } from '../transports/ad-tech-provider-cache';
 const META = { id: 89, name: 'Meta', policyUrl: 'https://meta.example/p' };
 const reference = { providers: [89], url: 'https://lists.example/ac' };
 
-/** A fetch that never answers and rejects only when its signal aborts. */
 const stalled = vi.fn(
 	(_input: RequestInfo | URL, init?: RequestInit) =>
 		new Promise<Response>((_resolve, reject) => {
@@ -27,7 +21,6 @@ const stalled = vi.fn(
 
 const unavailable = () => Promise.resolve(new Response('', { status: 503 }));
 
-/** A fetch that answers with the given providers in the list's shape. */
 const listing = (...providers: (typeof META)[]) =>
 	(() =>
 		Promise.resolve(
@@ -38,7 +31,6 @@ const listing = (...providers: (typeof META)[]) =>
 			})
 		)) as unknown as typeof globalThis.fetch;
 
-/** Replaces the request deadline with one the test fires. */
 const controlDeadline = () => {
 	const deadline = new AbortController();
 	const timeout = vi
@@ -64,14 +56,12 @@ describe('fetchCachedAdTechProviders', () => {
 			fetch: fetch as unknown as typeof globalThis.fetch,
 			reference: { providers: [], url: reference.url },
 		});
-		// `[]`, not `undefined`: it withdraws the providers a client holds.
 		expect(providers).toEqual([]);
 		expect(fetch).not.toHaveBeenCalled();
 	});
 
 	test('keeps at most 32 lists, dropping the oldest', async () => {
 		const cache: AdTechProviderCache = new Map();
-		// One after another, so the first list is the oldest.
 		await Array.from({ length: 40 }, (_, index) => index + 1).reduce(
 			(previous, id) =>
 				previous.then(() =>

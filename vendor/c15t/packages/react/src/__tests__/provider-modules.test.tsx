@@ -38,7 +38,6 @@ afterEach(() => {
 });
 
 test('loads scripts only when added and preserves cleanup ordering and initial config', async () => {
-	// Vite's module graph can fill the browser's default resource buffer.
 	performance.setResourceTimingBufferSize(5000);
 	performance.clearResourceTimings();
 	const initialCleanup: ClearOnRevocationConfig = {
@@ -88,8 +87,6 @@ test('loads scripts only when added and preserves cleanup ordering and initial c
 	localStorage.setItem('cleanup:ready', 'pending');
 	await screen.rerender(provider(scripts, replacementCleanup));
 	await vi.waitFor(() => expect(onBeforeLoad).toHaveBeenCalledOnce());
-	// Starting the first loader reattaches cleanup after its subscription.
-	// The new attachment performs its initial denied-category sweep.
 	await vi.waitFor(() =>
 		expect(localStorage.getItem('cleanup:ready')).toBeNull()
 	);

@@ -1,8 +1,3 @@
-/**
- * v3 envelope codec: JSON and compact forms must round-trip every
- * per-category receipt exactly, keep `false` distinct from absence, and
- * never coerce string fingerprints or identifiers.
- */
 import { describe, expect, it } from 'vitest';
 
 import type { ChoiceBasis } from '../../../consent-record/types';

@@ -143,9 +143,7 @@ describe('mountScript', () => {
 		};
 		mountScript(deps, script, snap, true, batch);
 		expect(batch).toHaveLength(1);
-		// DOM not touched yet.
 		expect(document.head.querySelector('script')).toBeNull();
-		// Not registered until flush.
 		expect(deps.loadedElements.has('s')).toBe(false);
 	});
 
@@ -306,7 +304,6 @@ describe('mountScript with a server-started element', () => {
 	describe('still waiting to be inserted', () => {
 		type PendingElement = HTMLScriptElement & { __c15tInsert?: () => void };
 
-		/** Mirrors the inline start's pending insert. */
 		const startPending = function startPending(
 			src: string,
 			key = 's'
@@ -505,7 +502,6 @@ describe('mountScript with a server-started element', () => {
 			const { deps } = makeDeps();
 			const element: HTMLScriptElement & { __c15tInsert?: () => void } =
 				document.createElement('script');
-			// Mirrors the inline start's pending insert.
 			const insert = () => {
 				if (element.__c15tInsert === insert) {
 					document.head.appendChild(element);
@@ -592,9 +588,7 @@ describe('unmountScript', () => {
 		mountScript(deps, script, snap, true, null);
 		expect(document.head.querySelector('script')).not.toBeNull();
 		unmountScript(deps, script, snap, false);
-		// DOM stays.
 		expect(document.head.querySelector('script')).not.toBeNull();
-		// Registry reference is gone.
 		expect(deps.loadedElements.has('s')).toBe(false);
 	});
 

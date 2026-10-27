@@ -1,13 +1,3 @@
-/**
- * An `iab` policy in an app that never mounted `<IABProvider>`.
- *
- * The standard banner and dialog do not answer for the IAB model, so the
- * visitor used to see no consent UI at all. They now throw a render error
- * that says what to do, on the server render and in the browser alike.
- *
- * This file must not import `@c15t/react/iab`: loading it marks the app as
- * one that renders IAB. `iab-policy-guard-provider.test.tsx` covers that.
- */
 import { MINIMAL_GVL } from '@c15t/conformance';
 import type { GlobalVendorList } from '@c15t/core';
 import { custom, deferInitGvl, IAB_UNAVAILABLE_ERROR_CODE } from '@c15t/core';
@@ -30,7 +20,6 @@ const MESSAGE = missingIABProviderError().message;
 const iabPolicy = () =>
 	policyFixture({}, { categories: ['marketing'], model: 'iab' });
 
-/** Keeps the error a surface throws, the way an app's boundary would. */
 class Boundary extends Component<
 	{ children: ReactNode; onError: (error: Error) => void },
 	{ failed: boolean }

@@ -53,7 +53,6 @@ const createTransport = function createTransport(
 	};
 };
 
-/** Module fakes that record what the runtime asks of them. */
 const createFakeModules = function createFakeModules() {
 	const calls: string[] = [];
 	const loaders: { scripts: unknown[]; updates: unknown[][] }[] = [];
@@ -92,7 +91,6 @@ const createFakeModules = function createFakeModules() {
 				},
 				updateRules: (rules: unknown, hold?: NetworkHold) => {
 					(entry.rules as unknown[]).push(rules);
-					// As the real blocker does once it has the rules.
 					hold?.release()();
 				},
 			};
@@ -126,7 +124,6 @@ const create = function create(
 	return runtime;
 };
 
-/** A spy in place of the network, under whatever the runtime patches. */
 const stubNetwork = function stubNetwork() {
 	const nativeFetch = window.fetch;
 	const network = vi.fn(() => Promise.resolve(new Response('ok')));
@@ -179,12 +176,10 @@ describe('update()', () => {
 			});
 			const request = window.fetch('https://next.example/pixel');
 			await Promise.resolve();
-			// Sent before the blocker had the rule, it would have gone out.
 			expect(network).not.toHaveBeenCalled();
 
 			await applied;
 			expect(fakes.blockers[0]?.rules).toEqual([first, next]);
-			// Released through the updated blocker (a fake that sends it).
 			await request;
 			expect(network).toHaveBeenCalledWith(
 				'https://next.example/pixel',
@@ -265,7 +260,6 @@ describe('update()', () => {
 			void request.finally(() => {
 				settled = true;
 			});
-			// Nothing will take the hold over: it must not wait for one.
 			await vi.waitFor(() => {
 				expect(settled).toBe(true);
 			});
@@ -292,7 +286,6 @@ describe('update()', () => {
 			overrides: { country: 'FR' },
 		});
 		expect(runtime.enabled).toBe(false);
-		// Configured categories decide what is granted: they apply now.
 		expect(runtime.kernel.getSnapshot().consentCategories).toEqual([
 			'measurement',
 		]);
@@ -317,7 +310,6 @@ describe('update()', () => {
 		const runtime = create(options);
 		runtime.start();
 
-		// A component re-renders with new objects holding the same values.
 		await runtime.update({
 			...options,
 			overrides: { country: 'DE' },
@@ -326,8 +318,6 @@ describe('update()', () => {
 
 		await Promise.resolve();
 		expect(transport.init).not.toHaveBeenCalled();
-		// Svelte identified the initial user again on mount; the kernel
-		// already sends it with init.
 		expect(transport.identify).toBeUndefined();
 	});
 
@@ -369,7 +359,6 @@ describe('update()', () => {
 	});
 
 	test('overrides changed before start make start ask the backend instead of adopting the prefetch', async () => {
-		// Vue's `ConsentRoot` props can change the overrides before mount.
 		const transport = createTransport();
 		const options: ConsentProviderRuntimeOptions = {
 			mode: custom(transport),
@@ -397,8 +386,6 @@ describe('update()', () => {
 
 		await runtime.update({ ...options, consentCategories: undefined });
 
-		// Svelte restored the snapshot's list from mount instead, which kept
-		// the removed configuration.
 		expect(runtime.consentCategories).toEqual(
 			create({ mode: custom(createTransport()) }).consentCategories
 		);
@@ -502,7 +489,6 @@ describe('update()', () => {
 		try {
 			runtime.start();
 
-			// `{ rules }` alone means on: `enabled` defaults to true.
 			await runtime.update({ ...options, networkBlocker: { rules } as never });
 
 			const response = await window.fetch('https://ads.example/pixel');
@@ -541,8 +527,6 @@ describe('update()', () => {
 			await new Promise((resolve) => {
 				setTimeout(resolve, 0);
 			});
-			// The blocker gets the rule when its chunk lands; until then the
-			// request waits rather than leave unchecked.
 			expect(network).not.toHaveBeenCalled();
 
 			blockerChunk.resolve(createNetworkBlocker);
@@ -597,7 +581,6 @@ describe('update()', () => {
 
 	test('a changed `mode`, `i18n` or `experiment` warns outside production', async () => {
 		const warn = vi.spyOn(console, 'warn').mockImplementation(() => {
-			// Asserted below.
 		});
 		const options: ConsentProviderRuntimeOptions = {
 			mode: custom(createTransport()),
@@ -611,7 +594,6 @@ describe('update()', () => {
 
 	test('storage is read once: a new storage key warns and records stay under the first', async () => {
 		const warn = vi.spyOn(console, 'warn').mockImplementation(() => {
-			// Asserted below.
 		});
 		const transport = createTransport();
 		const options: ConsentProviderRuntimeOptions = {
@@ -622,7 +604,6 @@ describe('update()', () => {
 		const runtime = create(options);
 		runtime.start();
 
-		// An equal storage config in a new object is not a change.
 		await runtime.update({
 			...options,
 			storageConfig: { storageKey: 'first-key' },
@@ -753,7 +734,6 @@ describe('the enabled toggle', () => {
 		expect(transport.init).not.toHaveBeenCalled();
 		runtime.setEnabled(true);
 		expect(runtime.kernel.getSnapshot().overrides.language).toBe('de');
-		// The prefetch holds copy for the old language.
 		await vi.waitFor(() => expect(transport.init).toHaveBeenCalledOnce());
 		expect(vi.mocked(transport.init).mock.calls[0]?.[0]).toMatchObject({
 			overrides: { language: 'de' },
@@ -779,7 +759,6 @@ describe('the enabled toggle', () => {
 		expect(transport.init).not.toHaveBeenCalled();
 
 		runtime.setEnabled(true);
-		// The prefetch answered for the old country.
 		await vi.waitFor(() => expect(transport.init).toHaveBeenCalledOnce());
 		expect(vi.mocked(transport.init).mock.calls[0]?.[0]).toMatchObject({
 			overrides: { country: 'FR' },
@@ -806,7 +785,6 @@ describe('the enabled toggle', () => {
 		try {
 			runtime.start();
 
-			// Off grants every category: nothing waits for a blocker.
 			const sent = window.fetch('https://ads.example/pixel');
 			await vi.waitFor(() => expect(network).toHaveBeenCalledOnce());
 			await sent;
@@ -840,7 +818,6 @@ describe('a streamed prefetch', () => {
 			streaming
 		);
 		runtime.start();
-		// Until it arrives no consent surface shows.
 		expect(runtime.kernel.getSnapshot().policyPending).toBe(true);
 		expect(runtime.kernel.getSnapshot().activeUI).toBe('none');
 
@@ -922,7 +899,6 @@ describe('a streamed prefetch', () => {
 
 	test('a rejected prefetch falls through to the transport init', async () => {
 		vi.spyOn(console, 'warn').mockImplementation(() => {
-			// Logged outside production.
 		});
 		const transport = createTransport();
 		const runtime = create(
@@ -962,7 +938,6 @@ describe('a streamed prefetch', () => {
 
 	test('without `streamPrefetch` a pending prefetch is ignored and the runtime asks itself', async () => {
 		vi.spyOn(console, 'warn').mockImplementation(() => {
-			// Warned outside production.
 		});
 		const transport = createTransport();
 		const runtime = create({
@@ -977,13 +952,10 @@ describe('a streamed prefetch', () => {
 
 describe('a streamed prefetch a host renders from', () => {
 	const streaming = { ...defaultRuntimeModules, streamPrefetch };
-	/** A stream still pending when the test ends. */
 	const never = () =>
 		new Promise<RuntimePrefetch>(() => {
-			// Never settles.
 		});
 
-	/** Counts `init:applied` from construction on. */
 	const countApplied = (runtime: ConsentProviderRuntime) => {
 		const count = { applied: 0 };
 		runtime.kernel.events.on('init:applied', () => {
@@ -1067,7 +1039,6 @@ describe('a streamed prefetch a host renders from', () => {
 		runtime.start();
 		await Promise.resolve();
 		expect(transport.init).not.toHaveBeenCalled();
-		// `start()` replays the event the applied answer would have raised.
 		expect(count.applied).toBe(1);
 	});
 
@@ -1102,7 +1073,6 @@ describe('a streamed prefetch a host renders from', () => {
 		});
 		expect(count.applied).toBe(1);
 		expect(errors).not.toHaveBeenCalled();
-		// The fenced attempt reports the adopted answer, not a failure.
 		expect(results).toEqual([{ ok: true }]);
 		expect(transport.init).not.toHaveBeenCalled();
 	});
@@ -1219,7 +1189,6 @@ describe('lazyRuntimeModule', () => {
 					const module = await import('../../modules/clear-on-revocation');
 					return module.createClearOnRevocation;
 				}),
-				// The loader's chunk lands after data clearing's.
 				createScriptLoader: lazyRuntimeModule(async () => {
 					await loaderGate.promise;
 					const module = await import('../../modules/script-loader');
@@ -1231,7 +1200,6 @@ describe('lazyRuntimeModule', () => {
 		await vi.dynamicImportSettled();
 		loaderGate.resolve(undefined);
 		await loaderGate.promise;
-		// The loader's chunk, then data clearing's, which waits for it.
 		await vi.dynamicImportSettled();
 		await vi.dynamicImportSettled();
 

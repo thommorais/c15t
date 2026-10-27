@@ -16,24 +16,10 @@ export const defaultTranslationConfig: TranslationConfig = {
 	},
 };
 
-/**
- * Message overrides an app declares in code, keyed by language, as in
- * `i18n.messages`.
- */
 export type TranslationOverrides = Readonly<
 	Record<string, Partial<Translations> | undefined>
 >;
 
-/**
- * Pick the overrides declared for a language: an exact key first, then its
- * primary subtag (`de` for `de-AT`). An exact key set to `undefined` counts
- * as missing. Own keys only, so a language named `constructor` never reads
- * the prototype.
- *
- * @param overrides - Overrides keyed by language.
- * @param language - The language to look up.
- * @returns The overrides for that language, or `undefined`.
- */
 export const selectTranslationOverride = function selectTranslationOverride(
 	overrides: TranslationOverrides | undefined,
 	language: string
@@ -71,12 +57,6 @@ const sameLeaf = function sameLeaf(left: unknown, right: unknown): boolean {
 	);
 };
 
-/**
- * The part of an override that should apply over `base`: every key that
- * differs from c15t's built-in copy, and every key `base` does not supply.
- * A key that repeats the built-in text yields to the base, so passing a
- * stock bundle to enable a language does not hide backend edits.
- */
 const pickEffectiveOverride = function pickEffectiveOverride(
 	override: TranslationTree,
 	stock: TranslationTree | undefined,
@@ -105,7 +85,6 @@ const pickEffectiveOverride = function pickEffectiveOverride(
 	return Object.keys(picked).length > 0 ? picked : undefined;
 };
 
-/** Built-in copy for a language, falling back to its primary subtag. */
 const findStockTranslations = function findStockTranslations(
 	language: string
 ): Translations | undefined {
@@ -116,37 +95,10 @@ const findStockTranslations = function findStockTranslations(
 	);
 };
 
-/**
- * Apply an app's message overrides on top of resolved translations.
- *
- * The resolved bundle (from a backend, a manifest, a prefetch or the bundled
- * defaults) is the base for its language. An app key replaces the base when
- * it differs from c15t's built-in copy for that language, or when the base
- * does not supply it. A key equal to the built-in text leaves the base alone,
- * so an app passing a stock bundle to enable a language still shows backend
- * edits, while a genuine customization wins. Built-in copy is known for
- * English and, once `@c15t/translations/all` loads, every bundled language;
- * without it every app key counts as a customization. Overrides for other
- * languages are ignored: mixing languages is worse than showing the base.
- *
- * @param translations - The resolved translations for one language.
- * @param overrides - Message overrides keyed by language.
- * @returns The merged translations, or the input unchanged when no override
- * applies.
- * @example
- * ```ts
- * applyTranslationOverrides(
- * 	{ language: 'en', translations: backendCopy },
- * 	{ en: { cookieBanner: { title: 'Your privacy' } } }
- * );
- * ```
- */
 export const applyTranslationOverrides = function applyTranslationOverrides(
 	resolved: KernelTranslations,
 	overrides: TranslationOverrides | undefined
 ): KernelTranslations {
-	// Copy from an older backend, a stored prefetch or the app may still name
-	// the ConsentGate section `frame`.
 	const migrated = migrateLegacyTranslationKeys(
 		resolved.translations as Partial<Translations>
 	);
@@ -176,7 +128,6 @@ export const applyTranslationOverrides = function applyTranslationOverrides(
 	return {
 		...translations,
 		translations: {
-			// Keep any section the merge helper does not know about.
 			...translations.translations,
 			...deepMergeTranslations(
 				translations.translations as Translations,
@@ -186,24 +137,6 @@ export const applyTranslationOverrides = function applyTranslationOverrides(
 	};
 };
 
-/**
- * Resolve copy for a language from what the client has on hand: c15t's
- * built-in copy for it, the app's overrides for it, or both.
- *
- * Both fall back to the primary subtag, so `de-AT` uses German copy. English
- * built-in copy is always available; every other bundled language is once
- * `@c15t/translations/all` has loaded. App overrides for a language without
- * built-in copy apply over English.
- *
- * Used where no backend answers, such as offline mode switching language. A
- * language with neither built-in copy nor app overrides resolves to
- * `undefined`, so the caller keeps its current copy instead of labelling
- * another language's text with this one.
- *
- * @param language - The requested language.
- * @param overrides - Message overrides keyed by language.
- * @returns Translations for that language, or `undefined` when none exist.
- */
 export const resolveLocalTranslations = function resolveLocalTranslations(
 	language: string,
 	overrides: TranslationOverrides | undefined

@@ -34,11 +34,6 @@ const PRIMITIVE_CSS_MODULES = [
 	'switch',
 ] as const;
 
-/**
- * Style-loader runtime markers that must NOT appear in class maps.
- * Their presence means styles are being injected at runtime via JS instead of
- * being shipped as plain CSS assets.
- */
 const STYLE_LOADER_MARKERS = [
 	'document.createElement("style")',
 	"document.createElement('style')",
@@ -51,8 +46,6 @@ const resolvePath = function resolvePath(specifier: string): string {
 	return import.meta.resolve(specifier).replace('file://', '');
 };
 
-// `import.meta.url` is not a file URL under the test runner, so anchor the
-// package root on a resolved dist asset instead.
 const PACKAGE_ROOT = dirname(dirname(resolvePath('@c15t/ui/styles.css')));
 
 type ExportTarget = string | { [condition: string]: ExportTarget };
@@ -81,16 +74,6 @@ const pickConditionTarget = function pickConditionTarget(
 	return null;
 };
 
-/**
- * Resolve a package subpath against the `exports` map with an explicit
- * condition list, following Node's rules: exact keys win, otherwise the
- * pattern with the longest prefix (then longest suffix) matches, and the
- * first listed condition that is active wins.
- *
- * The test runner itself runs on Node, so `import.meta.resolve` always
- * applies the `node` condition. This helper lets the tests pin what a
- * bundler (`import`) and a Node runtime (`node`, `import`) each receive.
- */
 const resolveExport = function resolveExport(
 	subpath: string,
 	conditions: readonly string[]
@@ -153,10 +136,6 @@ const resolveExport = function resolveExport(
 const BUNDLER_CONDITIONS = ['import'] as const;
 const NODE_CONDITIONS = ['node', 'import'] as const;
 
-/**
- * Every component style ships as a flat triple under dist/styles/components:
- * `<name>.js` (class map), `<name>.css` (plain CSS), `<name>.d.ts`.
- */
 describe('package exports: @c15t/ui/styles/components/<name> triple', () => {
 	for (const name of COMPONENT_STYLE_MODULES) {
 		const filename = name
@@ -209,10 +188,6 @@ describe('package exports: @c15t/ui/styles/components/<name> triple', () => {
 	}
 });
 
-/**
- * `frame` was ConsentGate's stylesheet before the rename. The old subpaths
- * stay as deprecated aliases of `consent-gate` for one alpha.
- */
 describe('package exports: deprecated frame stylesheet aliases', () => {
 	test.each([
 		['./styles/components/frame', BUNDLER_CONDITIONS, 'consent-gate.js'],
@@ -233,12 +208,6 @@ describe('package exports: deprecated frame stylesheet aliases', () => {
 	});
 });
 
-/**
- * Runtimes that load the package with plain Node (the Next.js Pages Router
- * externalising node_modules, for example) cannot import CSS. The `node`
- * export condition keeps serving `<name>.node.js`, which is now identical to
- * the bundler class map: neither imports CSS.
- */
 describe('package exports: node condition serves class maps without CSS imports', () => {
 	for (const name of COMPONENT_STYLE_MODULES) {
 		const filename = name
@@ -312,11 +281,6 @@ describe('package exports: node condition serves class maps without CSS imports'
 	});
 });
 
-/**
- * `styles.css` holds the dialog's rules. `@c15t/ui/styles/dialog` and
- * `styles/dialog.css` once loaded them separately and stay, empty, so
- * existing imports keep resolving.
- */
 describe('package exports: deprecated dialog stylesheet entries', () => {
 	test('styles/dialog.css resolves to the stylesheet under every condition', () => {
 		for (const conditions of [BUNDLER_CONDITIONS, NODE_CONDITIONS]) {

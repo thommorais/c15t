@@ -21,7 +21,6 @@ import { useTheme } from '~/hooks/use-theme';
 
 import { ConsentWidgetVendorList } from './vendor-list';
 
-/** Stock metadata for each category the preference surface can list. */
 const DEFAULT_CONSENT_TYPES: readonly ConsentType[] = [
 	{
 		defaultValue: true,
@@ -172,10 +171,6 @@ const ConsentWidgetAccordion = ({
 	);
 };
 
-// Created once: a component type made during render would remount the icon
-// on every render.
-// No title: the icon is decorative, and a title would join the trigger's
-// text content in tooling that reads it.
 const OpenIcon = LucideIcon({ iconPath: <path d="M5 12h14M12 5v14" /> });
 const CloseIcon = LucideIcon({ iconPath: <path d="M5 12h14" /> });
 
@@ -195,10 +190,6 @@ interface ConsentWidgetAccordionRowProps {
 	onToggleItem: (value: string, open: boolean) => void;
 }
 
-/**
- * One category row. It subscribes to its own draft value, so staging a
- * toggle re-renders only the row that changed.
- */
 const ConsentWidgetAccordionRow = ({
 	consent,
 	title,
@@ -224,8 +215,6 @@ const ConsentWidgetAccordionRow = ({
 			slotKey="accordion-item.root"
 		>
 			<ConsentWidgetAccordionTrigger slotKey="accordion.triggerRow">
-				{/* The testid names the button, not the row that holds it,
-				    so it means the same element in every adapter. */}
 				<ConsentWidgetAccordionTriggerInner
 					className={noStyle ? undefined : accordionStyles.trigger}
 					data-testid={`consent-widget-accordion-trigger-${consent.name}`}
@@ -238,9 +227,6 @@ const ConsentWidgetAccordionRow = ({
 						noStyle
 						slotKey="accordion.arrow"
 					>
-						{/* Decorative: the trigger's name is the category title and
-						    `aria-expanded` carries the state, so the icon stays out
-						    of the accessible name in every framework. */}
 						{open ? (
 							<CloseIcon aria-hidden="true" />
 						) : (
@@ -310,16 +296,12 @@ const ConsentWidgetAccordionRow = ({
 };
 
 const ConsentWidgetAccordionItems = () => {
-	// The draft's list, in its order, so every framework lists the same rows
-	// in the same order.
 	const displayedCategories = useConsentDraftSlice(
 		useConsentDraftStore(),
 		(state) => state.displayedCategories
 	);
 	const explicitChoice = useExplicitChoice();
 	const restrictions = useRestrictions();
-	// Only a saved grant that the current policy or a privacy signal
-	// overrides is "restricted". An unsaved draft toggle is not.
 	const isRestricted = function isRestricted(name: AllConsentNames): boolean {
 		if (name === 'necessary') {
 			return false;

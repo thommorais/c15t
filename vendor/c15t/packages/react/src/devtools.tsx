@@ -32,19 +32,15 @@ import { KernelContext, ProviderServicesContext } from './context';
 import { publishDevToolsLauncher } from './devtools-launcher';
 import { useIsHydrated } from './hooks/use-is-hydrated';
 
-/** Props for the kernel-bound React DevTools adapter. */
 export interface ConsentDevToolsProps extends Omit<
 	DevToolsOptions,
 	'container' | 'kernel'
 > {
-	/** Prevents the DevTools engine from mounting. @default false */
 	disabled?: boolean;
 }
 
-/** Backward-compatible props name for {@link ConsentDevTools}. */
 export type C15TDevToolsProps = ConsentDevToolsProps;
 
-/** Compatible props name for the {@link DevTools} alias. */
 export type DevToolsProps = ConsentDevToolsProps;
 
 const requireKernel = (kernel: ConsentKernel | null): ConsentKernel => {
@@ -103,12 +99,6 @@ const useStableServices = (
 	);
 };
 
-/**
- * Mounts the c15t DevTools engine for the nearest v3 consent provider.
- *
- * @param props - Presentation options passed to the DevTools engine.
- * @returns `null`; the engine mounts its interface into `document.body`.
- */
 export const ConsentDevTools = ({
 	disabled = false,
 	clearRecords,
@@ -132,9 +122,6 @@ export const ConsentDevTools = ({
 		disabled
 	);
 
-	// A trigger that carries the launcher renders this toolbar. Registering it
-	// before the effect below publishes the launcher keeps that swap
-	// synchronous.
 	useEffect(() => {
 		registerTriggerToolbar(TriggerToolbar);
 	}, []);
@@ -154,7 +141,6 @@ export const ConsentDevTools = ({
 			position,
 			shadow,
 		});
-		// A mounted consent trigger can render the launcher instead.
 		const withdrawLauncher = publishDevToolsLauncher(kernel, devTools);
 		return () => {
 			withdrawLauncher();
@@ -174,13 +160,10 @@ export const ConsentDevTools = ({
 	return null;
 };
 
-/** Compatible short name for {@link ConsentDevTools}. */
 export const DevTools = ConsentDevTools;
 
-/** Backward-compatible name for {@link ConsentDevTools}. */
 export const C15TDevTools = ConsentDevTools;
 
-/** Props for the embedded c15t panel used by TanStack Devtools. */
 export interface C15tTanStackDevtoolsPanelProps
 	extends
 		HTMLAttributes<HTMLDivElement>,
@@ -192,24 +175,16 @@ export interface C15tTanStackDevtoolsPanelProps
 			| 'getPresentation'
 			| 'clearRecords'
 		> {
-	/** Prevents the embedded DevTools engine from mounting. @default false */
 	disabled?: boolean;
-	/**
-	 * Color scheme of the surrounding devtools shell. Omit to follow the
-	 * operating system. {@link c15tDevtools} passes TanStack's theme.
-	 */
 	theme?: TanStackDevtoolsTheme;
 }
 
-/** Color scheme TanStack Devtools passes to plugin panels. */
 export type TanStackDevtoolsTheme = 'light' | 'dark';
 
-/** Props React TanStack Devtools passes to a plugin's render function. */
 export interface TanStackDevtoolsPluginProps {
 	theme?: TanStackDevtoolsTheme;
 }
 
-/** Plugin configuration accepted by React TanStack Devtools. */
 export interface TanStackDevtoolsPlugin {
 	id?: string;
 	name: string;
@@ -220,13 +195,9 @@ export interface TanStackDevtoolsPlugin {
 	) => ReactElement;
 }
 
-/** Options for {@link c15tDevtools}. */
 export interface C15tDevtoolsPluginOptions extends C15tTanStackDevtoolsPanelProps {
-	/** Stable plugin identifier. @default 'c15t' */
 	id?: string;
-	/** Display name shown by TanStack Devtools. @default 'c15t' */
 	name?: string;
-	/** Whether TanStack Devtools opens this plugin initially. @default false */
 	defaultOpen?: boolean;
 }
 
@@ -247,7 +218,6 @@ const assignRef = (
 	}
 };
 
-/** Embeds c15t DevTools inside a TanStack Devtools plugin panel. */
 export const C15tTanStackDevtoolsPanel = forwardRef<
 	HTMLDivElement,
 	C15tTanStackDevtoolsPanelProps
@@ -312,7 +282,6 @@ export const C15tTanStackDevtoolsPanel = forwardRef<
 			return () => devTools.destroy();
 		}, [defaultTab, getDisplayedCategories, stableServices, kernel, maxEvents]);
 
-		// Inherited through the shadow root; the panel reads it as its scheme.
 		const schemeStyle = theme
 			? ({ '--c15t-dev-tools-color-scheme': theme } as CSSProperties)
 			: undefined;
@@ -327,11 +296,6 @@ export const C15tTanStackDevtoolsPanel = forwardRef<
 	}
 );
 
-/**
- * Create a c15t plugin configuration for React TanStack Devtools.
- * @param options - Plugin identity, initial state, and embedded panel options.
- * @returns Plugin configuration whose panel binds to the nearest provider.
- */
 export const c15tDevtools = (
 	options: C15tDevtoolsPluginOptions = {}
 ): TanStackDevtoolsPlugin => {
@@ -346,8 +310,6 @@ export const c15tDevtools = (
 		defaultOpen,
 		id,
 		name,
-		// Older TanStack releases pass the theme string instead of props, and
-		// some pass nothing; then the `theme` option applies.
 		render: (_element, props) =>
 			createElement(C15tTanStackDevtoolsPanel, {
 				...panelProps,
@@ -358,7 +320,6 @@ export const c15tDevtools = (
 	};
 };
 
-/** Backward-compatible alias for {@link c15tDevtools}. */
 export const c15tDevtoolsPlugin = c15tDevtools;
 
 export type {

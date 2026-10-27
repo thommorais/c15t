@@ -1,8 +1,3 @@
-/**
- * An `iab` policy in an app that mounts `<IABProvider>` beside the standard
- * surfaces, as the IAB guide shows. Nothing throws and the IAB banner
- * renders. `iab-policy-guard.test.tsx` covers the app without it.
- */
 import { MINIMAL_GVL } from '@c15t/conformance';
 import type { GlobalVendorList } from '@c15t/core';
 import { custom, deferInitGvl } from '@c15t/core';

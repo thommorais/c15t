@@ -1,28 +1,3 @@
-/**
- * The init lifecycle: everything that starts the kernel in a browser and
- * keeps it current over time.
- *
- * - `start()` marks the lifecycle started (once: browser GPC detection) and
- *   arms the deadline timer. `init()` and `hydrate()` call it; construction
- *   never does.
- * - `init()` runs one attempt against the transport, folds the complete
- *   `/init` response into one commit, and on failure applies the safe
- *   fallback and schedules a retry with exponential backoff and jitter.
- *   A 402 (payment required) is not retried.
- *   Every explicit `init()` fences older attempts: a response that resolves
- *   after a newer `init()` started applies nothing. Records the response
- *   carries apply only when the records generation, subject and user are
- *   still the ones the request was made for.
- * - The deadline timer re-evaluates when `snapshot.nextDeadline` passes.
- *   The runtime calls `armDeadline()` whenever a commit moves the deadline,
- *   so writers never re-arm by hand.
- * - One `visibilitychange` listener serves both the deadline (re-evaluate
- *   on resume, since background timers are throttled) and a retry that came
- *   due while the page was hidden. One `online` listener retries init and
- *   replays the save outbox. Both are installed only while needed.
- * - `dispose()` stops retries, the timer and the listeners. An explicit
- *   `init()` re-arms everything; `hydrate()` re-arms the timer only.
- */
 import { readPolicyResolutionWire } from '@c15t/schema/types';
 import type { PolicyResolution } from '@c15t/schema/types';
 import type { Translations } from '@c15t/translations';
@@ -53,7 +28,6 @@ import { DEFAULT_IAB } from './snapshot';
 const DEFAULT_MAX_ATTEMPTS = 5;
 const DEFAULT_BASE_DELAY_MS = 1000;
 const DEFAULT_MAX_DELAY_MS = 30_000;
-/** Longest delay `setTimeout` honors without overflowing to zero. */
 const MAX_TIMER_DELAY_MS = 2_147_483_647;
 
 interface InitRetryPolicy {
@@ -106,10 +80,6 @@ const getRetryDelay = function getRetryDelay(
 	return Math.floor(cappedDelay * jitterMultiplier);
 };
 
-/**
- * Whether a failed init is worth retrying soon. A backend that answered
- * 402 wants payment first, which seconds of backoff will not bring.
- */
 const isRetryableInitFailure = function isRetryableInitFailure(
 	error: unknown
 ): boolean {
@@ -128,8 +98,6 @@ const warnInitFailure = function warnInitFailure(
 		nextRetryMs === null
 			? 'No retry is scheduled.'
 			: `A retry is scheduled in ${nextRetryMs} ms.`;
-	// The transport's error carries the backend's own explanation, when it
-	// gave one, such as a closed account or a rate limit.
 	const cause = (error as { message?: unknown } | null)?.message;
 	const detail = typeof cause === 'string' && cause ? `\n${cause}` : '';
 	console.warn(
@@ -164,11 +132,6 @@ const isDocumentVisible = function isDocumentVisible(): boolean {
 	);
 };
 
-/**
- * Patch that clears every policy-derived field for a transport failure
- * before the safe fallback applies. A stale permissive policy must not
- * survive a failed init.
- */
 const failedResolutionPatch = function failedResolutionPatch(
 	current: ConsentSnapshot,
 	now: number
@@ -184,11 +147,6 @@ const failedResolutionPatch = function failedResolutionPatch(
 	return patch;
 };
 
-/**
- * Merge incoming init translations over the snapshot's current ones.
- * Same-language responses deep-merge so omitted keys keep their copy; a
- * language switch replaces outright.
- */
 const mergeInitTranslations = function mergeInitTranslations(
 	current: Readonly<KernelTranslations> | null,
 	incoming: KernelTranslations
@@ -209,10 +167,6 @@ const mergeInitTranslations = function mergeInitTranslations(
 	};
 };
 
-/**
- * The policy outcome a complete transport response carries, read through
- * the versioned policy reader. A missing contract fails safely.
- */
 const readInitResolution = function readInitResolution(
 	response: InitResponse
 ): PolicyResolution {
@@ -222,15 +176,6 @@ const readInitResolution = function readInitResolution(
 	return { policy: null, reason: 'invalid-payload', status: 'failed' };
 };
 
-/**
- * The patch for a complete init response, plus the issues of records it
- * refused. A complete init at least finalizes the resolution and the
- * provisional flag.
- *
- * `translationOverrides` are the app's code-level messages. They apply on
- * top of the response's copy for its language, so a backend supplies the
- * base and the app's keys still win.
- */
 // oxlint-disable-next-line complexity -- One pass over every response field keeps the fold order visible.
 const foldInitResponse = function foldInitResponse(
 	current: ConsentSnapshot,
@@ -271,7 +216,6 @@ const foldInitResponse = function foldInitResponse(
 			? (response.policySnapshotToken ?? null)
 			: null;
 
-	// IAB passthrough: fold gvl / customVendors / cmpId into the iab slice.
 	let nextIab: KernelIABState | null | undefined;
 	if (
 		response.gvlReference !== undefined ||
@@ -294,7 +238,6 @@ const foldInitResponse = function foldInitResponse(
 					? baseline.gvlReference
 					: response.gvlReference,
 		};
-		// Absent keeps the providers held, as for custom vendors.
 		if (response.adTechProviders !== undefined) {
 			nextIab.adTechProviders = response.adTechProviders;
 		}
@@ -302,7 +245,6 @@ const foldInitResponse = function foldInitResponse(
 			nextIab.gvl = response.gvl ?? null;
 			nextIab.gvlReference = response.gvlReference;
 		}
-		// Server explicitly returned `gvl: null` → IAB disabled for this request.
 		if (response.gvlReference) {
 			nextIab.enabled = true;
 		} else if (response.gvl === null) {
@@ -323,14 +265,10 @@ const foldInitResponse = function foldInitResponse(
 		patch.privacyDetected = response.resolvedPrivacySignals.gpc === true;
 	}
 
-	// Backend vendor declarations join whatever the client declared in code.
-	// Presentation from code wins; the backend fills the gaps.
 	if (
 		response.vendors !== undefined ||
 		response.vendorListVersion !== undefined
 	) {
-		// A new backend list replaces the previous one outright, so an edit or
-		// removal on the backend lands; code and script declarations survive.
 		const existing = current.vendors?.declared ?? [];
 		const resolved = resolveVendors({
 			existing:
@@ -339,9 +277,6 @@ const foldInitResponse = function foldInitResponse(
 					: withoutManifestVendors(existing),
 			manifest: response.vendors ?? [],
 		});
-		// A replacement list carries its own version or none: the previous
-		// label described the previous list. Only a version-only response
-		// keeps the current declarations under a new label.
 		const listVersion =
 			response.vendorListVersion ??
 			(response.vendors === undefined
@@ -357,11 +292,7 @@ const foldInitResponse = function foldInitResponse(
 	if (response.records) {
 		const validated = validateHydrationRecords(response.records, now);
 		if (validated.ok === true) {
-			// Server receipts merge by newest confirmation per category so a
-			// local action made before init resolved is never overwritten.
 			Object.assign(patch, foldServerRecords(current, validated.records, now));
-			// Adopting stored records is not the visitor's choice: a dialog they
-			// opened while init was in flight stays open until they save.
 			if (current.activeUI === 'dialog') {
 				patch.activeUI = 'dialog';
 			}
@@ -382,33 +313,20 @@ export interface InitLifecycleOptions {
 	runtime: KernelRuntime;
 	transport: KernelTransport | undefined;
 	initRetry: KernelConfig['initRetry'];
-	/** App message overrides applied over every init response's copy. */
 	translationOverrides?: KernelConfig['translationOverrides'];
-	/** Replayed after every completed init and when the browser is online. */
 	outbox: Pick<SaveOutbox, 'replay'>;
 }
 
 export interface InitLifecycle {
 	init: () => Promise<InitResult>;
-	/** See `InternalKernel.adoptInit`. */
 	adopt: (response: InitResponse, afterStart: boolean) => void;
-	/**
-	 * Mark the lifecycle started and arm the deadline timer. The first call
-	 * reads the browser's GPC signal. Re-arms the timer after `dispose()`.
-	 */
 	start: () => void;
-	/** Re-evaluate at `at` (default now) and re-arm the deadline timer. */
 	refresh: (at?: number) => ConsentSnapshot;
-	/** Install or re-arm the deadline timer from the current snapshot. */
 	armDeadline: () => void;
-	/** Replay the save outbox once the browser is back online. */
 	retryWhenOnline: () => void;
 	dispose: () => void;
 }
 
-/**
- * Create the init lifecycle of one kernel.
- */
 // oxlint-disable-next-line max-lines-per-function -- Retry, timer and listener state share one closure.
 export const createInitLifecycle = function createInitLifecycle({
 	runtime,
@@ -420,26 +338,14 @@ export const createInitLifecycle = function createInitLifecycle({
 	const { getSnapshot, commit, emit } = runtime;
 	const retryPolicy = resolveInitRetryPolicy(initRetry);
 	let started = false;
-	// Two stop flags on purpose. `dispose()` sets both. `init()` clears
-	// both; `hydrate()` (through `start()`) clears only the timer's, so a
-	// disposed kernel that is hydrated again keeps its deadline current but
-	// does not resume retrying init or replaying saves.
 	let disposed = false;
 	let timerStopped = false;
-	// Bumped by every explicit `init()`. An attempt that resolves after a newer
-	// init started is stale: it must not apply its response, touch retry
-	// state, or start a replay. `dispose()` deliberately leaves the generation
-	// alone so an in-flight init still lands when React StrictMode disposes
-	// and reuses the same kernel without calling init again.
 	let initGeneration = 0;
-	// The generation an adopted answer fenced: an attempt it superseded
-	// completes as the adopted answer did.
 	let adoptedGeneration = -1;
 	let deadlineTimer: ReturnType<typeof setTimeout> | null = null;
 	let pendingRetryAttempt: number | null = null;
 	let retryInFlight = false;
 	let retryTimer: ReturnType<typeof setTimeout> | null = null;
-	// The one visibility listener and why it is wanted.
 	let visibilityInstalled = false;
 	let watchDeadline = false;
 	let watchRetry = false;
@@ -486,8 +392,6 @@ export const createInitLifecycle = function createInitLifecycle({
 		if (deadline === null) {
 			return;
 		}
-		// Whole milliseconds, never below one: a deadline still in the future
-		// must not fire a zero-delay timer that re-evaluates before it passes.
 		const delay = Math.min(
 			Math.max(Math.ceil(deadline - runtime.now()), 1),
 			MAX_TIMER_DELAY_MS
@@ -541,10 +445,6 @@ export const createInitLifecycle = function createInitLifecycle({
 		return result;
 	};
 
-	/**
-	 * The result of an attempt a newer one fenced: the adopted answer's
-	 * success when an adoption fenced it, otherwise a failure.
-	 */
 	const superseded = function superseded(error: unknown): InitResult {
 		return initGeneration === adoptedGeneration
 			? { ok: true }
@@ -556,13 +456,10 @@ export const createInitLifecycle = function createInitLifecycle({
 	): Promise<InitResult> {
 		emit({ type: 'command:init:started' });
 		start();
-		// One clock read: the impression stamped here and a local finalize
-		// evaluate at the same instant.
 		const startedAt = runtime.now();
 		runtime.markLive(startedAt);
 
 		if (!transport?.init) {
-			// Finalize local init while preserving its precomputed resolution.
 			runtime.announce(
 				{ now: startedAt, policyPending: false },
 				'init:applied'
@@ -580,8 +477,6 @@ export const createInitLifecycle = function createInitLifecycle({
 				overrides: snapshot.overrides,
 				user: snapshot.user,
 			};
-			// A visitor with a stored choice is not shown the banner, so only
-			// an undecided visitor counts toward the arm.
 			if (snapshot.experiment && snapshot.explicitChoice === null) {
 				ctx.experiment = {
 					arm: snapshot.experiment.arm,
@@ -601,8 +496,6 @@ export const createInitLifecycle = function createInitLifecycle({
 				recordsGeneration === runtime.getGeneration() &&
 				snapshot.subject?.subjectId === current.subject?.subjectId &&
 				snapshot.user === current.user;
-			// Policy can still resolve after clear or identification changes,
-			// but the old request no longer owns this subject's stored records.
 			const accepted = recordsAreCurrent
 				? response
 				: { ...response, records: undefined, subjectId: undefined };
@@ -675,7 +568,6 @@ export const createInitLifecycle = function createInitLifecycle({
 		if (!isDocumentVisible()) {
 			return;
 		}
-		// Background timers are throttled; re-evaluate on resume.
 		if (watchDeadline) {
 			refresh();
 		}
@@ -733,22 +625,12 @@ export const createInitLifecycle = function createInitLifecycle({
 		if (getSnapshot().externalPermissions) {
 			return Promise.resolve({ ok: true });
 		}
-		// An explicit init re-arms a disposed kernel. React StrictMode runs
-		// effect cleanup (which disposes) and then re-mounts with the same
-		// memoized kernel and calls init again; retries must work after that.
 		disposed = false;
 		initGeneration += 1;
 		clearRetry();
 		return runInitAttempt(1);
 	};
 
-	/**
-	 * Apply an init response now, in place of the attempt that would have
-	 * fetched it, and fence any attempt already in flight. Before the
-	 * runtime starts it only commits, as construction would have, and
-	 * `start()` then treats the kernel as built from that answer; once
-	 * started it announces `init:applied` as a completed attempt does.
-	 */
 	const adopt = function adopt(
 		response: InitResponse,
 		afterStart: boolean

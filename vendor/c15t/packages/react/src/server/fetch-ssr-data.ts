@@ -98,11 +98,6 @@ const logRelevantHeaders = function logRelevantHeaders(
 	}
 };
 
-/**
- * Performs the init fetch request.
- * All async work (header resolution) should be done before calling this.
- * GVL is now included in the init response when server has it configured.
- */
 const performInitFetch = async function performInitFetch(
 	normalizedURL: string,
 	relevantHeaders: Record<string, string>,
@@ -161,45 +156,6 @@ const performInitFetch = async function performInitFetch(
 	}
 };
 
-/**
- * Fetches initial consent data on the server for SSR hydration.
- *
- * @remarks
- * This is the framework-agnostic SSR data fetching function. It accepts
- * a standard Web API Headers object and performs the fetch to the c15t backend.
- *
- * Framework-specific packages (like @c15t/nextjs) wrap this function
- * with their own header resolution logic.
- *
- * **Usage in Framework Wrappers:**
- * ```ts
- * // @c15t/nextjs
- * import { headers } from 'next/headers';
- * import { fetchSSRData } from '@c15t/react/server';
- *
- * export async function fetchInitialData(options) {
- *   const nextHeaders = await headers();
- *   return fetchSSRData({ ...options, headers: nextHeaders });
- * }
- * ```
- *
- * **Direct Usage (advanced):**
- * ```ts
- * // In any framework with access to request headers
- * import { fetchSSRData } from '@c15t/react/server';
- *
- * const data = await fetchSSRData({
- *   backendURL: '/api/consent',
- *   headers: request.headers,
- *   debug: true
- * });
- * ```
- *
- * @param options - Configuration options including backendURL, headers, overrides, and debug
- * @returns The SSR initial data or undefined if the fetch fails
- *
- * @public
- */
 export const fetchSSRData = async function fetchSSRData(
 	options: FetchSSRDataOptions
 ): Promise<SSRInitialData | undefined> {
@@ -209,15 +165,12 @@ export const fetchSSRData = async function fetchSSRData(
 		console.log('[c15t/server] SSR fetch starting...');
 	}
 
-	// Extract relevant headers from the request
 	const relevantHeaders = extractRelevantHeaders(headers, {
 		trustForwardedHeaders: options.trustForwardedHeaders,
 	});
 
 	logRelevantHeaders(relevantHeaders, debug);
 
-	// We can't fetch from the server if the headers are not present. Untrusted
-	// forwarding headers are not sent, but they still mark a live request.
 	const hasRequestHeaders =
 		Object.keys(relevantHeaders).length > 0 ||
 		CLIENT_FORWARDING_HEADERS.some((name) => headers.has(name));
@@ -230,7 +183,6 @@ export const fetchSSRData = async function fetchSSRData(
 		return undefined;
 	}
 
-	// Normalize URL synchronously
 	const normalizedURL = normalizeBackendURL(backendURL, headers, {
 		trustForwardedHeaders: options.trustForwardedHeaders,
 	});
@@ -245,8 +197,6 @@ export const fetchSSRData = async function fetchSSRData(
 		console.log(`[c15t/server] Fetching from: ${normalizedURL}/init`);
 	}
 
-	// Preserve an incoming client version; direct SSR requests use this
-	// package's version so the backend can attribute them to a release.
 	const initHeaders = { [C15T_VERSION_HEADER]: version, ...relevantHeaders };
 	if (overrides?.country) {
 		initHeaders['x-c15t-country'] = overrides.country;
@@ -267,7 +217,6 @@ export const fetchSSRData = async function fetchSSRData(
 		}
 	}
 
-	// Fetch init data (GVL is included in response when server has it configured)
 	const initResult = await performInitFetch(
 		normalizedURL,
 		initHeaders,
@@ -287,6 +236,5 @@ export const fetchSSRData = async function fetchSSRData(
 		return undefined;
 	}
 
-	// GVL is now part of the init response
 	return { gvl: init.gvl, init, metadata: initResult.metadata };
 };

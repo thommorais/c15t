@@ -1,8 +1,3 @@
-/**
- * Checks c15t's GPP encoder against the IAB reference implementation
- * (`@iabgpp/cmpapi`, a dev dependency only).
- */
-
 import { GppModel } from '@iabgpp/cmpapi';
 import { describe, expect, test } from 'vitest';
 
@@ -11,10 +6,6 @@ import type { GPPFieldValues } from '../gpp/encoder';
 import { US_SECTIONS } from '../gpp/sections';
 import type { USSectionDefinition } from '../gpp/sections';
 
-/**
- * Distinct in-range values for every field, so a field read from the wrong
- * offset shows up as a mismatch.
- */
 const sampleValues = function sampleValues(
 	definition: USSectionDefinition,
 	seed: number

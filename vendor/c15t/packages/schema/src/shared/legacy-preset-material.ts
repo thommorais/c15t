@@ -1,6 +1,5 @@
 import type { LegacyMaterialCompatibility } from './legacy-material-policy';
 
-/** Frozen preset receipt inputs. Do not update when current preset behavior changes. */
 export const legacyPresetMaterial = {
 	californiaOptIn: {
 		input: {

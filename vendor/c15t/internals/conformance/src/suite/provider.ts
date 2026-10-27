@@ -1,10 +1,3 @@
-/**
- * Provider conformance suite.
- *
- * Asserts that every framework's consent provider exposes an
- * observable consent store with the expected top-level shape.
- */
-
 import type { TestDriver } from '../driver';
 import { conformanceTest, queryByTestId, waitForCondition } from './helpers';
 import type { SuiteApi } from './helpers';

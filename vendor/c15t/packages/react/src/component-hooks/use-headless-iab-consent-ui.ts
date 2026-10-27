@@ -39,7 +39,6 @@ export const useHeadlessIABConsentUI = function useHeadlessIABConsentUI() {
 		[iab, setActiveUI]
 	);
 
-	// The surface closes in the click task; see `saveIABConsentSurface`.
 	const saveChoice = useCallback(
 		async (selection?: 'accept' | 'reject') => {
 			if (!iab) {

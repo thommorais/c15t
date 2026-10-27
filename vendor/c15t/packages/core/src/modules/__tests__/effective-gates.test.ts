@@ -263,7 +263,6 @@ describe('legitimate-interest-only IAB targets', () => {
 		10: { flexiblePurposes: [], legIntPurposes: [7], purposes: [] },
 		755: { flexiblePurposes: [2], legIntPurposes: [], purposes: [2, 8] },
 	};
-	/** An IAB kernel where the visitor refused measurement. */
 	const refusedMeasurement = (choice = true) => {
 		const resolution = matchedResolution(iabRule());
 		const kernel = createConsentKernel({
@@ -432,7 +431,6 @@ test('IAB gates apply confirmed publisher restrictions with list flexibility', (
 	});
 	expect(evaluateConsent(target, kernel.getSnapshot())).toBe(false);
 
-	// Required LI: the list marks purpose 2 flexible, so LI satisfies it.
 	installAuthority(kernel, {
 		publisherRestrictions: [
 			{ purposeId: 2, restrictionType: 2, vendorIds: [755] },

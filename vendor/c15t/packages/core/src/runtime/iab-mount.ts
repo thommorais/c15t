@@ -1,10 +1,3 @@
-/**
- * Mounting the IAB CMP for a runtime: wait until the kernel knows a
- * `cmpId` (from options or a hosted `/init`), then create the CMP with the
- * publisher's options. A runtime mounts it through the `mountIAB` module,
- * so a host that never configures IAB through the runtime ships none of
- * this.
- */
 import type { ConsentKernel } from '../types';
 import type {
 	ConsentRuntimeIABFactory,
@@ -13,14 +6,10 @@ import type {
 	RuntimeIABOptions,
 } from './types';
 
-/** Options for {@link mountRuntimeIAB}. */
 export interface RuntimeIABMountOptions {
-	/** `createIAB` from `@c15t/iab`, or a lazy factory around it. */
 	createIAB: ConsentRuntimeIABFactory;
-	/** The runtime's `iab` option. */
 	iab: Exclude<RuntimeIABOptions, false>;
 	kernel: ConsentKernel;
-	/** Called with the mounted handle, and with `null` once it is disposed. */
 	onHandle: (handle: ConsentRuntimeIABHandle | null) => void;
 }
 
@@ -53,12 +42,6 @@ const normalizeIABOptions = function normalizeIABOptions(
 	};
 };
 
-/**
- * Mount the IAB CMP once the kernel carries enough to configure it.
- *
- * @param options - See {@link RuntimeIABMountOptions}.
- * @returns Stops watching and disposes the CMP.
- */
 export const mountRuntimeIAB = function mountRuntimeIAB({
 	createIAB,
 	iab,
@@ -66,8 +49,6 @@ export const mountRuntimeIAB = function mountRuntimeIAB({
 	onHandle,
 }: RuntimeIABMountOptions): () => void {
 	let handle: ConsentRuntimeIABHandle | null = null;
-	// `createIAB` seeds the kernel synchronously, which calls this listener
-	// again before `handle` is set.
 	let mounting = false;
 	const mountWhenReady = function mountWhenReady() {
 		if (handle || mounting) {
@@ -85,8 +66,6 @@ export const mountRuntimeIAB = function mountRuntimeIAB({
 		}
 	};
 	mountWhenReady();
-	// A hosted backend can return `cmpId` and the GVL from `/init`, so keep
-	// watching until the snapshot carries enough to mount.
 	const unsubscribe = kernel.subscribe(mountWhenReady);
 	return () => {
 		unsubscribe();

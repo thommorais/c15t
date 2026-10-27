@@ -8,7 +8,6 @@ import {
 } from 'node:fs';
 import { dirname, join } from 'node:path';
 
-/** Writes framework stylesheet entrypoints using the shared UI CSS assets. */
 export const generateDistributionCss = (packageRoot: string): void => {
 	const { name: packageName } = JSON.parse(
 		readFileSync(join(packageRoot, 'package.json'), 'utf8')

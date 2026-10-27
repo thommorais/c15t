@@ -55,7 +55,6 @@ const ThemeProbe = () => {
 	return <output data-testid="theme">{JSON.stringify(theme ?? null)}</output>;
 };
 
-/** Renders the arm's tokens the way a host does: `ConsentTheme` with the resolved theme. */
 const ArmTheme = () => <ConsentTheme theme={useResolvedTheme()} />;
 
 const PresentationProbe = () => {
@@ -220,7 +219,6 @@ test('the server-resolved arm wins over a client built-in split', () => {
 			<ConsentBanner />
 		</ConsentProvider>
 	);
-	// Known on the server, so the banner renders the arm straight away.
 	expect(html).toContain('consent-banner-root');
 	expect(html).toContain('data-variant="floating"');
 });
@@ -269,8 +267,6 @@ test('built-in assignment lands after mount and is stored for the next visit', a
 });
 
 test('the arm goes out on /init and on the callbacks', async () => {
-	// Impressions are stamped once init marks the kernel live, so this
-	// transport answers init instead of relying on a prepared prefetch.
 	const offline = createOfflineTransport({
 		acknowledgeNoRecords: true,
 		policyRules: [
@@ -356,10 +352,6 @@ test('an arm theme reaches useResolvedTheme() and a ConsentTheme rendered from i
 	}
 });
 
-/**
- * A borrowed runtime lets the test decide when the arm lands: the provider
- * resolves presentation from `snapshot.experiment` either way.
- */
 const mountDraftWithLateArm = function mountDraftWithLateArm() {
 	const runtime = createConsentRuntime({
 		consentCategories: ['marketing', 'measurement'],
@@ -418,7 +410,6 @@ test('an edited draft keeps its values when the arm lands', async () => {
 		await vi.waitFor(() => expect(readText('draft')).toBe('false'));
 		document.querySelector<HTMLButtonElement>('[data-testid="edit"]')?.click();
 		mounted.assign();
-		// Give a reseed every chance to happen, then check it did not.
 		await new Promise<void>((resolve) => {
 			setTimeout(resolve, 20);
 		});
@@ -510,7 +501,6 @@ test('a disabled provider builds no experiment controller', async () => {
 			<ConsentProvider
 				options={{
 					enabled: false,
-					// A disabled provider runs no experiment, whatever its arms.
 					experiment: {
 						arms: { loud: { prompt: { primaryActions: ['accept'] } } },
 						id: 'banner-shape',
@@ -599,7 +589,5 @@ test('built-in assignment keeps the banner out of the server render', () => {
 			<ConsentBanner />
 		</ConsentProvider>
 	);
-	// The arm is picked in the browser; rendering the base banner here would
-	// show the visitor one banner and then swap it for another.
 	expect(html).not.toContain('consent-banner-root');
 });

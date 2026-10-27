@@ -28,14 +28,11 @@ beforeEach(() => {
 });
 
 afterEach(() => {
-	// A test that fails mid-way can leave a hold behind; don't let it leak
-	// into the next one.
 	releaseNetworkRequests()();
 	window.fetch = nativeFetch;
 	vi.restoreAllMocks();
 });
 
-/** Sends a tracker request from its mount effect and records the status. */
 const Beacon = ({
 	label,
 	statuses,
@@ -59,11 +56,6 @@ const HookBlocker = ({ children }: { children: ReactNode }) => {
 const trackerCalls = () =>
 	network.mock.calls.filter(([input]) => String(input).startsWith(TRACKER));
 
-/**
- * The hook's own children and a sibling rendered before it both send a
- * tracker request from their mount effects. Both effects run before the
- * hook's own effect, so a blocker installed from that effect sees neither.
- */
 const renderWithBeacons = (
 	measurement: boolean | undefined,
 	wrap: (node: ReactNode) => ReactNode = (node) => node
@@ -174,9 +166,6 @@ test('a retry after suspending does not leave the first render holding', async (
 	resume();
 	const late = window.fetch(`${TRACKER}?when=late`);
 
-	// The first render was thrown away and started a hold nothing claims.
-	// Once the retry commits and its blocker loads, the allowed request must
-	// not wait for that hold to expire.
 	await vi.waitFor(() => expect(trackerCalls()).toHaveLength(1), {
 		timeout: 3000,
 	});
@@ -213,7 +202,6 @@ test('a render React discards ends its hold on its own', async () => {
 		)
 	).rejects.toThrow('render failed before commit');
 
-	// The render held matching requests; nothing committed to take them over.
 	let sent = false;
 	const held = window.fetch(TRACKER).then((response) => {
 		sent = true;
@@ -231,17 +219,12 @@ test('a render React discards ends its hold on its own', async () => {
 		run();
 	}
 
-	// Nothing checked consent for it, so it fails as blocked instead of
-	// going out, and `fetch` is the page's own again.
 	expect(await held).toBe(451);
 	expect(trackerCalls()).toHaveLength(0);
 	expect(window.fetch).toBe(network);
 });
 
 test('a disabled provider blocker leaves the hook holding its requests', async () => {
-	// The provider's blocker mounts before its children, so it loads first.
-	// Disabled, it holds nothing, and must not end the hook's hold on its way
-	// in: the hook's requests would go out through its pass-through patch.
 	const statuses: Promise<number>[] = [];
 	render(
 		<ConsentProvider
@@ -267,15 +250,12 @@ test('a disabled provider blocker leaves the hook holding its requests', async (
 });
 
 test('unmounting the hook before its blocker loads fails its held requests closed', async () => {
-	// Another caller holds its own rules and must keep holding.
 	holdNetworkRequests([{ category: 'marketing', domain: 'ads.example' }]);
 	let adsSettled = false;
 	const ads = window.fetch('https://ads.example/pixel').finally(() => {
 		adsSettled = true;
 	});
 	const statuses: Promise<number>[] = [];
-	// The hook's chunk is cached by now, so unmount in the same task as the
-	// commit: the blocker's import cannot resolve before the cleanup runs.
 	const view = await render(
 		<ConsentProvider
 			options={{
@@ -294,7 +274,6 @@ test('unmounting the hook before its blocker loads fails its held requests close
 	);
 	view.unmount();
 
-	// Allowed by stored consent, but never checked: blocked, not sent.
 	expect(await Promise.all(statuses)).toEqual([451]);
 	expect(trackerCalls()).toHaveLength(0);
 	await new Promise((resolve) => {

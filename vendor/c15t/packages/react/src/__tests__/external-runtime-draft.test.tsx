@@ -40,7 +40,6 @@ const DraftProbe = ({
 	return <output data-testid="draft">{JSON.stringify(draft.values)}</output>;
 };
 
-/** Calls `onSwitch` from a layout effect whenever the kernel in context changes. */
 const SwitchCaller = ({ onSwitch }: { onSwitch: () => void }) => {
 	const kernel = useContext(KernelContext);
 	const previous = useRef(kernel);
@@ -54,22 +53,17 @@ const SwitchCaller = ({ onSwitch }: { onSwitch: () => void }) => {
 };
 
 type Layout = (input: {
-	/** The runtime the switching provider renders. */
 	runtime: ConsentRuntime;
-	/** The runtime the test starts on, which an outer provider keeps. */
 	first: ConsentRuntime;
 	probe: ReactNode;
 }) => ReactNode;
 
 const layouts: Record<string, Layout> = {
-	// A preference UI with its own shared draft.
 	ConsentDraftProvider: ({ runtime, probe }) => (
 		<ConsentProvider runtime={runtime}>
 			<ConsentDraftProvider>{probe}</ConsentDraftProvider>
 		</ConsentProvider>
 	),
-	// An outer draft stays bound to the outer provider's runtime, so a
-	// nested provider that switches must not inherit it.
 	'a nested ConsentDraftProvider under an outer draft': ({
 		first,
 		runtime,
@@ -83,7 +77,6 @@ const layouts: Record<string, Layout> = {
 			</ConsentDraftProvider>
 		</ConsentProvider>
 	),
-	// A hook used without a draft provider keeps a local store.
 	'the useConsentDraft fallback': ({ runtime, probe }) => (
 		<ConsentProvider runtime={runtime}>{probe}</ConsentProvider>
 	),
@@ -120,7 +113,6 @@ describe('drafts under a provider whose runtime is replaced', () => {
 				});
 			const screen = await render(tree(first));
 			try {
-				// Staged on the first runtime and never saved there.
 				draft?.set('measurement', true);
 				await vi.waitFor(() => expect(draft?.values.measurement).toBe(true));
 
@@ -147,9 +139,6 @@ describe('drafts under a provider whose runtime is replaced', () => {
 		}
 	);
 
-	// Covers every layout. Under an outer draft the pre-switch handle is the
-	// outer store, which stays live for the outer provider, so the handle
-	// itself must notice that the nested provider moved to another runtime.
 	test.each(Object.keys(layouts))(
 		'a handle kept from before the switch refuses to save (%s)',
 		async (layout) => {
@@ -171,8 +160,6 @@ describe('drafts under a provider whose runtime is replaced', () => {
 							<DraftProbe onDraft={onDraft} />
 							<SwitchCaller
 								onSwitch={() => {
-									// A descendant layout effect in the switch commit,
-									// before any passive effect of that commit runs.
 									duringCommit = retained?.save();
 								}}
 							/>
@@ -184,7 +171,6 @@ describe('drafts under a provider whose runtime is replaced', () => {
 			try {
 				draft?.set('measurement', true);
 				await vi.waitFor(() => expect(draft?.values.measurement).toBe(true));
-				// An async submit that started on the first runtime keeps this.
 				retained = draft;
 
 				await screen.rerender(tree(second));
@@ -224,8 +210,6 @@ describe('drafts under a provider whose runtime is replaced', () => {
 			const retained = draft;
 			screen.unmount();
 
-			// Same runtime: closing the dialog before an async submit finishes
-			// must not lose the visitor's choice.
 			await expect(retained?.save()).resolves.toMatchObject({ ok: true });
 			expect(
 				runtime.kernel.getSnapshot().explicitChoice?.categories.measurement

@@ -29,10 +29,6 @@ import {
 	writeStoredVendorChoice,
 } from './record-writes';
 
-/**
- * Expire every cookie. A clear keeps `<key>-sid`, so removing only the
- * records would carry one test's subject ID into the next.
- */
 const expireCookies = function expireCookies(): void {
 	for (const part of document.cookie.split(';')) {
 		const [name] = part.trim().split('=');
@@ -83,7 +79,6 @@ test.each(['all', 'none'] as const)(
 		reader.clear();
 		reader.dispose();
 		restored.dispose();
-		// A clear removes the acknowledgement and keeps the subject ID.
 		const cleared = createConsentKernel({ consentCategories: ['necessary'] });
 		const clearedHandle = createPersistence({ kernel: cleared });
 		expect(cleared.getSnapshot().subject).toEqual({ subjectId: 'canonical' });
@@ -149,8 +144,6 @@ test('a response arriving after another handle clears does not restore the visit
 	await vi.advanceTimersByTimeAsync(0);
 	const restored = createConsentKernel({ consentCategories: ['necessary'] });
 	const reader = createPersistence({ kernel: restored });
-	// The acknowledgement stays cleared. The ID is the visitor's, and a
-	// clear keeps it, so the server's name for it carries over.
 	expect(restored.getSnapshot().subject).toEqual({ subjectId: 'canonical' });
 	expect(restored.getSnapshot().noticeDismissal).toBeNull();
 	reader.dispose();
@@ -300,7 +293,6 @@ test.each([undefined, 'custom-consent'])(
 		const reader = createPersistence({ kernel: restored, storageConfig });
 		expect(restored.getSnapshot().subject?.subjectId).toBe('cookie-visitor');
 		reader.clear();
-		// Only `<key>-sid` still names the visitor after the clear.
 		const cleared = readStoredRecordsFromCookieHeader(
 			document.cookie,
 			storageConfig,
@@ -345,7 +337,6 @@ test.each([
 		handle.dispose();
 		kernel.dispose();
 		localStorage.clear();
-		// Without `<key>-sid` only the companion could name the visitor.
 		document.cookie = `${resolveStorageKeys().subject}=; max-age=0; path=/`;
 		await vi.advanceTimersByTimeAsync(1);
 		if (change === 'absent') {
@@ -378,7 +369,6 @@ test.each([
 	}
 );
 
-// A shared cookie can change independently of this origin's localStorage.
 test.each([false, true])(
 	'a canonical cookie rewrite wins after a previous dropped rewrite=%s',
 	(droppedRewrite) => {
@@ -456,8 +446,6 @@ test.each([undefined, { storageKey: 'review-custom-notice' }])(
 			readStoredRecordsFromCookieHeader(document.cookie, storageConfig, now)
 				.subject?.subjectId
 		).toBe('original');
-		// A successful retry removes the dropped-write exception. Even if a
-		// sibling later restores the original bytes, that cookie now wins.
 		writeStoredNoticeDismissal(
 			{ ...record, subject: { subjectId: 'local-canonical' } },
 			storageConfig,
@@ -514,13 +502,11 @@ test.each([undefined, { storageKey: 'subject-removal' }])(
 		expect(local?.ok && local.record.subject).toBeUndefined();
 		const kernel = createConsentKernel({ consentCategories: ['necessary'] });
 		const reader = createPersistence({ kernel, storageConfig });
-		// The removed identity stays removed; startup gives a new ID.
 		expect(kernel.getSnapshot().subject?.subjectId).toBeTruthy();
 		expect(kernel.getSnapshot().subject?.subjectId).not.toBe('original');
 		reader.dispose();
 		kernel.dispose();
 
-		// The exception is bound to cookie bytes, even without a local subject.
 		document.cookie = `${keys.noticeSubject}=${encodeNoticeSubjectCompact({ ...record, subject: { subjectId: 'server-canonical' } })}; path=/`;
 		const changed = readStoredNoticeDismissal(storageConfig, now);
 		expect(changed?.ok && changed.record.subject?.subjectId).toBe(
@@ -582,7 +568,6 @@ test.each([['necessary'], ['necessary', 'measurement']] as const)(
 		expect(subject?.externalId).toBe('account');
 		clearStoredConsentRecords();
 		handle.reconcile();
-		// The linked identity goes with the record. The ID stays.
 		expect(kernel.getSnapshot().subject).toEqual({
 			subjectId: subject?.subjectId,
 		});
@@ -616,7 +601,6 @@ test.each([
 		handle.dispose();
 		kernel.dispose();
 
-		// Neither copy of the acknowledgement brings the old ID back.
 		const keys = resolveStorageKeys();
 		const local = readStoredNoticeDismissal(undefined, Date.now());
 		expect(local?.ok && local.record.subject?.subjectId).toBe(replaced);
@@ -637,10 +621,6 @@ test.each([
 	}
 );
 
-// The browser dropped the rewrite of the notice identity cookie, or of every
-// cookie, after the save response named the canonical ID. Only localStorage
-// knows the cookies are stale, so a server render still reads the startup
-// ID from them. It must not store that ID again anywhere.
 test.each(['notice-subject', 'all'] as const)(
 	'a server render after a dropped %s cookie rewrite does not bring the startup ID back',
 	async (dropped) => {
@@ -685,9 +665,6 @@ test.each(['notice-subject', 'all'] as const)(
 			dropped === 'all' ? startup : 'canonical'
 		);
 
-		// The server renders from the cookies alone. The records win there,
-		// so the render still names the startup ID, but a subject cookie
-		// already present is never replaced.
 		const subject = resolveRequestSubject({
 			now: Date.now(),
 			request: { cookie: document.cookie, url: 'https://example.com/' },
@@ -701,7 +678,6 @@ test.each(['notice-subject', 'all'] as const)(
 		});
 		expect(state.initialRecords?.subject?.subjectId).toBe(startup);
 
-		// The browser seeded with that render resolves from storage.
 		const seeded = createConsentKernel({
 			consentCategories: ['necessary'],
 			initialRecords: state.initialRecords,
@@ -713,7 +689,6 @@ test.each(['notice-subject', 'all'] as const)(
 		expect(seeded.getSnapshot().subject?.subjectId).toBe('canonical');
 		expect(seeded.getSnapshot().explicitChoice).toBeNull();
 		expect(localStorage.getItem(keys.subject)).toBe('canonical');
-		// Startup leaves a subject cookie it cannot tell is stale alone.
 		expect(getRawCookieValue(keys.subject)).toBe(
 			dropped === 'all' ? startup : 'canonical'
 		);
@@ -730,14 +705,9 @@ test.each(['notice-subject', 'all'] as const)(
 	}
 );
 
-// `dismissNotice()` records the acknowledgement locally and never makes a
-// subject ID, so a dismissal must not mark the ID it found as one a save
-// made, which would let an older stored notice's ID replace it.
 test('dismissing a notice keeps a server-seeded subject over an older stored notice', async () => {
 	const keys = resolveStorageKeys();
 	const now = Date.now();
-	// An acknowledgement of an older policy version carried another ID, and
-	// only its localStorage copy is left.
 	writeStoredNoticeDismissal(
 		{
 			dismissedAt: now - 1000,
@@ -777,9 +747,6 @@ test('dismissing a notice keeps a server-seeded subject over an older stored not
 	restored.dispose();
 });
 
-// After `set.subjectId(null)` the acknowledgement is stored under the new
-// ID, like a choice or vendor record would be, so another tab's ID does
-// not replace it.
 test('a reset ID a notice acknowledgement carries does not follow another tab', async () => {
 	const keys = resolveStorageKeys();
 	const sent: (string | undefined)[] = [];
@@ -806,7 +773,6 @@ test('a reset ID a notice acknowledgement carries does not follow another tab', 
 	const notice = readStoredNoticeDismissal(undefined, Date.now());
 	expect(notice?.ok && notice.record.subject?.subjectId).toBe(reset);
 
-	// Another tab stores a different ID.
 	localStorage.setItem(keys.subject, 'sub_other_tab');
 	document.cookie = `${keys.subject}=sub_other_tab; path=/`;
 	window.dispatchEvent(new StorageEvent('storage', { key: keys.subject }));
@@ -834,9 +800,6 @@ test('a reset ID a notice acknowledgement carries does not follow another tab', 
 	restored.dispose();
 });
 
-// A server render seeded from a stale record cookie names another ID and
-// that ID's linked account. The browser starts with the subject its own
-// storage holds, whole: the account belongs to the stale ID.
 test.each([
 	['no linked identity', undefined],
 	[
@@ -868,7 +831,6 @@ test.each([
 			undefined,
 			now
 		);
-		// The rewrite under the local subject reaches localStorage only.
 		const setter = Object.getOwnPropertyDescriptor(
 			Document.prototype,
 			'cookie'
@@ -926,10 +888,6 @@ test.each([
 	}
 );
 
-// A consent or vendor record stored without a subject, as older versions
-// wrote them, carries no subject: the record that does carries it. A
-// running tab follows that record the way a reload and a server render
-// select it, so its next save names the same visitor.
 test.each([
 	['a notice acknowledgement', 'consent'],
 	['a notice acknowledgement', 'vendor'],
@@ -1014,8 +972,6 @@ test.each([
 			window.dispatchEvent(new Event('focus'));
 			await vi.advanceTimersByTimeAsync(0);
 		};
-		// Two pages render before either response stores `<key>-sid`, so the
-		// server names a different ID for each.
 		const firstRecords = render();
 		const otherRecords = render();
 		const first = tab(firstRecords);
@@ -1075,11 +1031,6 @@ test.each([
 	}
 );
 
-// A linked account a notice acknowledgement carries goes with it when an
-// older c15t runtime, which knows nothing of the subject companion, removes
-// the acknowledgement or writes it again without a subject. A consent or
-// vendor record stored without a subject does not keep it either. The ID
-// stays, as a reload finds it.
 test.each([
 	['no other record', 'writes it again without a subject'],
 	['no other record', 'removes it'],
@@ -1202,11 +1153,6 @@ test.each([
 	}
 );
 
-// A linked identity belongs to the source that gave it. Storage may replace
-// or clear only one it gave this runtime: the identity the records carried at
-// the last read, or the cookies a seed was read from. An identity a server
-// or `identify()` gave, or a seed from elsewhere, stays until that source,
-// a save or a clear changes it.
 const identityTab = (
 	options: Parameters<typeof createConsentKernel>[0],
 	sent: unknown[],
@@ -1270,8 +1216,6 @@ test.each([
 		);
 		localStorage.setItem(keys.subject, 'sub_s');
 		document.cookie = `${keys.subject}=sub_s; path=/`;
-		// A seed read from those cookies adds nothing to storage: storage
-		// starts it, as before.
 		const { state } = readRequestConsent({
 			adapter: '@c15t/test',
 			now,
@@ -1431,9 +1375,6 @@ test('a save before the tab syncs does not write a storage-given account back ov
 	reloaded.dispose();
 });
 
-// A runtime from before the clear epoch clears by removing the records, so
-// removing the acknowledgement drops the linked account as a clear does,
-// wherever the account came from.
 test.each([
 	'a server gave after the last read',
 	'the tab stored on the acknowledgement',
@@ -1466,7 +1407,6 @@ test.each([
 	const { subject: before } = tab.getSnapshot();
 	expect(before?.externalId).toBe('account-c');
 
-	// An older runtime removes the acknowledgement.
 	localStorage.removeItem(keys.notice);
 	document.cookie = `${keys.notice}=; max-age=0; path=/`;
 	await syncTab();
@@ -1478,9 +1418,6 @@ test.each([
 	tab.dispose();
 });
 
-// Removing the consent receipt is the one way back. With no other record
-// carrying a subject, the linked account goes with it and the ID stays, as
-// a clear leaves it, whichever source gave the account.
 test.each([
 	'a server gave after the last read',
 	'the tab stored on the receipt',
@@ -1517,7 +1454,6 @@ test.each([
 		}
 		const { subject: before } = tab.getSnapshot();
 		expect(before?.externalId).toBe('account-c');
-		// The receipt is the only record: no acknowledgement, no vendors.
 		expect(Object.keys(localStorage).sort()).toEqual([
 			keys.consent,
 			keys.subject,
@@ -1541,10 +1477,6 @@ test.each([
 	}
 );
 
-// A notice acknowledgement that did not change can become the record that
-// carries the subject: when the vendor record that did is removed, or an
-// older runtime writes it again without a subject. The subject follows it,
-// as a reload selects it.
 test.each(['removed', 'written again without a subject'] as const)(
 	'a tab follows the notice subject once the vendor record that carried another is %s',
 	async (change) => {

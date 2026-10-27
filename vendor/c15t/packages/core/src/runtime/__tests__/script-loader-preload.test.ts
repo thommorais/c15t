@@ -48,7 +48,6 @@ const consentSource = {
 	subscribe: () => () => undefined,
 };
 
-/** A prefetch under an opt-in policy, with the visitor's stored choice. */
 const prefetchFor = function prefetchFor(
 	values?: Parameters<typeof choiceRecords>[0],
 	rule: Partial<PolicyRule> = {},
@@ -67,11 +66,6 @@ const prefetchFor = function prefetchFor(
 
 const runtimes: ConsentProviderRuntime[] = [];
 
-/**
- * A provider runtime whose script loader loads on demand. `load` counts
- * the requests for its module. `preload: false` leaves out the module that
- * loads it early.
- */
 const create = function create(
 	options: Partial<ConsentProviderRuntimeOptions> = {},
 	{ preload = true }: { preload?: boolean } = {}
@@ -101,7 +95,6 @@ const create = function create(
 	return { load, runtime };
 };
 
-/** Let a streamed prefetch and the load it starts settle. */
 const settle = async (): Promise<void> => {
 	for (let turn = 0; turn < 5; turn += 1) {
 		// oxlint-disable-next-line no-await-in-loop -- Sequential turns are the point.
@@ -111,7 +104,6 @@ const settle = async (): Promise<void> => {
 	}
 };
 
-/** A marketing choice stored in localStorage only. */
 const storeChoice = function storeChoice(
 	marketing: boolean,
 	confirmedAt: number
@@ -129,7 +121,6 @@ const storeChoice = function storeChoice(
 	);
 };
 
-/** A prefetch whose server read a marketing choice at `confirmedAt`. */
 const serverChoice = function serverChoice(
 	marketing: boolean,
 	confirmedAt: number
@@ -145,7 +136,6 @@ const serverChoice = function serverChoice(
 	};
 };
 
-/** A denial stored in localStorage only, as a dropped cookie write leaves. */
 const storeDenial = function storeDenial(confirmedAt: number): void {
 	storeChoice(false, confirmedAt);
 };
@@ -222,8 +212,6 @@ describe('a provider runtime loads its script loader before start()', () => {
 		expect(load).toHaveBeenCalledTimes(1);
 	});
 
-	// No cookie reached the server, so the prefetch holds no records and
-	// persistence hydrates the stored grant in `start()`.
 	test('when localStorage holds a grant the prefetch did not read', () => {
 		storeChoice(true, NOW - 1000);
 		const { load } = create({ persistence: true, prefetch: prefetchFor() });
@@ -236,7 +224,6 @@ describe('a provider runtime loads its script loader before start()', () => {
 		});
 		runtime.start();
 		await settle();
-		// The early load and the mount's own: one `import()` specifier.
 		expect(load).toHaveBeenCalledTimes(2);
 	});
 });
@@ -272,8 +259,6 @@ describe('a provider runtime leaves its script loader to start()', () => {
 		expect(load).not.toHaveBeenCalled();
 	});
 
-	// A permissive policy allows a category nothing on the page asks about.
-	// The script asks about marketing, so the stored denial decides.
 	test('when a permissive policy keeps a stored denial for a script category', () => {
 		const { load } = create({
 			prefetch: prefetchFor({ marketing: false }, { scopeMode: 'permissive' }),
@@ -341,8 +326,6 @@ describe('a provider runtime leaves its script loader to start()', () => {
 		expect(load).not.toHaveBeenCalled();
 	});
 
-	// The cookie the server read holds a grant, but a later denial reached
-	// only localStorage. Persistence applies it in `start()`.
 	test.each([
 		['resolved', (prefetch: RuntimePrefetch) => prefetch],
 		['streamed', (prefetch: RuntimePrefetch) => Promise.resolve(prefetch)],
@@ -422,7 +405,6 @@ describe('a provider runtime leaves its script loader to start()', () => {
 		runtime.start();
 		resolveStream(prefetchFor({ marketing: true }));
 		await settle();
-		// Only the mount's own load.
 		expect(load).toHaveBeenCalledTimes(1);
 	});
 
@@ -437,11 +419,7 @@ describe('a provider runtime leaves its script loader to start()', () => {
 	});
 });
 
-// A returning visitor's newer grant reached only localStorage, and the
-// server read an older denial from the cookie.
 describe('a stored grant newer than the server read denial', () => {
-	// A ready prefetch seeds the kernel, and `start()` applies only newer
-	// stored denials over the seed, so the denial holds.
 	test('leaves the loader to start() under a resolved prefetch', () => {
 		storeChoice(true, NOW - 1000);
 		const { load } = create({
@@ -451,8 +429,6 @@ describe('a stored grant newer than the server read denial', () => {
 		expect(load).not.toHaveBeenCalled();
 	});
 
-	// A streamed runtime starts without the server's records, hydrates the
-	// stored grant, then folds the server's records in newest-wins.
 	test('loads the loader once a streamed prefetch arrives', async () => {
 		storeChoice(true, NOW - 1000);
 		const { load } = create({
@@ -478,9 +454,6 @@ describe('a stored grant newer than the server read denial', () => {
 	});
 });
 
-// The vendor list is live: `update()` hands it to the kernel `start()`
-// mounts the loader with. A stored denial counts only against a vendor
-// the visitor can turn off.
 describe('a streamed prefetch that arrives after update()', () => {
 	const vendor = function vendor(
 		disabled: boolean
@@ -532,7 +505,6 @@ describe('a streamed prefetch that arrives after update()', () => {
 	);
 });
 
-/** A GPC getter that throws, as some privacy extensions install. */
 const throwingGpc = function throwingGpc(): void {
 	Object.defineProperty(navigator, 'globalPrivacyControl', {
 		configurable: true,
@@ -551,10 +523,6 @@ describe('a throwing GPC getter', () => {
 });
 
 describe('the kernel the decision builds', () => {
-	/**
-	 * A provider runtime whose decision builds its kernels through a spy,
-	 * so the test sees each one and whether it was disposed.
-	 */
 	const createWatched = function createWatched(
 		options: Partial<ConsentProviderRuntimeOptions>,
 		failPersistence = false

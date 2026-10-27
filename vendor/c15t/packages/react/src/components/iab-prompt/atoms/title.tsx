@@ -8,11 +8,6 @@ interface IABConsentBannerTitleProps extends HTMLAttributes<HTMLHeadingElement> 
 	children: ReactNode;
 }
 
-/**
- * Title component for the IAB Consent Banner.
- *
- * @public
- */
 const IABConsentBannerTitle = createForwardRef<
 	HTMLHeadingElement,
 	IABConsentBannerTitleProps

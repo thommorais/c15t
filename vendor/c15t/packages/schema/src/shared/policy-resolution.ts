@@ -1,30 +1,3 @@
-/**
- * v3 policy resolution: matching a pack against a request's location.
- *
- * The outcome types, the versioned wire contract and the client reader live
- * in `policy-resolution-wire.ts` and are re-exported here. Resolving a pack
- * validates, normalizes and hashes authored rules, which only servers and
- * offline mode do.
- *
- * Resolution has four outcomes that never collapse into one `null`:
- *
- * - `unconfigured`: the producer had no policy system configured.
- * - `matched`: a configured rule matched.
- * - `no-match`: valid configuration, sufficient inputs, nothing matched.
- * - `failed`: invalid configuration, insufficient inputs, transport failure,
- *   or a wire the client cannot represent.
- *
- * `policy` is explicit on every outcome. `null` means "there is no policy"
- * and tells the kernel to clear policy-derived state. A missing wire is
- * never a substitute for any of these: `readPolicyResolutionWire` fails on
- * it. Old init and manifest wires are unsupported.
- *
- * Every non-matched outcome uses the safe opt-in choice fallback for runtime
- * behavior while the status stays observable. The fallback's fingerprints are
- * constants, so no consumer hashes anything on a construction, hydration or
- * render path.
- */
-
 import { FAILED_CONFIGURATION } from './policy-resolution-wire';
 import type { PolicyResolution } from './policy-resolution-wire';
 import { inspectPolicyRules, normalizePolicyRule } from './policy-rule';
@@ -78,13 +51,11 @@ const normalizeRegionCode = function normalizeRegionCode(
 	return normalized || null;
 };
 
-/** Minimal entry the matcher needs. */
 export interface PolicyMatchEntry {
 	id: string;
 	match: PolicyMatch;
 }
 
-/** Outcome of matching entries against a location. */
 export type PolicyMatchOutcome =
 	| { status: 'matched'; index: number; matchedBy: PolicyMatchedBy }
 	| { status: 'no-match' }
@@ -145,18 +116,6 @@ const matchMissingRegion = function matchMissingRegion(
 		: { index, matchedBy: 'fallback', status: 'matched' };
 };
 
-/**
- * Matches location inputs against ordered entries using the fixed precedence
- * region, country, country-specific missing-region fallback, global fallback
- * for unknown location, default. Without a country rule or region fallback,
- * a missing region is unknown when this country has configured region rules.
- *
- * @remarks
- * When the country is unknown and the pack has neither a fallback nor a
- * default, the inputs were insufficient to evaluate the country and region
- * matchers, which is a failure rather than a no-match. Entries are expected
- * to have passed {@link inspectPolicyRules}; malformed matchers are ignored.
- */
 export const matchPolicyRules = function matchPolicyRules(params: {
 	entries: readonly PolicyMatchEntry[];
 	countryCode: string | null | undefined;
@@ -203,28 +162,6 @@ export const matchPolicyRules = function matchPolicyRules(params: {
 	return { status: 'no-match' };
 };
 
-/**
- * Resolves a v3 policy pack for one request.
- *
- * @remarks
- * Synchronous. Validation failure, an unknown location without a fallback or
- * default, and no match all stay distinct. Fingerprints are computed once
- * here for the matched rule; nothing downstream needs to hash again.
- *
- * @param params - The pack (`undefined` means no policy system) and location.
- * @returns One of the four resolution outcomes. Never throws.
- * @example
- * ```ts
- * const resolution = resolvePolicyRules({
- *   rules: [policyRulePresets.europeOptIn(), policyRulePresets.worldOptOutNoPrompt()],
- *   countryCode: 'DE',
- *   regionCode: null,
- * });
- * if (resolution.status === 'matched') {
- *   resolution.fingerprints.choice;
- * }
- * ```
- */
 export const resolvePolicyRules = function resolvePolicyRules(params: {
 	rules?: unknown;
 	countryCode: string | null;

@@ -1,9 +1,3 @@
-/**
- * Tests for the useScrollLock hook.
- *
- * @packageDocumentation
- */
-
 import { useState } from 'react';
 import { describe, expect, onTestFinished, test, vi } from 'vitest';
 import { render } from 'vitest-browser-react';
@@ -22,7 +16,6 @@ const getDefined = <Value,>(
 };
 
 describe('useScrollLock', () => {
-	// Component that uses the scroll lock hook
 	const TestComponent = ({ shouldLock = true }: { shouldLock?: boolean }) => {
 		useScrollLock(shouldLock);
 
@@ -33,7 +26,6 @@ describe('useScrollLock', () => {
 		);
 	};
 
-	// Component with toggle for testing dynamic lock behavior
 	const ToggleLockComponent = () => {
 		const [locked, setLocked] = useState(false);
 		useScrollLock(locked);
@@ -101,7 +93,6 @@ describe('useScrollLock', () => {
 
 			const toggle = document.querySelector('[data-testid="toggle"]');
 
-			// Toggle on
 			await userEvent.click(getDefined(toggle));
 			await vi.waitFor(
 				() => {
@@ -110,7 +101,6 @@ describe('useScrollLock', () => {
 				{ timeout: 3000 }
 			);
 
-			// Toggle off
 			await userEvent.click(getDefined(toggle));
 			await vi.waitFor(
 				() => {
@@ -123,7 +113,6 @@ describe('useScrollLock', () => {
 
 	describe('Cleanup', () => {
 		test('should handle dynamic lock state changes', async () => {
-			// Test cleanup behavior via ToggleLockComponent
 			render(<ToggleLockComponent />);
 
 			await vi.waitFor(
@@ -136,7 +125,6 @@ describe('useScrollLock', () => {
 
 			const toggle = document.querySelector('[data-testid="toggle"]');
 
-			// Enable lock
 			await userEvent.click(getDefined(toggle));
 			await vi.waitFor(
 				() => {
@@ -145,7 +133,6 @@ describe('useScrollLock', () => {
 				{ timeout: 3000 }
 			);
 
-			// Disable lock (should cleanup)
 			await userEvent.click(getDefined(toggle));
 			await vi.waitFor(
 				() => {
@@ -154,7 +141,6 @@ describe('useScrollLock', () => {
 				{ timeout: 3000 }
 			);
 
-			// Re-enable lock (should work without issues)
 			await userEvent.click(getDefined(toggle));
 			await vi.waitFor(
 				() => {
@@ -230,10 +216,6 @@ describe('useScrollLock', () => {
 		test('keeps fixed and in-flow content still with a native scrollbar', async (context) => {
 			const screen = await render(<Page locked={false} />);
 
-			// The browser project launches Chromium with visible scrollbars, which
-			// are classic on Linux. macOS may use overlay scrollbars, which take
-			// no width and cannot shift anything, depending on the pointing
-			// device connected.
 			if (scrollbarWidth() === 0) {
 				context.skip();
 			}
@@ -247,9 +229,6 @@ describe('useScrollLock', () => {
 		});
 
 		test('keeps in-flow content still with a styled scrollbar', async () => {
-			// A `::-webkit-scrollbar` scrollbar always takes width in Chromium.
-			// On macOS no `scrollbar-gutter` holds it, so the lock pads <body>
-			// instead; on Linux the gutter holds and nothing moves.
 			const screen = await render(
 				<Page
 					locked={false}
@@ -267,7 +246,6 @@ describe('useScrollLock', () => {
 			);
 			const locked = measure();
 			expect(locked.flowRight).toBe(before.flowRight);
-			// Padding cannot hold a fixed element; the gap variable can.
 			expect(locked.fixedOffsetRight).toBe(before.fixedOffsetRight);
 
 			await screen.rerender(
@@ -285,9 +263,6 @@ describe('useScrollLock', () => {
 		] as const)(
 			'reports the padded width so fixed elements can stay still with %s zoom %s',
 			async (zoomed, zoom) => {
-				// Without `scrollbar-gutter`, the lock always pads <body>, on every
-				// platform. Zoom scales the lengths it sets, so they must not count
-				// the scrollbar twice.
 				vi.spyOn(CSS, 'supports').mockReturnValue(false);
 				const element =
 					zoomed === 'html' ? document.documentElement : document.body;
@@ -361,8 +336,6 @@ describe('useScrollLock', () => {
 
 			const flow = getDefined(document.querySelector('[data-testid="flow"]'));
 			await userEvent.wheel(flow, { delta: { y: 400 } });
-			// A blocked wheel leaves no event to wait for. Give an unblocked one
-			// time to scroll the page.
 			await new Promise((resolve) => {
 				setTimeout(resolve, 200);
 			});
@@ -407,7 +380,6 @@ describe('useScrollLock', () => {
 				{ timeout: 3000 }
 			);
 
-			// Remove one instance
 			const toggle = document.querySelector('[data-testid="toggle"]');
 			await userEvent.click(getDefined(toggle));
 

@@ -62,7 +62,6 @@ afterEach(async () => {
 	);
 });
 
-/** Builds `source` as the app entry with the plugin and returns the code. */
 const buildEntry = async (
 	root: string,
 	plugin: ReturnType<typeof consentManifest>,
@@ -109,12 +108,9 @@ describe('@c15t/core/generated in Vite', () => {
 	});
 
 	test('a build that never reads the snapshot does not fetch the manifest', async () => {
-		// hosted() and offline() read the backend URL at most. A backend
-		// that is down, or no backend URL, must not stop their builds.
 		const root = await createRoot();
 		const options = optionsFor(root);
 		options.fetch.mockRejectedValue(new Error('backend unavailable'));
-		// Like a package that exports every mode, of which the app uses one.
 		await mkdir(join(root, 'src'), { recursive: true });
 		await writeFile(
 			join(root, 'src/modes.js'),
@@ -171,9 +167,6 @@ describe('@c15t/core/generated in Vite', () => {
 	});
 
 	test("source: 'runtime' builds without fetching, for manifest({ manifestURL })", async () => {
-		// The app's manifest() discards the snapshot at runtime, but the
-		// bundle still imports it, so only the plugin option can skip the
-		// fetch.
 		const root = await createRoot();
 		const options = optionsFor(root);
 		options.fetch.mockRejectedValue(new Error('backend unavailable'));
@@ -214,7 +207,6 @@ describe('@c15t/core/generated in Vite', () => {
 			});
 		const client = await buildEntry(root, plugin(), GENERATED_ENTRY);
 		expect(client).not.toContain('build-test');
-		// The backend URL is public, so the browser still gets it.
 		expect(client).toContain('https://consent.example.com');
 		const server = await buildEntry(root, plugin(), GENERATED_ENTRY, {
 			ssr: true,
@@ -323,7 +315,6 @@ describe('@c15t/core/generated in Vite', () => {
 		const logger = createLogger();
 		const plugin = consentManifest(options);
 		await plugin.configResolved({ command: 'serve', logger, root });
-		// Dev fetches when the module is first loaded, not at startup.
 		expect(options.fetch).not.toHaveBeenCalled();
 		const source = await plugin.load.call(
 			undefined,
@@ -442,7 +433,6 @@ describe('@c15t/core/generated in Vite', () => {
 			.fn<typeof globalThis.fetch>()
 			.mockImplementation(() => Promise.resolve(Response.json(regional)));
 		const logger = createLogger();
-		// A production chunk that reads the snapshot: loaded, then rendered.
 		const load = async (
 			plugin: ReturnType<typeof consentManifest>,
 			warnings: ReturnType<typeof createLogger>,
@@ -461,7 +451,6 @@ describe('@c15t/core/generated in Vite', () => {
 			devOnly,
 			'serve'
 		);
-		// Dev loads the module for every mode, so it can't tell.
 		expect(devOnly.warn).not.toHaveBeenCalled();
 		await load(
 			consentManifest({ backendURL: 'https://consent.example.com', fetch }),
@@ -565,7 +554,6 @@ describe('@c15t/core/generated in Vite', () => {
 	});
 });
 
-/** Builds `index.html` with `source` as its module script. */
 const buildPage = async (
 	root: string,
 	plugin: ReturnType<typeof consentManifest>,
@@ -656,7 +644,6 @@ describe('initPrefetch', () => {
 		expect(html).toContain('"notice":"shop-consent-notice"');
 		expect(html).toContain('"arms":["control","wall"]');
 		expect(html).toContain('"weights":[60,40]');
-		// Only the arm names reach the page, not what each arm changes.
 		expect(html).not.toContain('"variant":"wall"');
 	});
 
@@ -674,8 +661,6 @@ describe('initPrefetch', () => {
 	});
 
 	test('leaves the script out of a build that bundles the snapshot', async () => {
-		// manifest() resolves from the snapshot, so an early /init would
-		// be a request the app may never read, counted by the backend.
 		const root = await createRoot();
 		const warn = vi.fn();
 		const html = await buildPage(
@@ -890,7 +875,6 @@ describe('node_modules/.cache/c15t output', () => {
 			defaultsFor(root),
 			createLogger()
 		);
-		// A rewrite must change this even on filesystems with coarse timestamps.
 		const previousTime = new Date('2000-01-01T00:00:00.000Z');
 		await utimes(server, previousTime, previousTime);
 		const original = await stat(server);
@@ -1316,7 +1300,6 @@ describe('readBuildEnv quoting', () => {
 });
 
 describe('readBuildEnv expansion', () => {
-	/** `${name}`, written so it is not a template placeholder here. */
 	const ref = (name: string) => `\${${name}}`;
 
 	test.each([

@@ -1,14 +1,3 @@
-/**
- * `XMLHttpRequest.prototype.{open, send}` patch installer.
- *
- * `open` runs first and stashes the (method, url) pair on the XHR
- * instance via Symbol-keyed properties (so we don't collide with
- * userland keys). `send` reads them back and runs the gate.
- *
- * Blocked XHR is signaled via `abort()` plus a synthetic
- * `ProgressEvent('error')` to match what consumers see when the
- * network actually fails — v2 parity.
- */
 import type { ConsentSnapshot } from '../../types';
 import { evaluateBlock } from './decide';
 import type { XHR_REQUEST, XhrStash } from './hold';
@@ -28,19 +17,9 @@ export interface XhrPatchDeps {
 		NetworkBlockerTools,
 		'evaluate' | 'failBlockedXhr' | 'stashXhr' | 'xhrRequest'
 	>;
-	/**
-	 * Promise that settles once consent is known, or `null` when it already
-	 * is. An async XHR that would be blocked waits for it and is evaluated
-	 * again. A synchronous XHR cannot wait and is blocked.
-	 */
 	whenSettled?: () => Promise<void> | null;
 }
 
-/**
- * Install the XHR `open` + `send` patches. Returns a teardown fn that
- * restores the original prototype methods when the patches are still
- * the active wrappers.
- */
 export const installXhrPatch = function installXhrPatch(
 	deps: XhrPatchDeps
 ): () => void {

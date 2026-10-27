@@ -186,7 +186,6 @@ describe('recordCategoryPatch: material changes', () => {
 			kind: 'choice',
 			reason: 'policy-changed',
 		});
-		// A reload of the same mixed record evaluates identically.
 		expect(evaluate(JSON.parse(JSON.stringify(mixed)))).toEqual(first);
 	});
 });

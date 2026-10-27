@@ -1,9 +1,3 @@
-/**
- * Group A schema vectors. Inputs describe policy rules, not wire field names;
- * the schema suite maps these through the finalized public schema builder.
- */
-
-/** All model/prompt pairs: `none` allows only a `none` prompt, and `notice` is a prompt, never a model. */
 export const POLICY_MODEL_PROMPT_CASES = [
 	{ model: 'opt-in', prompt: 'choice', valid: true },
 	{ model: 'opt-in', prompt: 'notice', valid: false },
@@ -20,7 +14,6 @@ export const POLICY_MODEL_PROMPT_CASES = [
 	{ model: 'none', prompt: 'notice', valid: false },
 ] as const;
 
-/** Validate before hashing; duplicate GPC mappings are errors, not repairs. */
 export const POLICY_GPC_MAPPING_CASES = [
 	{ denyCategories: ['marketing', 'measurement'], valid: true },
 	{ denyCategories: ['necessary'], valid: false },
@@ -29,7 +22,6 @@ export const POLICY_GPC_MAPPING_CASES = [
 	{ denyCategories: ['experience'], valid: false },
 ] as const;
 
-/** Exact browser/header values, separate from explicit developer overrides. */
 export const POLICY_GPC_DETECTION_CASES = [
 	{ detected: true, source: 'navigator', value: true },
 	{ detected: false, source: 'navigator', value: false },
@@ -40,7 +32,6 @@ export const POLICY_GPC_DETECTION_CASES = [
 	{ detected: false, source: 'header', value: 'true' },
 ] as const;
 
-/** Canonical set representations used by fingerprint producers. */
 export const POLICY_CANONICAL_SET_CASES = [
 	{
 		expected: ['marketing', 'measurement'],
@@ -64,12 +55,6 @@ export const POLICY_CANONICAL_SET_CASES = [
 	},
 ] as const;
 
-/**
- * Compare each mutation to the same policy with choice and notice domains.
- * `changed` and `unchanged` name required comparisons. Unlisted domains
- * impose no assertion, so these fixtures follow the accepted fingerprint input domains.
- * Presentation is computed for these diagnostics tests only.
- */
 export const POLICY_FINGERPRINT_CASES = [
 	{
 		changed: ['presentation'],

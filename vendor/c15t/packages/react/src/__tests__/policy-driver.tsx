@@ -189,9 +189,7 @@ const getDom = (kernel: ConsentKernel): PolicyDomEvidence => {
 	};
 };
 
-/** Execute raw shared scenarios against a mounted React provider and real controls. */
 export const createPolicySession: CreatePolicySession = async (setup) => {
-	// Compare action styling without a pointer left over a previous control.
 	await userEvent.hover(document.documentElement, { position: { x: 1, y: 1 } });
 	let resolution = prepare(setup.policy);
 	let response: InitResponse = {
@@ -206,11 +204,6 @@ export const createPolicySession: CreatePolicySession = async (setup) => {
 	let failTransport = false;
 	let presentation: ConsentPresentation | undefined;
 	let kernel: ConsentKernel;
-	/**
-	 * The provider publishes the kernel from an effect after render or
-	 * hydration; under load that effect can land after the first settle, so
-	 * every mount path waits for it before touching the kernel.
-	 */
 	const waitForKernel = (previous: ConsentKernel | undefined) =>
 		vi.waitFor(
 			() => {
@@ -258,9 +251,7 @@ export const createPolicySession: CreatePolicySession = async (setup) => {
 		keys.consent,
 		legacyKey,
 		`${keys.consent}-notice`,
-		// A clear's epoch outlives it and would void the next seed's records.
 		keys.epoch,
-		// A clear keeps the subject ID; the next scenario is a new visitor.
 		keys.subject,
 	]) {
 		localStorage.removeItem(key);
@@ -408,8 +399,6 @@ export const createPolicySession: CreatePolicySession = async (setup) => {
 						onPermissionsChanged: (payload) =>
 							callbacks.push({ name: 'onPermissionsChanged', payload }),
 					},
-					// The shared policy scenarios review the full scope, independently
-					// of the marketing-only integrations used to probe gates.
 					consentCategories: [
 						'necessary',
 						'functionality',
@@ -555,8 +544,6 @@ export const createPolicySession: CreatePolicySession = async (setup) => {
 				}
 				return control;
 			},
-			// Browser conformance runs share a machine with every other suite;
-			// controls can take more than the default second to appear.
 			{ interval: 50, timeout: 5000 }
 		);
 		button.click();
@@ -779,7 +766,6 @@ export const createPolicySession: CreatePolicySession = async (setup) => {
 	};
 };
 
-/** Probe canonical schema and storage implementations, independently of lifecycle scenarios. */
 export const probePolicyContract: ProbePolicyContract = async (input) => {
 	const base = {
 		categories: ['marketing', 'measurement'],

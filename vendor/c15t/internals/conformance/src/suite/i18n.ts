@@ -1,12 +1,3 @@
-/**
- * i18n conformance suite.
- *
- * Iterates the locale matrix (LTR + RTL + long-string locale) and asserts:
- * - Visible banner text matches the translations fixture.
- * - `dir="rtl"` propagates from document/provider to the rendered tree
- *   when the locale is RTL.
- */
-
 import type { TestDriver } from '../driver';
 import { LOCALE_FIXTURES } from '../fixtures/locales';
 import { conformanceTest } from './helpers';
@@ -22,16 +13,9 @@ const findDirRoot = function findDirRoot(
 	if (local) {
 		return local;
 	}
-	// Banner/dialog portals render outside the mount container (to document.body),
-	// so fall through to the document body as a secondary lookup.
 	return document.body.querySelector<HTMLElement>('[dir]');
 };
 
-/**
- * Banner/dialog components render via portal to document.body. Tests that
- * probe for visible translated text must look at the document, not just
- * the mount container the driver returned.
- */
 const visibleText = function visibleText(mountRoot: HTMLElement): string {
 	const direct = mountRoot.textContent ?? '';
 	const portaled = document.body.textContent ?? '';
@@ -87,8 +71,6 @@ export const runI18nConformance = function runI18nConformance(
 					api,
 					`${locale.code}: RTL locale propagates dir="rtl" to rendered tree`,
 					async () => {
-						// Driver mount is called first so stub frameworks (vue/solid) cascade
-						// to [todo] via DriverNotImplementedError before any DOM access.
 						const mounted = await driver.mount({
 							component: 'consent-banner',
 							locale: locale.code,

@@ -72,11 +72,9 @@ describe('resolveStyles', () => {
 					baseClassName: 'base-class',
 					className: 'component-class',
 				},
-				// contextNoStyle
 				true
 			);
 			expect(result.noStyle).toBe(true);
-			// Base classes should be included in the merge, but noStyle flag is set
 			expect(result.className).toContain('component-class');
 		});
 
@@ -134,7 +132,6 @@ describe('resolveStyles', () => {
 	describe('precedence', () => {
 		test('component style takes precedence over theme', () => {
 			const result = resolveStyles('dialogCard', mockTheme, {
-				// Override theme's blue
 				style: { color: 'red' },
 			});
 			expect(result.style?.color).toBe('red');
@@ -145,7 +142,6 @@ describe('resolveStyles', () => {
 				baseClassName: 'base-class',
 				className: 'component-class',
 			});
-			// The exact order depends on the merge logic
 			expect(result.className).toContain('theme-dialog-class');
 			expect(result.className).toContain('component-class');
 		});

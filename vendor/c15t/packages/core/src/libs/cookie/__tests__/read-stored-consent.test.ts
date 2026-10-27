@@ -1,8 +1,3 @@
-/**
- * `readStoredRecords` is the hydration read path. It must never write:
- * no legacy-key migration, no cookie/localStorage mirroring, and no
- * deletion of v1.x records. See c15t/c15t#1025.
- */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { setCookie } from '..';
@@ -55,7 +50,6 @@ describe('readStoredRecords', () => {
 			ORIGINAL_TIME
 		);
 		expect(result.records.choice?.categories.marketing?.value).toBe(true);
-		// Partial JSON preserves absent category coverage.
 		expect(result.records.choice?.categories.measurement).toBeUndefined();
 		expect(document.cookie).toBe('');
 		expect(window.localStorage.getItem(STORAGE_KEY_V2)).toBe(

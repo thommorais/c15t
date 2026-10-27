@@ -10,7 +10,6 @@ import {
 import { createConsentKernel } from '../../index';
 import type { KernelEvent } from '../../types';
 
-/** Save through the kernel and report what the action recorded. */
 const recordSave = async function recordSave(
 	kernel: ReturnType<typeof createConsentKernel>,
 	...args: Parameters<

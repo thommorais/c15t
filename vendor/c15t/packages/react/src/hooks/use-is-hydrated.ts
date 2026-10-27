@@ -10,13 +10,6 @@ const subscribe = (onStoreChange: () => void) => {
 const getClientSnapshot = () => true;
 const getServerSnapshot = () => false;
 
-/**
- * Returns true after the component has hydrated on the client.
- *
- * @returns Whether the current render is client-hydrated.
- *
- * @internal
- */
 export const useIsHydrated = function useIsHydrated(): boolean {
 	return useSyncExternalStore(subscribe, getClientSnapshot, getServerSnapshot);
 };

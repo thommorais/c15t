@@ -197,7 +197,6 @@ describe('Theme regressions', () => {
 				<ConsentBannerTitle data-testid="nostyle-banner-title">
 					Banner title
 				</ConsentBannerTitle>
-				{/* ConsentDialogHeaderTitle pins its own data-testid after props */}
 				<ConsentDialogHeaderTitle>Dialog title</ConsentDialogHeaderTitle>
 				<ConsentWidgetAccordion data-testid="nostyle-accordion">
 					<div>Accordion content</div>

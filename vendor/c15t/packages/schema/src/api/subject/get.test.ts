@@ -4,8 +4,6 @@ import { describe, expect, it } from 'vitest';
 import { getSubjectOutputSchema } from './get';
 
 describe('getSubjectOutputSchema', () => {
-	// 3.0.0-alpha.0 to alpha.3 backends return `privacyDirectives`. A newer
-	// client talking to one of them must parse the response and ignore it.
 	it('accepts and drops privacyDirectives from older alpha backends', () => {
 		const result = v.safeParse(getSubjectOutputSchema, {
 			consents: [],

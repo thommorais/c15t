@@ -126,8 +126,6 @@ describe('buildSetters', () => {
 		expect(kernel.getSnapshot().effectivePermissions.marketing).toBe(true);
 		expect(kernel.getSnapshot().nextDeadline).toBe(NOW + DAY);
 
-		// The deadline timer has not fired yet; the toggle carries the clock,
-		// so the expired grant is re-evaluated in the same commit.
 		vi.spyOn(Date, 'now').mockReturnValue(NOW + 2 * DAY);
 		kernel.set.activeUI('dialog');
 		const snapshot = kernel.getSnapshot();

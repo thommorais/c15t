@@ -11,9 +11,6 @@ import {
 } from '../assertions/focus';
 import { assertEscapeDismisses } from '../assertions/keyboard';
 
-/**
- * DOM contract check for the opened consent dialog.
- */
 export const dialogContract: PlayFunction = async () => {
 	const body = within(document.body);
 	await userEvent.click(
@@ -49,7 +46,6 @@ export const dialogContract: PlayFunction = async () => {
 			).toBeGreaterThan(0);
 		}
 	});
-	// Native controls must work through browser keyboard activation, separately.
 	const trigger = body.getByTestId(
 		'consent-widget-accordion-trigger-functionality'
 	);
@@ -73,9 +69,6 @@ export const dialogContract: PlayFunction = async () => {
 	root.focus();
 };
 
-/**
- * Opens the dialog via banner customize, clicks save, verifies the dialog closes.
- */
 export const saveFlow: PlayFunction = async () => {
 	const body = within(document.body);
 	await userEvent.click(
@@ -90,9 +83,6 @@ export const saveFlow: PlayFunction = async () => {
 	});
 };
 
-/**
- * Open dialog, press Escape, verify it closes.
- */
 export const dialogEscapeCloses: PlayFunction = async () => {
 	const body = within(document.body);
 	await userEvent.click(
@@ -102,16 +92,6 @@ export const dialogEscapeCloses: PlayFunction = async () => {
 	await assertEscapeDismisses(document.body, 'consent-dialog-root');
 };
 
-/**
- * Opens the dialog from the persistent floating trigger, verifies initial
- * focus lands on the dialog container, then verifies Escape returns focus to
- * the trigger.
- *
- * Uses the trigger (not the banner customize button) because the banner is
- * dismissed for good when the dialog closes, so it is the only opener that
- * exists again after close. The trigger itself unmounts while the dialog is
- * open and re-renders on close; `setupFocusTrap` re-targets it by testid.
- */
 export const dialogFocusManagement: PlayFunction = async () => {
 	const body = within(document.body);
 	const trigger = await body.findByTestId('consent-dialog-trigger');

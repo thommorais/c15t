@@ -1,9 +1,3 @@
-/**
- * IAB Storage E2E Tests
- *
- * Browser-based tests for TC String storage compliance.
- */
-
 import { userEvent } from '@vitest/browser/context';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { render } from 'vitest-browser-react';
@@ -45,7 +39,6 @@ describe('IAB Storage E2E Tests', () => {
 			await userEvent.click(acceptButton);
 			await waitForElementRemoved('[data-testid="iab-consent-banner-card"]');
 
-			// Wait for localStorage to be updated
 			await vi.waitFor(
 				() => {
 					const stored = getStoredConsent();
@@ -75,7 +68,6 @@ describe('IAB Storage E2E Tests', () => {
 			await userEvent.click(acceptButton);
 			await waitForElementRemoved('[data-testid="iab-consent-banner-card"]');
 
-			// Verify TC string storage
 			const tcString = await vi.waitFor(
 				() => {
 					const stored = getStoredTCString();
@@ -112,8 +104,6 @@ describe('IAB Storage E2E Tests', () => {
 				{ timeout: 2000 }
 			);
 
-			// TC strings are base64url encoded with dots as section separators
-			// Format: core.disclosedVendors.allowedVendors.publisherTC
 			const tcStringRegex = /^[A-Za-z0-9_-]+(?<capture1>\.[A-Za-z0-9_-]+)*$/u;
 			expect(tcString).toMatch(tcStringRegex);
 		});
@@ -133,13 +123,11 @@ describe('IAB Storage E2E Tests', () => {
 			);
 			await waitForCMP();
 
-			// Before action
 			expect(getStoredConsent()).toBeNull();
 
 			await userEvent.click(acceptButton);
 			await waitForElementRemoved('[data-testid="iab-consent-banner-card"]');
 
-			// After action
 			await vi.waitFor(
 				() => {
 					expect(getStoredConsent()).not.toBeNull();
@@ -161,7 +149,6 @@ describe('IAB Storage E2E Tests', () => {
 			);
 			await waitForCMP();
 
-			// Before action
 			expect(getStoredConsent()).toBeNull();
 
 			await userEvent.click(rejectButton);
@@ -266,7 +253,6 @@ describe('IAB Storage E2E Tests', () => {
 			await waitForElementRemoved('[data-testid="iab-consent-banner-card"]');
 			await vi.waitFor(() => expect(getStoredTCString()).not.toBeNull());
 			await firstVisit.unmount();
-			// A reload starts without the previous page's CMP.
 			delete (window as { __tcfapi?: unknown }).__tcfapi;
 
 			render(
@@ -305,7 +291,6 @@ describe('IAB Storage E2E Tests', () => {
 			await userEvent.click(acceptButton);
 			await waitForElementRemoved('[data-testid="iab-consent-banner-card"]');
 
-			// Should use c15t key
 			await vi.waitFor(
 				() => {
 					expect(getStoredConsent()).not.toBeNull();
@@ -330,7 +315,6 @@ describe('IAB Storage E2E Tests', () => {
 			await userEvent.click(acceptButton);
 			await waitForElementRemoved('[data-testid="iab-consent-banner-card"]');
 
-			// Should use euconsent-v2 key (IAB standard)
 			await vi.waitFor(
 				() => {
 					expect(window.localStorage.getItem('euconsent-v2')).not.toBeNull();

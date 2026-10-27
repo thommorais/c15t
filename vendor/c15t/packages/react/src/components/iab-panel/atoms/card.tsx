@@ -23,14 +23,6 @@ interface IABConsentDialogCardProps extends HTMLAttributes<HTMLDivElement> {
 	'data-testid'?: string;
 }
 
-/**
- * Card component for the IAB Consent Dialog.
- *
- * @remarks
- * Main container for the consent dialog content. Handles focus trap when trapFocus is enabled.
- *
- * @public
- */
 const IABConsentDialogCard = createForwardRef<
 	HTMLDivElement,
 	IABConsentDialogCardProps
@@ -71,12 +63,8 @@ const IABConsentDialogCard = createForwardRef<
 	});
 
 	return (
-		// A `div`, not a `dialog`: the user agent's dialog padding is 1em,
-		// which the card sets for itself.
 		<div
 			ref={setCardRef}
-			// The default header renders this id; a caller's own
-			// `aria-describedby` in the slot props wins over it.
 			aria-describedby="iab-consent-dialog-description"
 			{...themedStyle}
 			aria-label={iabTranslations.preferenceCenter.title}

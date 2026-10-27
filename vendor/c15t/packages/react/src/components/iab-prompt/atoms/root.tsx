@@ -30,15 +30,7 @@ interface IABConsentBannerRootProps extends HTMLAttributes<HTMLDivElement> {
 	disableAnimation?: boolean;
 	scrollLock?: boolean;
 	trapFocus?: boolean;
-	/**
-	 * Which consent models this banner responds to.
-	 * @default ['iab']
-	 */
 	models?: C15tCoreTypes.Model[];
-	/**
-	 * Override the UI source identifier sent with consent API calls.
-	 * @default 'iab_banner'
-	 */
 	uiSource?: string;
 }
 
@@ -67,14 +59,12 @@ const IABConsentBannerRootChildren = createForwardRef<
 		const model = useModel();
 		const translations = useTranslations();
 		const textDirection = useTextDirection(translations?.language ?? 'en');
-		// IAB banner shows when activeUI is 'banner' and the current model matches
 		const sheetsReady = useSurfaceSheetsReady(IAB_FIRST_PAINT_SHEETS, noStyle);
 		const shouldShowBanner =
 			sheetsReady &&
 			model !== null &&
 			activeUI === 'banner' &&
 			models.includes(model);
-		// A banner that arrives after the page painted fades in.
 		const lateEntry = useLateEntry(shouldShowBanner) && !disableAnimation;
 		const contentStyle = mergeSlotProps(components?.['iab-banner']?.root, {
 			baseClassName: [styles.root],
@@ -91,8 +81,6 @@ const IABConsentBannerRootChildren = createForwardRef<
 			return null;
 		}
 
-		// Rendered inline rather than through a portal so the banner exists in
-		// server HTML; the stylesheet positions it with `position: fixed`.
 		return (
 			<>
 				<SurfaceStyles
@@ -171,10 +159,6 @@ interface IABConsentBannerRootChildrenProps extends HTMLAttributes<HTMLDivElemen
 	children: ReactNode;
 	noStyle?: boolean;
 	disableAnimation?: boolean;
-	/**
-	 * Which consent models this banner responds to.
-	 * @default ['iab']
-	 */
 	models?: C15tCoreTypes.Model[];
 }
 

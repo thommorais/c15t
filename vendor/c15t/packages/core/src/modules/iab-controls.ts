@@ -1,18 +1,12 @@
 import type { ConsentKernel } from '../types';
 
-/** Operations supplied by the provider's existing IAB module. */
 export interface KernelIABControls {
-	/**
-	 * Wait for the public vendor list before applying selections.
-	 * @returns A promise that resolves when the list is ready for selections.
-	 */
 	whenReady?: () => Promise<void>;
 	setVendorConsent: (id: string | number, value: boolean) => void;
 	setVendorLegitimateInterest: (id: string | number, value: boolean) => void;
 	setPurposeConsent: (id: number, value: boolean) => void;
 	setPurposeLegitimateInterest: (id: number, value: boolean) => void;
 	setSpecialFeatureOptIn: (id: number, value: boolean) => void;
-	/** Set consent for a Google ad tech provider (Additional Consent). */
 	setAdTechProviderConsent?: (id: number, value: boolean) => void;
 	acceptAll: () => void;
 	rejectAll: () => void;
@@ -40,18 +34,10 @@ const notify = (registration: Registration): void => {
 		try {
 			listener();
 		} catch {
-			// Inspection must not interrupt the provider's lifecycle.
 		}
 	}
 };
 
-/**
- * Connects an IAB module to inspection tools without a second CMP instance.
- * @param kernel - The module's consent kernel.
- * @param controls - Operations owned by the module.
- * @returns Cleanup that removes only this registration.
- * @internal
- */
 export const registerIABControls = (
 	kernel: ConsentKernel,
 	controls: KernelIABControls
@@ -67,21 +53,10 @@ export const registerIABControls = (
 	};
 };
 
-/**
- * Reads the IAB operations already attached to a kernel.
- * @param kernel - The provider's kernel.
- * @returns Its controls, or undefined before initialization/after disposal.
- */
 export const getIABControls = (
 	kernel: ConsentKernel
 ): KernelIABControls | undefined => registrations.get(kernel)?.controls;
 
-/**
- * Observes IAB module registration and disposal, including lazy initialization.
- * @param kernel - The provider's kernel.
- * @param listener - Called when the available controls change.
- * @returns Subscription cleanup.
- */
 export const subscribeIABControls = (
 	kernel: ConsentKernel,
 	listener: () => void

@@ -129,7 +129,6 @@ describe('readStoredRecordsFromCookieHeader', () => {
 			fingerprint: 'notice-fp',
 			version: 1,
 		});
-		// The compact form an earlier v3 alpha wrote for a standing directive.
 		const privacy = `v=1&d=gpc.${NOW - 2000}.mk`;
 		const header = `${STORAGE_KEY_V2}=${choice}; ${STORAGE_KEY_V2}-notice=${notice}; ${STORAGE_KEY_V2}-privacy=${privacy}`;
 		const records = readStoredRecordsFromCookieHeader(header, undefined, NOW);

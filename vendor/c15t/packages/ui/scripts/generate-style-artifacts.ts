@@ -1,41 +1,3 @@
-/**
- * Post-build script for @c15t/ui component styles.
- *
- * Rslib already compiles CSS Modules to hashed class maps, but it emits
- * implementation-shaped filenames (`*.module.js`, `*_module.css`) and leaves
- * the source `.module.css` files as the public package target. This normalizes
- * the publish surface to per-component class-map modules plus plain CSS:
- *
- *   dist/styles/components/<name>.js
- *   dist/styles/components/<name>.node.js
- *   dist/styles/components/<name>.css
- *   dist/styles/components/<name>.d.ts
- *
- * Class maps carry no CSS side-effect import. Component rules reach the page
- * through the aggregated stylesheet (`styles.css`, `styles.tw3.css`, and the
- * IAB variants), which `generate-css-entrypoints.ts` builds from these same
- * `<name>.css` files together with the default theme tokens and primitive
- * rules. React, Next.js, TanStack Start, Svelte and Astro document one
- * app-level import of it. A class map that also imported its own CSS made
- * bundlers emit a second copy of the same rules in a separate asset.
- *
- * `<name>.css` stays published. Vue components import it next to each class
- * map, because Vue apps load no aggregate (Vue supplies the default tokens at
- * runtime). Hosts that assemble their own stylesheet can import it too; it
- * holds only that component's rules, without the default tokens or primitive
- * rules.
- *
- * `<name>.node.js` is byte-identical to `<name>.js`. It stays published
- * because the `node` export condition and the explicit `*.node.js` subpaths
- * point at it.
- *
- * Relative `@import`s (the shared `animations/*.css` files) are inlined into
- * each component's CSS so every artifact is self-contained.
- *
- * Each `<name>.css` opens with Tailwind 4's layer order and keeps its rules
- * in `@layer components`, the same shape as the aggregates, so a Vue app's
- * utilities override c15t whichever stylesheet the bundler links first.
- */
 import {
 	existsSync,
 	readdirSync,
@@ -94,13 +56,6 @@ const inlineRelativeCssImports = function inlineRelativeCssImports(
 	);
 };
 
-/**
- * Give a component stylesheet the aggregates' layer shape: the layer order
- * statement first, and every rule in `@layer components`. A source without
- * a `components` layer (the dialog trigger inlines its variables into its
- * selectors) is wrapped whole, which is how `styles.css` already carries it.
- * A re-run on an already layered artifact leaves it unchanged.
- */
 const toLayeredComponentCss = function toLayeredComponentCss(
 	css: string
 ): string {
@@ -120,15 +75,6 @@ const normalizeStyleModule = function normalizeStyleModule(
 		.replace(new RegExp(`\\./${name}\\.module\\.css`, 'gu'), `./${name}.css`);
 };
 
-/**
- * Drop the `import "./<name>.css"` side effect from a normalized class map.
- *
- * Fresh rslib output (`<name>.module.js`) always carries that import, so its
- * absence there throws: a change to the rslib output shape must not slip
- * through as a class map that still imports some other stylesheet. A class
- * map this script already normalized (a re-run without a rebuild) has no
- * import left and passes through unchanged.
- */
 const stripCssImport = function stripCssImport(
 	source: string,
 	name: string,

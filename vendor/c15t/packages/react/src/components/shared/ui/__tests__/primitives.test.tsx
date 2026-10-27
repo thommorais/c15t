@@ -1,9 +1,3 @@
-/**
- * Comprehensive tests for shared UI primitives (Button, Switch, Accordion).
- *
- * @packageDocumentation
- */
-
 import type { ReactNode, RefObject } from 'react';
 import { describe, expect, test, vi } from 'vitest';
 import { render } from 'vitest-browser-react';
@@ -51,7 +45,6 @@ import {
 	Trigger as TabsTrigger,
 } from '../tabs/tabs';
 
-// Wrapper to provide theme context for accordion tests
 const ThemeWrapper = ({ children }: { children: ReactNode }) => (
 	<StableGlobalThemeProvider value={{ noStyle: false }}>
 		{children}
@@ -157,7 +150,6 @@ describe('Button', () => {
 				() => {
 					const button = document.querySelector('button');
 					expect(button).toBeInTheDocument();
-					// When noStyle is true, only the custom className should be applied
 					expect(button?.className).toBe('only-this-class');
 				},
 				{ timeout: 3000 }
@@ -530,7 +522,6 @@ describe('Accordion', () => {
 				{ timeout: 3000 }
 			);
 
-			// Click the second item
 			const triggers = document.querySelectorAll('button');
 			const secondTrigger = triggers.item(1);
 			expect(secondTrigger).toBeInstanceOf(HTMLElement);
@@ -539,7 +530,6 @@ describe('Accordion', () => {
 			}
 			await userEvent.click(secondTrigger);
 
-			// First item should now be closed, second should be open
 			await vi.waitFor(
 				() => {
 					const firstTrigger = document.querySelector(
@@ -594,7 +584,6 @@ describe('Accordion', () => {
 				{ timeout: 3000 }
 			);
 
-			// Click both triggers, waiting for state to settle between clicks
 			const triggers = document.querySelectorAll('button');
 			const firstTrigger = triggers.item(0);
 			expect(firstTrigger).toBeInstanceOf(HTMLElement);
@@ -618,7 +607,6 @@ describe('Accordion', () => {
 			}
 			await userEvent.click(secondTrigger);
 
-			// Both should be open
 			await vi.waitFor(
 				() => {
 					const openTriggers = document.querySelectorAll(
@@ -695,7 +683,6 @@ describe('Accordion', () => {
 				{ timeout: 3000 }
 			);
 
-			// Query fresh reference right before clicking to avoid stale node
 			const trigger = document.querySelector('button[aria-expanded="false"]');
 			expect(trigger).toBeInstanceOf(HTMLElement);
 			if (!trigger) {
@@ -846,8 +833,6 @@ describe('Dialog', () => {
 		await vi.waitFor(() => {
 			const dialog = document.querySelector('dialog[open]');
 			expect(dialog).toBeInTheDocument();
-			// Focus trap moves focus into the dialog — either to the
-			// initialFocusRef element or to the dialog container itself.
 			expect(dialog?.contains(document.activeElement)).toBe(true);
 		});
 	});

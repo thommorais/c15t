@@ -1,10 +1,3 @@
-/**
- * The IAB part of the browser manifest resolver: the Global Vendor List an
- * IAB policy needs. IAB is opt-in, so the resolver loads this module only
- * for a manifest with IAB enabled.
- *
- * @internal
- */
 import type { ConsentManifest, InitOutput } from '@c15t/schema/types';
 
 import {
@@ -13,22 +6,11 @@ import {
 } from './ad-tech-provider-cache';
 import { fetchCachedGvl } from './gvl-cache';
 
-/**
- * Add the vendor list, and any Google Additional Consent providers the
- * manifest lists, to an init output that resolved to an IAB policy.
- *
- * @param output - The init output, changed in place.
- * @param manifest - The manifest it resolved from.
- * @param fetchImpl - Fetch implementation for the vendor list request.
- * @internal
- */
 export const attachVendorList = async function attachVendorList(
 	output: InitOutput,
 	manifest: ConsentManifest,
 	fetchImpl: typeof globalThis.fetch
 ): Promise<void> {
-	// No c15t headers: a plain GET stays a CORS simple request, so a provider
-	// list on another origin needs no preflight.
 	const providers = loadManifestAdTechProviders(manifest, output, (reference) =>
 		fetchCachedAdTechProviders({ fetch: fetchImpl, reference })
 	);
@@ -37,8 +19,6 @@ export const attachVendorList = async function attachVendorList(
 		output.policyResolution?.status === 'matched' &&
 		output.policyResolution.policy.model === 'iab'
 	) {
-		// No c15t headers: a plain GET stays a CORS simple request, so the
-		// vendor list host needs no preflight.
 		output.gvl = await fetchCachedGvl({
 			fetch: fetchImpl,
 			label: 'c15t manifest transport',

@@ -19,8 +19,6 @@ import type { ComponentFixtureOptions } from './component-fixture-provider';
 import { moduleRequested as moduleLoaded } from './module-requests';
 import { policyFixture } from './policy-fixture';
 
-// A loaded module stays loaded, so the test that loads the IAB dialog runs
-// last.
 const IAB_DIALOG_MODULE = '/src/components/iab-panel/iab-panel.tsx';
 const DIALOG_MODULE = '/src/components/panel/panel.tsx';
 
@@ -35,7 +33,6 @@ const options = (model: 'iab' | 'opt-in'): ComponentFixtureOptions => ({
 const byTestId = (testId: string) =>
 	document.querySelector<HTMLButtonElement>(`[data-testid="${testId}"]`);
 
-// Idle callbacks the page scheduled, run on demand instead of by the browser.
 let idleCallbacks: IdleRequestCallback[] = [];
 const runIdleCallbacks = () => {
 	const pending = idleCallbacks;
@@ -46,8 +43,6 @@ const runIdleCallbacks = () => {
 };
 
 beforeEach(async () => {
-	// Keep the pointer off where the banner renders: a pointer enter there
-	// warms on intent, and these tests separate intent from idle.
 	await userEvent.hover(document.documentElement, { position: { x: 1, y: 1 } });
 	resetDialogChunkWarmingForTests();
 	resetIABDialogWarmingForTests();
@@ -89,7 +84,6 @@ test.each([
 	const warmer = vi.fn();
 	const unregister = registerDialogChunkWarmer(warmer);
 	try {
-		// No IABConsentDialog here, so the warm does not load its module.
 		const screen = await render(
 			<ComponentFixtureProvider options={options('iab')}>
 				<IABConsentBanner disableAnimation />
@@ -141,8 +135,6 @@ test('does not warm the IAB dialog while IAB is disabled, even under a listed fa
 		<ComponentFixtureProvider
 			options={{
 				...options('iab'),
-				// What a backend that returned no vendor list leaves behind: IAB
-				// off, so an `iab` policy runs as opt-in.
 				iab: { cmpId: 123, gvl: null },
 			}}
 		>
@@ -155,7 +147,6 @@ test('does not warm the IAB dialog while IAB is disabled, even under a listed fa
 	});
 	expect(byTestId('iab-consent-banner-customize-button')).toBeNull();
 	runIdleCallbacks();
-	// Long enough for a dialog request to finish if one started.
 	await new Promise((resolve) => {
 		setTimeout(resolve, 1500);
 	});
@@ -180,7 +171,6 @@ test('loads the IAB dialog in idle time while the IAB banner is shown', async ()
 	await vi.waitFor(() => expect(moduleLoaded(IAB_DIALOG_MODULE)).toBe(true), {
 		timeout: 5000,
 	});
-	// Loaded, not opened.
 	expect(
 		document.querySelector('[data-testid="iab-consent-dialog-root"]')
 	).toBe(null);

@@ -1,28 +1,3 @@
-/**
- * Versioned browser codec for the v3 consent envelope.
- *
- * One envelope holds the subject identity once, one latest decision per
- * optional category (value, confirmation time, policy basis) and any
- * validated IAB transport metadata. Two encodings share one validator:
- *
- * - JSON for localStorage. `false` and absence stay distinct because the
- *   key is either present with a boolean or not present at all.
- * - A compact positional form for the cookie. Every field has a fixed
- *   type, so `'0'` and `'1'` are only ever read as booleans in the value
- *   slot and fingerprints or identifiers that happen to be `"0"` survive
- *   as strings. Omitted categories stay absent; explicit denials encode
- *   as `0`.
- *
- * This file holds the decoders and validators, which reading stored
- * records needs in the first load. The encoders are in `writer/encode.ts`
- * and load with the first write.
- *
- * Nothing here touches storage, the clock or callbacks. Callers supply
- * `now` so future timestamps are rejected deterministically.
- *
- * @internal
- */
-
 import type {
 	CategoryDecision,
 	ChoiceBasis,
@@ -44,54 +19,27 @@ import type { RecordIssue } from '../../consent-record/validation';
 import { isValidVendorId } from '../../libs/vendors';
 import type { VendorChoice } from '../../types';
 
-/** Validated IAB transport metadata carried alongside category choices. */
 export interface StoredIabMetadata {
-	/** Custom (non-GVL) vendor consents keyed by vendor id. */
 	customVendorConsents?: Readonly<Record<string, boolean>>;
-	/** Custom vendor legitimate-interest flags keyed by vendor id. */
 	customVendorLegitimateInterests?: Readonly<Record<string, boolean>>;
 }
 
-/**
- * The v3 browser record. This is what the next explicit save writes.
- *
- * `subject` appears once. `categories` is the reviewed per-category
- * receipt representation from the consent-record module, unchanged.
- * `iab` only carries metadata the v2 layer already stored; it never
- * asserts TC string authority, which has its own validity elsewhere.
- */
 export interface StoredConsentEnvelope {
 	version: 3;
 	subject?: ConsentSubject;
-	/**
-	 * Clear epoch the envelope was written under: the time of the last
-	 * `clear()` its writer knew about, in epoch milliseconds. Absent means
-	 * epoch 0, a record from before any clear (every v2 or legacy record,
-	 * and every envelope written before epochs existed). Decisions
-	 * confirmed before the current epoch are void.
-	 */
 	epoch?: number;
 	categories: ExplicitChoice['categories'];
 	iab?: StoredIabMetadata;
 }
 
-/** Local-only notice dismissal record. Version 1 matches the record type. */
 export type StoredNoticeDismissal = NoticeDismissal & {
-	/** Identity for a visitor whose only action acknowledged a notice. */
 	subject?: ConsentSubject;
 };
 
-/** Local vendor denial list. Version 1 matches the kernel record. */
 export type StoredVendorChoice = VendorChoice & {
-	/**
-	 * Subject identity, carried so a visitor whose first act only decided
-	 * vendors keeps the same subject after a reload. The consent envelope needs
-	 * a category choice to exist and cannot hold it for that visitor.
-	 */
 	subject?: ConsentSubject;
 };
 
-/** Structural issue found while decoding a stored record. */
 export type StorageIssue =
 	| RecordIssue
 	| {
@@ -103,7 +51,6 @@ export type DecodeResult<RecordType> =
 	| { ok: true; record: RecordType }
 	| { ok: false; issues: StorageIssue[] };
 
-/** Prefix every compact v3 cookie value starts with. */
 export const COMPACT_ENVELOPE_PREFIX = 'v=3';
 
 const FIELD_SEPARATOR = '&';
@@ -111,7 +58,6 @@ const KEY_VALUE_SEPARATOR = '=';
 const LIST_SEPARATOR = '|';
 const TUPLE_SEPARATOR = '.';
 
-/** Compact category codes. The encoder repeats them (`writer/encode.ts`). @internal */
 export const CATEGORY_CODES = {
 	experience: 'ex',
 	functionality: 'fn',
@@ -126,7 +72,6 @@ const CODE_TO_CATEGORY: ReadonlyMap<string, OptionalConsentCategory> = new Map(
 	])
 );
 
-/** Compact subject codes. The encoder repeats them. @internal */
 export const SUBJECT_CODES = {
 	externalId: 'eid',
 	identityProvider: 'idp',
@@ -140,7 +85,6 @@ const CODE_TO_SUBJECT_KEY: ReadonlyMap<string, keyof ConsentSubject> = new Map(
 	])
 );
 
-/** Compact IAB metadata codes. The encoder repeats them. @internal */
 export const IAB_CODES = {
 	customVendorConsents: 'icv',
 	customVendorLegitimateInterests: 'icvli',
@@ -163,14 +107,8 @@ const IAB_KEYS = [
 	'customVendorLegitimateInterests',
 ] as const;
 
-/** Digits only, as in a stored timestamp. @internal */
 export const DIGITS_ONLY = /^\d+$/u;
 
-/**
- * Defines an own enumerable data property. Plain assignment would route a
- * `__proto__` key through the prototype setter and silently drop it, so a
- * vendor denial under that id would vanish from a validated map.
- */
 const setOwn = function setOwn(
 	target: Record<string, boolean>,
 	key: string,
@@ -184,7 +122,6 @@ const setOwn = function setOwn(
 	});
 };
 
-/** `decodeURIComponent`, or `null` for malformed text. @internal */
 export const decodeComponent = function decodeComponent(
 	value: string
 ): string | null {
@@ -194,10 +131,6 @@ export const decodeComponent = function decodeComponent(
 		return null;
 	}
 };
-
-// ---------------------------------------------------------------------------
-// Shared validation
-// ---------------------------------------------------------------------------
 
 const validateSubject = function validateSubject(
 	input: unknown,
@@ -253,12 +186,6 @@ const validateBooleanMap = function validateBooleanMap(
 	return Object.keys(map).length > 0 ? map : undefined;
 };
 
-/**
- * Validates IAB metadata as it appears in a v2 record
- * (`iabCustomVendorConsents`, `iabCustomVendorLegitimateInterests`) or a
- * v3 envelope (`iab.customVendorConsents`, ...). Only own boolean maps
- * survive. Returns `undefined` when nothing usable is present.
- */
 export const validateIabMetadata = function validateIabMetadata(
 	consents: unknown,
 	legitimateInterests: unknown,
@@ -296,22 +223,8 @@ const ENVELOPE_KEYS = [
 	'iab',
 ] as const;
 
-/**
- * How far a clear epoch may lie ahead of the clock and still count: one
- * hour. A clock set back after a clear leaves the epoch in the future, and
- * dropping it would let cleared records back in, so a small lead is kept.
- * A larger one is taken as corrupt, since it would void every decision for
- * as long as it stays ahead.
- */
 export const EPOCH_CLOCK_TOLERANCE_MS = 60 * 60 * 1000;
 
-/**
- * Reads a clear epoch: a whole, non-negative time at most
- * {@link EPOCH_CLOCK_TOLERANCE_MS} ahead of `now`, or `undefined`. The
- * epoch only voids decisions, so an unreadable one is dropped rather than
- * rejecting the record that carries it: a bad epoch never discards a
- * stored denial.
- */
 const readEpoch = function readEpoch(
 	value: unknown,
 	now: number
@@ -324,10 +237,6 @@ const readEpoch = function readEpoch(
 		: undefined;
 };
 
-/**
- * The decoded envelope, or the issues found. An empty subject or IAB
- * metadata is left out, and so is epoch 0.
- */
 const envelopeResult = function envelopeResult(
 	issues: StorageIssue[],
 	categories: ExplicitChoice['categories'],
@@ -351,11 +260,6 @@ const envelopeResult = function envelopeResult(
 	return { ok: true, record: envelope };
 };
 
-/**
- * Validates a parsed v3 envelope object. Reuses the consent-record
- * validator for `version` and `categories`, then checks `subject` and
- * `iab`. Any structural issue rejects the whole envelope.
- */
 export const validateStoredConsentEnvelope =
 	function validateStoredConsentEnvelope(
 		input: unknown,
@@ -403,7 +307,6 @@ export const validateStoredConsentEnvelope =
 		);
 	};
 
-/** Whether a raw cookie value is a compact v3 envelope. */
 export const isCompactStoredConsentEnvelope =
 	function isCompactStoredConsentEnvelope(rawValue: string): boolean {
 		return (
@@ -527,12 +430,6 @@ const parseBooleanMap = function parseBooleanMap(
 	return map;
 };
 
-/**
- * Reads a compact subject field into `subject`. An empty or undecodable id
- * is an issue.
- *
- * @returns Whether `key` is a subject field.
- */
 const readSubjectField = function readSubjectField(
 	key: string,
 	value: string,
@@ -551,10 +448,6 @@ const readSubjectField = function readSubjectField(
 	return subjectKey !== undefined;
 };
 
-/**
- * Splits a compact value into its fields after the version field, which
- * must be `prefix`. A malformed or repeated field rejects the whole value.
- */
 const parseCompactFields = function parseCompactFields(
 	rawValue: string,
 	prefix: string,
@@ -582,12 +475,6 @@ const parseCompactFields = function parseCompactFields(
 	return fields;
 };
 
-/**
- * Parses a compact cookie value back into a validated envelope. Unknown
- * fields, duplicate fields, malformed tuples, non-boolean value slots,
- * non-integer or future timestamps and dangling basis references all
- * reject the whole value.
- */
 // oxlint-disable-next-line complexity -- One pass over a fixed set of typed fields.
 export const decodeStoredConsentEnvelopeCompact =
 	function decodeStoredConsentEnvelopeCompact(
@@ -648,11 +535,6 @@ export const decodeStoredConsentEnvelopeCompact =
 		return envelopeResult(issues, categories, subject, epoch, iab);
 	};
 
-// ---------------------------------------------------------------------------
-// Notice dismissal (local-only, JSON)
-// ---------------------------------------------------------------------------
-
-/** Validates a parsed notice dismissal. */
 export const decodeNoticeDismissal = function decodeNoticeDismissal(
 	input: unknown,
 	now: number
@@ -676,11 +558,6 @@ export const decodeNoticeDismissal = function decodeNoticeDismissal(
 	};
 };
 
-// ---------------------------------------------------------------------------
-// Compact cookie projection for notice dismissal
-// ---------------------------------------------------------------------------
-
-/** Prefix of the compact notice-dismissal cookie projection. */
 export const COMPACT_NOTICE_PREFIX = 'v=1';
 
 const parseCompactInteger = function parseCompactInteger(
@@ -692,7 +569,6 @@ const parseCompactInteger = function parseCompactInteger(
 	return Number(value);
 };
 
-/** Decodes a compact notice dismissal through the shared validator. */
 export const decodeNoticeDismissalCompact =
 	function decodeNoticeDismissalCompact(
 		rawValue: string,
@@ -734,11 +610,6 @@ export const decodeNoticeDismissalCompact =
 		return decodeNoticeDismissal(candidate, now);
 	};
 
-// ---------------------------------------------------------------------------
-// Vendor denial list (local-only, JSON + compact cookie projection)
-// ---------------------------------------------------------------------------
-
-/** Prefix of the compact vendor-choice cookie projection. */
 export const COMPACT_VENDORS_PREFIX = 'v=1';
 
 const VENDOR_CHOICE_KEYS = [
@@ -748,7 +619,6 @@ const VENDOR_CHOICE_KEYS = [
 	'subject',
 ] as const;
 
-/** Validates a parsed vendor denial list. */
 export const decodeVendorChoice = function decodeVendorChoice(
 	input: unknown,
 	now: number
@@ -780,8 +650,6 @@ export const decodeVendorChoice = function decodeVendorChoice(
 	const denied: string[] = [];
 	if (Array.isArray(rawDenied)) {
 		for (const [index, entry] of rawDenied.entries()) {
-			// The same slug shape a declaration must have. A stored id outside
-			// it would ride into every later grant map and fail the wire schema.
 			if (!isNonEmptyString(entry) || !isValidVendorId(entry)) {
 				issues.push({ code: 'invalid-identifier', path: `denied[${index}]` });
 				continue;
@@ -809,7 +677,6 @@ export const decodeVendorChoice = function decodeVendorChoice(
 	return { ok: true, record };
 };
 
-/** Decodes compact vendor denials through the shared validator. */
 export const decodeVendorChoiceCompact = function decodeVendorChoiceCompact(
 	rawValue: string,
 	now: number
@@ -856,15 +723,6 @@ export const decodeVendorChoiceCompact = function decodeVendorChoiceCompact(
 	return decodeVendorChoice(candidate, now);
 };
 
-// ---------------------------------------------------------------------------
-// Clear epoch (cookie and localStorage)
-// ---------------------------------------------------------------------------
-
-/**
- * Parses a clear epoch record. Anything but a whole time at most
- * {@link EPOCH_CLOCK_TOLERANCE_MS} ahead of `now` is rejected, and a
- * rejected epoch reads as `0`: a corrupt epoch voids nothing.
- */
 export const decodeClearEpoch = function decodeClearEpoch(
 	text: string,
 	now: number

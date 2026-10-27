@@ -10,8 +10,6 @@ import { ConsentDialogTrigger } from '~/components/panel-trigger';
 import { ConsentBanner } from '~/components/prompt';
 import { offline } from '~/transports/offline';
 
-// Intent only: idle warming would otherwise call the warmer on its own
-// schedule while the banner is shown.
 const options = {
 	mode: offline({ acknowledgeNoRecords: true }),
 	persistence: false,
@@ -91,11 +89,9 @@ test('slot focus and pointer handlers still run on consent buttons', async () =>
 		);
 		await vi.waitFor(() => button('consent-banner-customize-button'));
 
-		// A button that doesn't open the dialog.
 		button('consent-banner-reject-button').focus();
 		expect(slot.onFocus).toHaveBeenCalledTimes(1);
 
-		// The Customize button runs the slot handlers and still warms.
 		const warmedBefore = warmer.mock.calls.length;
 		await userEvent.hover(button('consent-banner-customize-button'));
 		expect(slot.onPointerEnter).toHaveBeenCalledTimes(1);
@@ -123,9 +119,6 @@ test('the trigger runs trigger.root slot focus and pointer handlers', async () =
 
 		const warmedBefore = warmer.mock.calls.length;
 		await userEvent.hover(button('consent-dialog-trigger'));
-		// The earlier tests leave the pointer where the trigger renders, and
-		// Chromium reports an enter when the element appears under it, so the
-		// count depends on test order. The handler running is what matters.
 		expect(root.onPointerEnter).toHaveBeenCalled();
 		button('consent-dialog-trigger').focus();
 		expect(root.onFocus).toHaveBeenCalledTimes(1);

@@ -1,10 +1,3 @@
-/**
- * The banner root is a fixed box wider than the card it shows: the floating
- * variant pads it, and the bar's card shell runs full width beside the
- * branding tag. Clicks on that empty space reach the page unless the banner
- * blocks. A full-viewport page button sits behind the banner, so any point
- * the banner does not catch lands on it.
- */
 import type { ComponentProps, ReactNode } from 'react';
 import { afterEach, describe, expect, test, vi } from 'vitest';
 import { render } from 'vitest-browser-react';
@@ -58,7 +51,6 @@ const waitForCard = () =>
 		}
 	);
 
-/** The test ID of the nearest element at a point, or its tag name. */
 const hit = (x: number, y: number) => {
 	const element = document.elementFromPoint(x, y);
 	return (
@@ -67,7 +59,6 @@ const hit = (x: number, y: number) => {
 	);
 };
 
-/** A point on the bar's card shell, beside the branding tag. */
 const besideTag = () => {
 	const tag = rect('consent-banner-branding');
 	return [tag.left / 2, tag.top + tag.height / 2] as const;

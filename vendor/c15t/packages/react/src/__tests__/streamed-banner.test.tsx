@@ -1,10 +1,3 @@
-/**
- * A `prefetch` promise the server streams: the banner follows the shell in
- * a later chunk of the same response, before hydration, and only when the
- * resolved policy shows one. Each test streams a real server render into
- * an iframe, then hydrates it, and records the banner after every task
- * that changed the page.
- */
 import type { KernelConfig } from '@c15t/core';
 import type { PolicyRule } from '@c15t/schema/types';
 import { StrictMode, act } from 'react';
@@ -37,7 +30,6 @@ const policyConfig = function policyConfig(
 	};
 };
 
-/** What the server knows without a backend answer: no policy yet. */
 const baselineConfig = (): KernelConfig => ({
 	initialLocation: { countryCode: 'DE', regionCode: null },
 	initialOverrides: { country: 'DE', language: 'en' },
@@ -83,13 +75,11 @@ const tick = (ms = 50) =>
 			})
 	);
 
-/** The banner's states in a timeline, marks and repeats left out. */
 const states = (timeline: string[]) =>
 	timeline
 		.filter((entry) => !entry.startsWith('@'))
 		.filter((entry, index, all) => entry !== all[index - 1]);
 
-/** The timeline from a mark on. */
 const after = (timeline: string[], label: string) =>
 	timeline.slice(timeline.indexOf(`@${label}`));
 
@@ -109,11 +99,6 @@ afterEach(() => {
 	page = undefined;
 });
 
-/**
- * Streams the shell, resolves the server's prefetch, writes the rest, and
- * hydrates with the client's copy already settled, as when the chunk
- * arrives before the app's JavaScript runs.
- */
 const streamThenHydrate = async function streamThenHydrate(
 	config: KernelConfig,
 	options: Partial<ConsentProviderOptions> = {}
@@ -150,10 +135,7 @@ test('a policy that shows the banner streams it before hydration, unchanged thro
 	expect(streamed).toBe(true);
 	expect(hydrated.recoverableErrors).toEqual([]);
 	expect(page?.serverErrors).toEqual([]);
-	// One banner state from the chunk on: no blink, no re-render of its
-	// markup.
 	expect(states(page?.timeline ?? [])).toHaveLength(2);
-	// The streamed config answered init: nothing went to the network.
 	expect(transportInit).not.toHaveBeenCalled();
 	await hydrated.unmount();
 });
@@ -214,7 +196,6 @@ test('a rejected prefetch streams no banner and breaks nothing', async () => {
 	const hydrated = await page.hydrate(<Page prefetch={client} />);
 	await tick(100);
 	expect(hydrated.recoverableErrors).toEqual([]);
-	// The runtime falls back to its own init.
 	expect(transportInit).toHaveBeenCalledTimes(1);
 	await hydrated.unmount();
 });
@@ -253,7 +234,6 @@ test('streamBanner: false leaves the banner to the browser', async () => {
 
 	expect(streamed).toBe(false);
 	expect(hydrated.recoverableErrors).toEqual([]);
-	// The streamed config still answers init, after hydration.
 	expect(page?.hasBanner()).toBe(true);
 	expect(transportInit).not.toHaveBeenCalled();
 	await hydrated.unmount();
@@ -270,7 +250,6 @@ test('a policy known before the shell flushes renders the banner in the shell', 
 	);
 	await tick(100);
 	expect(hydrated.recoverableErrors).toEqual([]);
-	// A chunk can end mid-banner, so compare from the end of the stream.
 	expect(states(after(page.timeline, 'streamed'))).toHaveLength(1);
 	await hydrated.unmount();
 });
@@ -351,7 +330,6 @@ test('a click before the client has the data waits for it and records against th
 	page = await streamPage(<Page prefetch={server.promise} />);
 	server.resolve(config);
 	await page.finish();
-	// The root hydrates; the banner's boundary waits for the client's data.
 	const hydrated = await page.hydrate(<Page prefetch={client.promise} />);
 	page.doc
 		.querySelector<HTMLButtonElement>(
@@ -359,8 +337,6 @@ test('a click before the client has the data waits for it and records against th
 		)
 		?.click();
 	await tick(50);
-	// The banner's inline script holds the tap and hides the banner. Nothing
-	// is saved against the provisional policy.
 	expect(transportSave).not.toHaveBeenCalled();
 	const banner = page.doc.querySelector<HTMLElement>(BANNER);
 	expect(banner).not.toBeNull();
@@ -393,9 +369,6 @@ test('a click in the same task hydration starts records against the streamed pol
 	const hydrated = page.hydrateNow(
 		<Page prefetch={fulfilledThenable(config)} />
 	);
-	// React hydrates the banner for the click and runs its handler before
-	// the runtime has started: the kernel adopted the streamed config as
-	// the banner committed.
 	page.doc
 		.querySelector<HTMLButtonElement>(
 			'[data-testid="consent-banner-accept-button"]'
@@ -428,7 +401,6 @@ const clearCookies = () => {
 
 test('a choice only in localStorage: the streamed banner leaves once the browser reads it', async () => {
 	clearCookies();
-	// First visit: accept, which stores the choice.
 	const first = await streamThenHydrate(policyConfig(), { persistence: true });
 	await act(() => {
 		page?.doc
@@ -445,14 +417,10 @@ test('a choice only in localStorage: the streamed banner leaves once the browser
 	page?.dispose();
 	expect(Object.keys(localStorage).length).toBeGreaterThan(0);
 
-	// The cookie is gone, so the server sees no choice; localStorage has it.
 	clearCookies();
 	const second = await streamThenHydrate(policyConfig(), { persistence: true });
 	await vi.waitFor(() => expect(page?.hasBanner()).toBe(false));
 
-	// The server could not know, so the banner streams and shows until the
-	// runtime reads storage after hydration. A synchronous prefetch does
-	// the same.
 	expect(second.streamed).toBe(true);
 	expect(second.hydrated.recoverableErrors).toEqual([]);
 	const seen = states(after(page?.timeline ?? [], 'streamed'));

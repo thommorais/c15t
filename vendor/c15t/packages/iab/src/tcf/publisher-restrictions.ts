@@ -1,93 +1,32 @@
-/**
- * Publisher restriction validation and conversion.
- *
- * A publisher restriction overrides a vendor's declared use of one purpose
- * (TCF v2 core segment, `PubRestrictions` section). This module checks
- * restrictions before they are encoded and after they are decoded, so an
- * unsupported restriction fails with {@link PublisherRestrictionError}
- * instead of being dropped by the encoder.
- *
- * @packageDocumentation
- */
-
 import type { GlobalVendorList } from '@c15t/core';
 
 import type { PublisherRestriction } from './iab-tcf-types';
 
-/**
- * Restriction types defined by the TCF v2 core segment.
- *
- * Type `3` is reserved by the spec and never valid.
- *
- * @public
- */
 export const PUBLISHER_RESTRICTION_TYPES = {
-	/** The vendor may not process the purpose on any legal basis. */
 	PURPOSE_PROHIBITED: 0,
-	/** A flexible purpose the vendor declares for LI must use consent. */
 	REQUIRE_CONSENT: 1,
-	/** A flexible purpose the vendor declares for consent must use LI. */
 	REQUIRE_LEGITIMATE_INTEREST: 2,
 } as const;
 
-/**
- * Purposes that TCF policy version 4 and later allow only with consent.
- * Purpose 1 was never allowed legitimate interest; TCF 2.2 removed it for
- * purposes 3 to 6.
- *
- * @public
- */
 export const CONSENT_ONLY_PURPOSES: readonly number[] = [1, 3, 4, 5, 6];
 
-/** The first TCF policy version (TCF 2.2) that bars LI for purposes 3 to 6. */
 const CONSENT_ONLY_POLICY_VERSION = 4;
 
-/**
- * Purposes that may not use legitimate interest under a policy version.
- * Before policy version 4 only purpose 1 was consent-only.
- */
 const consentOnlyPurposes = (policyVersion: number | undefined) =>
 	policyVersion !== undefined && policyVersion < CONSENT_ONLY_POLICY_VERSION
 		? [1]
 		: CONSENT_ONLY_PURPOSES;
 
-/** The spec encodes a purpose ID in 6 bits. */
 const MAX_PURPOSE_ID = 63;
-/** The spec encodes a vendor ID in 16 bits. */
 const MAX_VENDOR_ID = 65_535;
 
-/**
- * Thrown when a publisher restriction cannot be encoded, or when a TC
- * string carries one c15t does not support.
- *
- * @public
- */
 export class PublisherRestrictionError extends TypeError {
 	override name = 'PublisherRestrictionError';
 }
 
-/** Context for checks that depend on how the TC string is produced. */
 export interface PublisherRestrictionContext {
-	/**
-	 * Vendor list the restrictions are encoded against. When present, every
-	 * restriction must match a vendor declaration in it.
-	 */
 	gvl?: GlobalVendorList;
-	/**
-	 * Ignored. c15t always writes service-specific TC strings, because TCF
-	 * requires IsServiceSpecific=1, so restrictions are always allowed.
-	 * `decodeTCString` still rejects restrictions in a string that is not
-	 * service-specific.
-	 *
-	 * @deprecated Every TC string c15t writes is service-specific.
-	 */
 	isServiceSpecific?: boolean;
-	/**
-	 * TCF policy version of a decoded string. Strings written before policy
-	 * version 4 may require legitimate interest for purposes 3 to 6. Omit it
-	 * when encoding: c15t only writes restrictions valid under the current
-	 * policy.
-	 */
 	policyVersion?: number;
 }
 
@@ -192,30 +131,6 @@ const checkDeclaration = (
 	}
 };
 
-/**
- * Checks publisher restrictions and returns a normalized copy.
- *
- * Entries with the same purpose and type are merged, vendor IDs are sorted
- * and de-duplicated, and the result is ordered by purpose, then type.
- *
- * @param input - Restrictions from configuration or a decoded TC string.
- * @param context - Vendor list and string scope to check against.
- * @returns The normalized restrictions. `undefined` returns an empty list.
- * @throws {PublisherRestrictionError} When a restriction is malformed,
- * uses the reserved type `3`, requires legitimate interest for a purpose
- * that is consent-only under `context.policyVersion` (the current policy
- * when omitted), gives one vendor two types for the same purpose or, with
- * a vendor list, does not match the vendor's declarations.
- *
- * @example
- * ```ts
- * validatePublisherRestrictions([
- *   { purposeId: 2, restrictionType: 0, vendorIds: [755] },
- * ]);
- * ```
- *
- * @public
- */
 export const validatePublisherRestrictions =
 	function validatePublisherRestrictions(
 		input: unknown,
@@ -284,17 +199,6 @@ export const validatePublisherRestrictions =
 		return restrictions;
 	};
 
-/**
- * Copies restriction input so later changes to the caller's array or its
- * entries cannot change what is validated and encoded. Anything that is not
- * an array is returned as is for {@link validatePublisherRestrictions} to
- * reject; holes become `undefined` entries, which it also rejects.
- *
- * @param input - Restrictions as configured.
- * @returns A copy that shares no arrays or entries with `input`.
- *
- * @internal
- */
 export const copyPublisherRestrictionInput =
 	function copyPublisherRestrictionInput(input: unknown): unknown {
 		if (!Array.isArray(input)) {
@@ -312,15 +216,6 @@ export const copyPublisherRestrictionInput =
 		);
 	};
 
-/**
- * Converts restrictions to the `__tcfapi` shape: purpose ID, then vendor
- * ID, then restriction type.
- *
- * @param restrictions - Normalized restrictions.
- * @returns The `publisher.restrictions` value for `TCData`.
- *
- * @public
- */
 export const toTCDataRestrictions = function toTCDataRestrictions(
 	restrictions: readonly PublisherRestriction[]
 ): Record<number, Record<number, number>> {
@@ -335,19 +230,6 @@ export const toTCDataRestrictions = function toTCDataRestrictions(
 	return result;
 };
 
-/**
- * Whether two restriction lists restrict the listed vendors the same way.
- *
- * Decoded ranges may cover IDs that are not in the vendor list, so only
- * vendors in `gvl` are compared.
- *
- * @param left - Restrictions from one source.
- * @param right - Restrictions from another source.
- * @param vendors - Vendors of the list whose entries are compared.
- * @returns `true` when every listed vendor has the same restrictions.
- *
- * @internal
- */
 export const sameListedRestrictions = function sameListedRestrictions(
 	left: readonly PublisherRestriction[],
 	right: readonly PublisherRestriction[],

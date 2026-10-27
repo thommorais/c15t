@@ -228,7 +228,6 @@ describe('web storage cleanup', () => {
 		for (const key of protectedKeys) {
 			expect(window.localStorage.getItem(key)).toBe('value');
 		}
-		// Protected in localStorage only; nothing writes these as cookies.
 		const storageOnly = new Set([
 			PENDING_SAVES_STORAGE_KEY,
 			SUBJECT_REASSIGNMENTS_STORAGE_KEY,

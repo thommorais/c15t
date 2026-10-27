@@ -1,13 +1,3 @@
-/**
- * Contract suite for the server-side consent resolution every adapter uses.
- *
- * Next.js, TanStack Start, SvelteKit, Astro and Nuxt each used to resolve a
- * request's consent state with their own copy of this logic, and the copies
- * drifted: how GPC was read, what was forwarded to the backend, whether the
- * render could fetch its own routes, how the budget treated bad values, and
- * whether a shared render carried one visitor's state. Each test pins one
- * rule for all of them; the adapters only test their wiring.
- */
 import type {
 	ConsentManifest,
 	GlobalVendorList,
@@ -32,7 +22,6 @@ const BACKEND = 'https://consent.example.com';
 const APP = 'https://app.example.com';
 const GVL_URL = 'https://gvl.example/vendor-list.json';
 const NOW = 1_780_000_000_000;
-/** The URL a render fetched, without the consent journey it adds as a query. */
 const target = (input: unknown): string => String(input).split('?')[0] ?? '';
 const CONSENTED = `c15t=c.necessary:1,c.marketing:1,i.t:${NOW - 1000}`;
 const DISMISSED = `c15t-notice=v=1&t=${NOW - 1000}&f=${'a'.repeat(64)}`;
@@ -120,7 +109,6 @@ const json = function json(
 
 type FetchMock = ReturnType<typeof vi.fn<typeof globalThis.fetch>>;
 
-/** Serves `/init`, the manifest, the vendor list and session reports. */
 const upstream = function upstream(
 	manifest: ConsentManifest = MANIFEST,
 	init: unknown = INIT
@@ -199,8 +187,6 @@ describe('request read', () => {
 		expect(state.initialRecords?.choice).toBeDefined();
 	});
 
-	// Header names are case-insensitive, and some runtimes keep the casing
-	// the client sent. The subject resolver reads the same record.
 	test.each(['Cookie', 'COOKIE'])(
 		'a Node header record with a %s header reads the stored records',
 		(name) => {
@@ -230,8 +216,6 @@ describe('request read', () => {
 		expect(read({ 'sec-gpc': '1', 'x-c15t-gpc': '0' })).toEqual({
 			gpc: false,
 		});
-		// SvelteKit used to read raw `sec-gpc` and turn an absent signal into
-		// `false`, which a browser runtime then treated as a decision.
 		expect(read({})).toEqual({ gpc: undefined });
 	});
 
@@ -365,8 +349,6 @@ describe('target resolution', () => {
 			const fetch = upstream();
 			await render({ backendURL: '/api/self-host', fetch });
 			const marked = Object.fromEntries(sentHeaders(fetch, '/init'));
-			// A page answered that request (an unmounted backend prefix) and its
-			// render resolves again with the headers it received.
 			const onError = vi.fn();
 			const nested = await render({
 				backendURL: '/api/self-host',
@@ -377,7 +359,6 @@ describe('target resolution', () => {
 			expect(fetch).toHaveBeenCalledTimes(1);
 			expect(nested.initialPolicyResolution).toBeUndefined();
 			expect(onError.mock.calls[0]?.[1]).toBe(`${APP}/api/self-host/init`);
-			// A backend on another origin is still asked.
 			await render({ backendURL: BACKEND, fetch, headers: marked });
 			expect(callsTo(fetch, BACKEND)).toHaveLength(1);
 		});
@@ -407,7 +388,6 @@ describe('target resolution', () => {
 			expect(target(localFetch.mock.calls[0]?.[0])).toBe('/api/c15t/init');
 			const headers = new Headers(localFetch.mock.calls[0]?.[1]?.headers);
 			expect(headers.get(CONSENT_ROUTE_TIMEOUT_HEADER)).toMatch(/^\d+$/u);
-			// The app's own route reads no cookie, so none is sent.
 			expect(headers.has('cookie')).toBe(false);
 			expect(state.initialPolicyResolution?.status).toBe('matched');
 		});
@@ -1000,7 +980,6 @@ describe('consent journey', () => {
 			fetch,
 			headers: { cookie: DISMISSED },
 		});
-		// The cookie decoded into a dismissal the browser will hydrate.
 		expect(state.initialRecords?.noticeDismissal).toBeTruthy();
 		expect(state.initialRecords?.choice).toBeFalsy();
 		const sent = new URL(String(callsTo(fetch, '/init')[0]?.[0]));
@@ -1008,8 +987,6 @@ describe('consent journey', () => {
 	});
 
 	test('the vendor list reference the browser follows carries no journey', async () => {
-		// The browser fetches the deferred list from this `/init`; with the
-		// journey on it, the backend would count the visit twice.
 		const fetch = upstream(MANIFEST, {
 			...(INIT as object),
 			cmpId: 28,
@@ -1069,7 +1046,6 @@ describe('consent journey', () => {
 
 	test('manifest mode reports the journey with the site domain', async () => {
 		const fetch = upstream();
-		// Germany matches the opt-in policy, so the prompt is owed.
 		const state = await render({
 			backendURL: BACKEND,
 			fetch,
@@ -1083,7 +1059,6 @@ describe('consent journey', () => {
 			domain: 'app.example.com',
 			id: state.journey?.id,
 			prompt: 'due',
-			// A server-rendered page is a page journey, even under 'tab'.
 			scope: 'page',
 			storedChoice: false,
 		});

@@ -1,16 +1,3 @@
-/**
- * The provider loads the iframe blocker when a gated iframe is on the page.
- *
- * Every page used to download and run the blocker at mount, iframes or
- * not. It now loads on the first `data-category` or `data-vendor` iframe.
- * A gated frame that arrives with a `src` while the chunk is on its way is
- * paused the way the blocker pauses a denied one, so it cannot load before
- * consent allows it.
- *
- * The tests share one module registry and run in order: the first checks
- * that nothing loaded; the second holds the chunk back to test the window
- * before it arrives.
- */
 import { createConsentKernel } from '@c15t/core';
 import type { ConsentKernel, KernelVendorsState } from '@c15t/core';
 import { useContext, useEffect } from 'react';
@@ -24,7 +11,6 @@ import { policyFixture } from './policy-fixture';
 
 const blockerModule = vi.hoisted(() => {
 	let release = () => {
-		/* replaced below */
 	};
 	const gate = new Promise<void>((resolve) => {
 		release = resolve;
@@ -94,10 +80,6 @@ afterEach(() => {
 	}
 });
 
-/**
- * A kernel with marketing granted and `denied` turned off, as a returning
- * visitor has before the backend declares any vendor.
- */
 const kernelWithVendorChoice = (
 	denied: string[],
 	initialVendors?: KernelVendorsState
@@ -113,7 +95,6 @@ const kernelWithVendorChoice = (
 	});
 };
 
-/** Watch with `kernel` and record every `src` the watcher takes away. */
 const watchAndRecord = (watched: ConsentKernel) => {
 	const removals: Element[] = [];
 	const recorder = new MutationObserver((records) => {
@@ -130,7 +111,6 @@ const watchAndRecord = (watched: ConsentKernel) => {
 		subtree: true,
 	});
 	const stop = watchGatedIframes(watched, () => {
-		/* the chunk is not under test here */
 	});
 	return {
 		removals,
@@ -158,7 +138,6 @@ describe('iframe blocker on demand', () => {
 			src: FRAME_URL,
 		});
 
-		// Held by the watcher while the blocker chunk is still held back.
 		await vi.waitFor(() => expect(blockerModule.loads).toBe(1));
 		expect(iframe.getAttribute('src')).toBeNull();
 		expect(iframe.getAttribute('data-src')).toBe(FRAME_URL);
@@ -221,7 +200,6 @@ describe('iframe blocker on demand', () => {
 		};
 		window.addEventListener('unhandledrejection', onRejection);
 		const warn = vi.spyOn(console, 'warn').mockImplementation(() => {
-			/* asserted below */
 		});
 		try {
 			await renderProvider(policyFixture({ marketing: true }));
@@ -262,7 +240,6 @@ describe('frames the watcher holds before the blocker loads', () => {
 
 	test('holds a frame added in the same batch as a node page script cannot read', async () => {
 		const watch = watchAndRecord(kernelWithVendorChoice(['youtube']));
-		// Firefox throws this for some nodes, such as ones an extension inserted.
 		const unreadable = document.createElement('div');
 		Object.defineProperty(unreadable, 'nodeType', {
 			get() {

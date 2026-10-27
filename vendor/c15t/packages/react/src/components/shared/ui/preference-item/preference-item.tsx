@@ -318,18 +318,6 @@ const PreferenceItemTitle = createForwardRef<
 PreferenceItemTitle.displayName = 'PreferenceItemTitle';
 
 export interface PreferenceItemContentProps extends HTMLAttributes<HTMLDivElement> {
-	/**
-	 * Render the children while the item has never been opened.
-	 *
-	 * By default the content element is always rendered, so the trigger's
-	 * `aria-controls` target exists, but its children mount the first time
-	 * the item opens and then stay mounted, so the close transition and any
-	 * state inside them survive. Collapsed content is `inert` and
-	 * `aria-hidden` either way. Set this when collapsed children must be in
-	 * the DOM, for example when custom CSS shows them.
-	 *
-	 * @defaultValue false
-	 */
 	forceMount?: boolean;
 	innerClassName?: string;
 	innerSlotKey?: ConsentComponentSlotKey;
@@ -367,9 +355,6 @@ const PreferenceItemContent = createForwardRef<
 			open,
 			triggerId,
 		} = usePreferenceItemContext();
-		// A preference list keeps most items collapsed, and a collapsed body
-		// can hold a whole vendor list. Mount it on first open instead of
-		// with the list; keep it mounted afterwards.
 		const [hasOpened, setHasOpened] = useState(open);
 		if (open && !hasOpened) {
 			setHasOpened(true);

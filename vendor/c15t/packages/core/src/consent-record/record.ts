@@ -1,19 +1,3 @@
-/**
- * Pure recording helper for explicit category patches.
- *
- * Implements the reviewed partial-save rule: an object patch confirms
- * exactly its own optional category keys at one captured action time and
- * the current choice basis. Omitted categories keep their existing
- * decision untouched, so an unrelated edit never renews an old grant and a
- * new grant never inherits an old lifetime. Supplying an unchanged value
- * is a reconfirmation and refreshes that category.
- *
- * Expansion of `'all'`, `'none'` and no-input saves belongs to the kernel
- * integration and is deliberately not implemented here.
- *
- * @internal
- */
-
 import type {
 	EvaluationPolicy,
 	ExplicitChoice,
@@ -29,9 +13,7 @@ import type { RecordIssue } from './validation';
 
 export interface RecordPatchOptions {
 	policy: EvaluationPolicy;
-	/** Epoch milliseconds captured before any mutation or async work. */
 	actionAt: number;
-	/** Current time, used to reject a future `actionAt`. Defaults to `actionAt`. */
 	now?: number;
 }
 
@@ -39,7 +21,6 @@ export type RecordPatchResult =
 	| {
 			ok: true;
 			choice: ExplicitChoice;
-			/** Categories whose decision was replaced by this action. */
 			confirmed: readonly OptionalConsentCategory[];
 	  }
 	| { ok: false; issues: RecordIssue[] };
@@ -49,16 +30,6 @@ const EMPTY_CHOICE: ExplicitChoice = Object.freeze({
 	version: 3,
 }) as ExplicitChoice;
 
-/**
- * Applies an explicit object patch to the previous choice.
- *
- * The command is validated completely before anything is recorded: unknown
- * keys, non-boolean values, `necessary: false`, and a positive value for a
- * category outside the current selectable scope reject the whole patch.
- * An explicit `false` outside scope is accepted because a persistent
- * refusal must remain possible there. An empty object is a documented
- * no-op success: it confirms nothing and refreshes nothing.
- */
 export const recordCategoryPatch = function recordCategoryPatch(
 	previous: ExplicitChoice | null,
 	patch: unknown,

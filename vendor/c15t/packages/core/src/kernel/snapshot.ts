@@ -1,13 +1,3 @@
-/**
- * Snapshot construction and freezing.
- *
- * Pure: no DOM, no window, no network, no hashing, no timers. The initial
- * snapshot evaluates the supplied records against the supplied (or
- * precomputed) policy resolution at `config.now`, so a server render and a
- * client construction with the same inputs produce the same revision-0
- * snapshot.
- */
-
 import type { PolicyResolution } from '@c15t/schema/types';
 
 import { evaluateConsentRecord } from '../consent-record/evaluate';
@@ -42,10 +32,6 @@ import {
 } from './external-permissions';
 import { validateHydrationRecords } from './record-validation';
 
-/**
- * Default effective permissions before any evaluation. `necessary` is
- * always granted; everything else starts denied.
- */
 export const DEFAULT_CONSENTS: ConsentState = {
 	experience: false,
 	functionality: false,
@@ -54,10 +40,6 @@ export const DEFAULT_CONSENTS: ConsentState = {
 	necessary: true,
 };
 
-/**
- * Default IAB slice. Used as the base when constructing the initial IAB
- * state and when folding partial IAB patches onto a previously-null slice.
- */
 export const DEFAULT_IAB: KernelIABState = {
 	authority: null,
 	cmpId: null,
@@ -72,7 +54,6 @@ export const DEFAULT_IAB: KernelIABState = {
 	vendorLegitimateInterests: {},
 };
 
-/** Default vendor slice: nothing declared, no list version. */
 export const DEFAULT_VENDORS: KernelVendorsState = {
 	declared: [],
 	listVersion: null,
@@ -83,20 +64,14 @@ const UNCONFIGURED: PolicyResolution = Object.freeze({
 	status: 'unconfigured',
 });
 
-// The fallback evaluation without records has no expiry deadline.
-// Its permissions and prompt are independent of the clock and GPC because
-// the fallback has no GPC deny mapping. Compute the real evaluator once and
-// freeze its result before sharing it between independently owned snapshots.
 const DEFAULT_EFFECTIVE_POLICY = resolveEffectivePolicy(UNCONFIGURED);
 const DEFAULT_EVALUATION_POLICY = buildEvaluationPolicy(
 	DEFAULT_EFFECTIVE_POLICY
 );
 const EMPTY_OVERRIDES = Object.freeze({});
-/** No prompt surface has been shown yet. Shared by every fresh snapshot. */
 export const UNSHOWN_SURFACES: ConsentSnapshot['surfaceShownAt'] =
 	Object.freeze({ banner: null, dialog: null });
 
-/** Whether an active UI value is a prompt surface the kernel timestamps. */
 export const isPromptSurface = function isPromptSurface(
 	value: unknown
 ): value is PromptSurface {
@@ -114,11 +89,6 @@ const DEFAULT_RECORD_EVALUATION = evaluateConsentRecord({
 });
 deepFreeze(DEFAULT_RECORD_EVALUATION);
 
-/**
- * Staged draft values from a `Partial<ConsentState>`. Only own boolean
- * values for optional categories are kept; `necessary` and unknown keys
- * are dropped. Returns `null` when nothing usable was supplied.
- */
 export const buildDraft = function buildDraft(
 	input: Partial<ConsentState> | undefined
 ): PresentedSelection | null {
@@ -139,10 +109,6 @@ export const buildDraft = function buildDraft(
 	return any ? draft : null;
 };
 
-/**
- * Merge a user-supplied initial IAB slice over the IAB defaults. Returns
- * `null` when no IAB seed was provided.
- */
 export const copyIABAuthority = function copyIABAuthority(
 	authority: KernelIABAuthority | null
 ): KernelIABAuthority | null {
@@ -183,7 +149,6 @@ export const buildInitialIab = function buildInitialIab(
 	};
 };
 
-/** Copy a caller-supplied vendor slice so later mutation cannot leak in. */
 export const buildInitialVendors = function buildInitialVendors(
 	initial: KernelVendorsState | undefined
 ): KernelVendorsState | null {
@@ -194,8 +159,6 @@ export const buildInitialVendors = function buildInitialVendors(
 		return null;
 	}
 	return {
-		// Plain JSON copies: freezing the snapshot must not freeze a nested
-		// category condition the caller's config or script still references.
 		declared: initial.declared.map(
 			(vendor) => JSON.parse(JSON.stringify(vendor)) as ResolvedVendor
 		),
@@ -232,16 +195,10 @@ const freezeChoice = function freezeChoice(
 	Object.freeze(choice);
 };
 
-/**
- * Deep-freeze a snapshot in place and return it typed as `ConsentSnapshot`.
- * Nested objects are frozen so subscribers can trust `===` at any depth.
- */
 export const freezeSnapshot = function freezeSnapshot(
 	snapshot: ConsentSnapshot
 ): ConsentSnapshot {
 	deepFreeze(snapshot.iab?.authority);
-	// Only skip branches whose identity proves they are our frozen defaults.
-	// Caller-owned objects still take the full freezing path.
 	if (snapshot.effectivePermissions !== DEFAULT_RECORD_EVALUATION.permissions) {
 		Object.freeze(snapshot.effectivePermissions);
 	}
@@ -299,19 +256,10 @@ export const freezeSnapshot = function freezeSnapshot(
 	return Object.freeze(snapshot) as ConsentSnapshot;
 };
 
-/**
- * Build the initial frozen snapshot from a kernel config.
- *
- * Pure. Evaluates once at `config.now` (default `Date.now()`), using the
- * precomputed resolution when supplied and the safe fallback otherwise.
- * A pending policy keeps the first layer hidden until init finishes.
- */
 // oxlint-disable-next-line complexity -- Construction reads every config field once in a fixed order.
 export const buildInitialSnapshot = function buildInitialSnapshot(
 	config: KernelConfig
 ): ConsentSnapshot {
-	// One clock for validation and evaluation: an explicit config clock, else
-	// the clock the record seed was read with, else the wall clock.
 	const now = config.now ?? config.initialRecords?.now ?? Date.now();
 	const resolution = config.initialPolicyResolution ?? UNCONFIGURED;
 	const effective = resolveEffectivePolicy(resolution);

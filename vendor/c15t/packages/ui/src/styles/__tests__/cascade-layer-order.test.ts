@@ -1,17 +1,3 @@
-/**
- * Guards the layer order statement at the top of every layered entrypoint.
- *
- * Cascade layers rank by first mention. A page that loads c15t's stylesheet
- * before Tailwind 4's (Astro injects it from `page-ssr`, and an app may
- * import it above its `globals.css`) would otherwise declare `components`
- * first, rank it below Tailwind's `base`, and let preflight zero the
- * banner's padding and borders. Declaring Tailwind 4's full order first
- * keeps `components` between `base` and `utilities` whichever sheet loads
- * first.
- *
- * These read the built artifacts, so `bun run --cwd packages/ui build` (or
- * `turbo run build --filter=@c15t/ui`, which `test` depends on) must have run.
- */
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
@@ -21,7 +7,6 @@ import { describe, expect, test } from 'vitest';
 
 const DIST_DIR = join(__dirname, '..', '..', '..', 'dist');
 
-/** What Tailwind 4 declares: `@layer properties;` then the other four. */
 const TAILWIND_4_LAYER_ORDER = [
 	'properties',
 	'theme',
@@ -75,12 +60,6 @@ describe.each(FLAT_ENTRYPOINTS)('%s', (entrypoint) => {
 	});
 });
 
-/**
- * Vue components import these one by one, and Vite links a shared chunk's
- * CSS ahead of the app's own. The Tailwind 4 stylesheet then comes after
- * c15t's, so each file needs the order statement too, and every component
- * rule has to sit in `components`, where a utility can override it.
- */
 const COMPONENT_STYLESHEETS = readdirSync(
 	join(DIST_DIR, 'styles', 'components')
 )

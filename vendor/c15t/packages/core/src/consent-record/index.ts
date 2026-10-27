@@ -1,16 +1,3 @@
-/**
- * `@c15t/core/consent-record`
- *
- * The consent-record model the kernel runs on: one latest decision per
- * optional category, a separate local notice dismissal, a validated
- * policy projection and the pure evaluator that turns them into effective
- * permissions, restrictions, the remaining prompt requirement and the next
- * deadline.
- *
- * Everything here is pure. Nothing reads storage, the clock, the network
- * or the DOM; callers pass `now`.
- */
-
 export { evaluateConsentRecord } from './evaluate';
 export type { ConsentEvaluationInput } from './evaluate';
 export {

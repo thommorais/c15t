@@ -110,8 +110,6 @@ describe('v3 selector hooks: provider state and policy scope', () => {
 			}
 		);
 
-		// In-policy categories honor the stored consent value; categories the
-		// policy does not govern are ungated under permissive scope.
 		expect(result.current.measurement).toBe(false);
 		expect(result.current.marketing).toBe(false);
 		expect(result.current.necessary).toBe(true);

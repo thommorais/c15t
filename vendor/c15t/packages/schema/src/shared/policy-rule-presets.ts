@@ -2,9 +2,6 @@ import { legacyPresetMaterial } from './legacy-preset-material';
 import type { PolicyRule, PolicyRuleReview } from './policy-rule';
 import { policyMatchers } from './policy-runtime';
 
-/**
- * Preset Europe pack mode used by {@link policyRulePresets}.
- */
 export type EuropePolicyRuleMode = 'opt-in' | 'iab';
 
 const GPC_SOURCE = 'https://www.w3.org/TR/2026/WD-gpc-20260611/';
@@ -52,7 +49,6 @@ const europeRule = function europeRule(mode: EuropePolicyRuleMode): PolicyRule {
 		id: isIab ? 'europe_iab' : 'europe_opt_in',
 		match: policyMatchers.merge(
 			policyMatchers.iab(),
-			// Gibraltar has its own cookie-consent law; it is neither EEA nor UK.
 			policyMatchers.countries(['GI']),
 			policyMatchers.fallback()
 		),
@@ -77,10 +73,6 @@ const europeRule = function europeRule(mode: EuropePolicyRuleMode): PolicyRule {
 	};
 };
 
-/**
- * Known location with no consent law that grants rights: processing is
- * permitted by default, no prompt, no rights, so no consent UI renders.
- */
 const worldNoneRule = function worldNoneRule(): PolicyRule {
 	return {
 		id: 'world_none',
@@ -151,9 +143,6 @@ const quebecRule = function quebecRule(): PolicyRule {
 	};
 };
 
-// The recommended pack calls these directly rather than through
-// `policyRulePresets`, so a bundle that only resolves the pack leaves the
-// other presets out.
 const europeOptInPreset = function europeOptInPreset(): PolicyRule {
 	return {
 		...europeRule('opt-in'),
@@ -197,7 +186,6 @@ const worldOptOutNoPromptRule = function worldOptOutNoPromptRule(): PolicyRule {
 	};
 };
 
-// Curated coverage as of 8 September 2026. Future effective dates are excluded.
 const US_PRIVACY_STATES = [
 	'CA',
 	'CO',
@@ -296,7 +284,6 @@ const usPrivacyStatesRule = function usPrivacyStatesRule(
 	};
 };
 
-/** Non-consent processing defaults; the host establishes the applicable basis. */
 const countryOptOut = function countryOptOut(
 	id: string,
 	country: string,
@@ -358,105 +345,44 @@ const canadaRule = function canadaRule(mode: 'opt-in' | 'opt-out'): PolicyRule {
 };
 
 export interface PolicyRulePresets {
-	/** Australia: notified, expected nonsensitive processing with persistent refusal. */
 	australiaOptOut: () => PolicyRule;
-	/** Japan: no prompt when APPI consent triggers are absent and publication duties are met. */
 	japanOptOut: () => PolicyRule;
-	/** Canada outside Quebec: express-choice alternative for reviewed processing. */
 	canadaOptIn: () => PolicyRule;
-	/** Canada outside Quebec: notice and opt-out for eligible nonsensitive processing. */
 	canadaOptOut: () => PolicyRule;
-	/** UK: service statistics only, with information and free objection. Advertising stays denied. */
 	ukStatistics: () => PolicyRule;
-	/** Malaysia: solely statistics/research, nonidentifying output and no secondary uses. */
 	malaysiaStatistics: () => PolicyRule;
 
-	/** China: opt-in starter for disclosed optional purposes relying on consent. */
 	chinaOptIn: () => PolicyRule;
-	/** Malaysia: opt-in starter for disclosed optional purposes relying on consent. */
 	malaysiaOptIn: () => PolicyRule;
-	/** Thailand: opt-in starter for disclosed optional purposes relying on consent. */
 	thailandOptIn: () => PolicyRule;
-	/** Indonesia: opt-in starter for disclosed optional purposes relying on consent. */
 	indonesiaOptIn: () => PolicyRule;
-	/** Philippines: opt-in starter for disclosed optional purposes relying on consent. */
 	philippinesOptIn: () => PolicyRule;
-	/** Vietnam: opt-in starter for disclosed optional purposes relying on consent. */
 	vietnamOptIn: () => PolicyRule;
-	/** Brunei: opt-in starter for disclosed optional purposes relying on consent. */
 	bruneiOptIn: () => PolicyRule;
-	/** Laos: opt-in starter for disclosed optional purposes relying on consent. */
 	laosOptIn: () => PolicyRule;
-	/** Brazil: opt-in starter for disclosed optional purposes relying on consent. */
 	brazilOptIn: () => PolicyRule;
-	/** Switzerland: opt-in starter for disclosed optional purposes relying on consent. */
 	switzerlandOptIn: () => PolicyRule;
-	/** Türkiye: opt-in starter for disclosed optional purposes relying on consent. */
 	turkeyOptIn: () => PolicyRule;
-	/** Switzerland: no prompt for reviewed low-risk processing with prior information and persistent opt-out. */
 	switzerlandOptOutNoPrompt: () => PolicyRule;
 
-	/** US privacy states: no automatic prompt, GPC honored, persistent opt-out controls required. */
 	usPrivacyStatesOptOut: () => PolicyRule;
-	/** US privacy states: opt-in choice, GPC honored. Same state coverage as opt-out. */
 	usPrivacyStatesOptIn: () => PolicyRule;
-	/** Australia: opt-in starter for optional tracking. */
 	australiaOptIn: () => PolicyRule;
-	/** Singapore: opt-in starter; does not implement deemed consent. */
 	singaporeOptIn: () => PolicyRule;
-	/** Japan: opt-in starter for optional tracking. */
 	japanOptIn: () => PolicyRule;
-	/** South Korea: opt-in starter; review purpose and third-party consent separately. */
 	southKoreaOptIn: () => PolicyRule;
-	/** India: opt-in starter; DPDP commencement is phased through May 2027. */
 	indiaOptIn: () => PolicyRule;
-	/** UAE federal opt-in starter; DIFC and ADGM need business-specific configuration. */
 	uaeOptIn: () => PolicyRule;
-	/** Saudi Arabia: opt-in starter for optional tracking. */
 	saudiArabiaOptIn: () => PolicyRule;
-	/** Europe opt-in preset (EEA + UK + Gibraltar, geo fallback). Choice prompt. */
 	europeOptIn: () => PolicyRule;
-	/** Europe IAB TCF 2.4 preset (EEA + UK + Gibraltar, geo fallback). Choice prompt. */
 	europeIab: () => PolicyRule;
-	/** California opt-in preset (US-CA). Choice prompt, GPC honored. */
 	californiaOptIn: () => PolicyRule;
-	/** California opt-out preset (US-CA). No prompt, GPC honored, rights persistent. */
 	californiaOptOut: () => PolicyRule;
-	/** Quebec opt-in preset (CA-QC). Choice prompt. */
 	quebecOptIn: () => PolicyRule;
-	/**
-	 * Known location with no consent law granting rights: `none` model, no
-	 * prompt, no rights, no consent UI. The recommended global default.
-	 */
 	worldNone: () => PolicyRule;
-	/**
-	 * Explicit global default that keeps preferences reachable: opt-out with
-	 * no first-layer prompt. Not part of the recommended pack; choose it when
-	 * every uncovered location should still offer a preference center.
-	 */
 	worldOptOutNoPrompt: () => PolicyRule;
 }
 
-/**
- * Built-in v3 policy rule presets for regional starting points.
- *
- * @remarks
- * These are starter configurations. Each carries `review` metadata with the
- * primary sources, review date and assumptions it encodes. A source review
- * checks those assumptions; it does not approve a deployment or determine its
- * legal basis. Review the configuration against your own processing purposes.
- *
- * @example
- * ```ts
- * import { policyRulePresets } from '@c15t/schema';
- *
- * const rules = [
- *   policyRulePresets.europeOptIn(),
- *   policyRulePresets.usPrivacyStatesOptOut(),
- *   policyRulePresets.australiaOptIn(),
- * ];
- * ```
- */
 export const policyRulePresets: PolicyRulePresets = {
 	australiaOptIn: () =>
 		countryOptIn(
@@ -772,30 +698,10 @@ export const policyRulePresets: PolicyRulePresets = {
 	}),
 };
 
-/** Options for {@link recommendedPolicyRules}. */
 export interface RecommendedPolicyRulesOptions {
-	/**
-	 * Use the IAB TCF 2.4 Europe rule instead of plain opt-in. The runtime
-	 * still needs the IAB module enabled for the rule to run as `iab`.
-	 * @default false
-	 */
 	iab?: boolean;
 }
 
-/**
- * The recommended global pack, in match order: Europe (EEA, UK, Gibraltar,
- * and the geo fallback for an unknown location) opt-in or IAB, Quebec
- * opt-in, the US privacy states and missing US states opt-out with GPC, and
- * `none` for every other known location. A missing Canadian province remains
- * strict. `local()` resolves this pack when the host passes no rules.
- *
- * @example
- * ```ts
- * import { recommendedPolicyRules } from '@c15t/schema';
- *
- * const rules = recommendedPolicyRules({ iab: true });
- * ```
- */
 export const recommendedPolicyRules = function recommendedPolicyRules(
 	options: RecommendedPolicyRulesOptions = {}
 ): PolicyRule[] {

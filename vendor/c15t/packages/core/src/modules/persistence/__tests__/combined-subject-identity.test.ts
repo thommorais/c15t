@@ -71,16 +71,8 @@ afterEach(() => {
 	vi.useRealTimers();
 });
 
-/**
- * `necessary-only`: only strictly necessary is in scope, so a save records
- * an acknowledgement and no choice. `opt-out`: a refusal records a denial.
- */
 type Scope = 'necessary-only' | 'opt-in' | 'opt-out';
 
-/**
- * The visitor refuses everything optional. Under `opt-out` that is an
- * explicit denial of each category the default allows.
- */
 const refuse = function refuse(kernel: ConsentKernel, scope: Scope): SaveInput {
 	if (scope !== 'opt-out') {
 		return 'none';
@@ -94,15 +86,11 @@ const refuse = function refuse(kernel: ConsentKernel, scope: Scope): SaveInput {
 
 interface BootOptions {
 	storageConfig?: StorageConfig;
-	/** Defaults to `opt-in`. */
 	scope?: Scope;
-	/** What the backend answers each save with. */
 	respond?: () => Promise<SaveResponse>;
-	/** Collects the subject ID each save request carries. */
 	sent?: (string | undefined)[];
 }
 
-/** One page load: a kernel with persistence mounted and hydrated. */
 const boot = function boot(options: BootOptions = {}): {
 	kernel: ConsentKernel;
 	handle: ReturnType<typeof createPersistence>;
@@ -139,7 +127,6 @@ const save = async function save(
 	const saving = kernel.commands.save(input);
 	await vi.advanceTimersByTimeAsync(0);
 	await saving;
-	// Rewrites under a canonical ID run on a later timer.
 	await vi.runOnlyPendingTimersAsync();
 };
 
@@ -158,7 +145,6 @@ const storedSid = function storedSid(storageConfig?: StorageConfig) {
 	};
 };
 
-/** Every cookie and localStorage value, decoded, as one string. */
 const everythingStored = function everythingStored(): string {
 	const local = Object.keys(localStorage).map(
 		(key) => `${key}=${localStorage.getItem(key)}`
@@ -173,7 +159,6 @@ const everythingStored = function everythingStored(): string {
 	return [...cookies, ...local].join('\n');
 };
 
-/** What a server render of the next request reads from this browser. */
 const serverRead = function serverRead(storage?: StorageConfig) {
 	const subject = resolveRequestSubject({
 		now: Date.now(),
@@ -230,7 +215,6 @@ test.each(
 		expect(first.kernel.getSnapshot().noticeDismissal).toBeNull();
 		expect(first.kernel.getSnapshot().activeUI).toBe('banner');
 
-		// The server already sees the browser's ID before any choice.
 		const before = serverRead(storageConfig);
 		expect(before.subject?.subjectId).toBe(startup);
 		expect(before.subject?.setCookie).toBeNull();
@@ -318,8 +302,6 @@ test.each(STORAGE)(
 		const startup = subjectIdOf(first.kernel) as string;
 		const saving = first.kernel.commands.save('none');
 		await vi.advanceTimersByTimeAsync(0);
-		// The browser refuses the rewritten notice subject cookie, as it
-		// would one over its size limit. Every other write lands.
 		const setter = Object.getOwnPropertyDescriptor(
 			Document.prototype,
 			'cookie'
@@ -334,7 +316,6 @@ test.each(STORAGE)(
 		await vi.runOnlyPendingTimersAsync();
 		first.handle.dispose();
 		vi.restoreAllMocks();
-		// Only the notice subject cookie missed the rewrite.
 		expect(subjectIdOf(first.kernel)).toBe(CANONICAL);
 		expect(getRawCookieValue(keys.noticeSubject)).toContain(startup);
 		expect(storedSid(storageConfig)).toEqual({
@@ -348,11 +329,8 @@ test.each(STORAGE)(
 		expectNoOptionalGrant(reload.kernel.getSnapshot());
 		reload.handle.dispose();
 
-		// The next page is rendered on the server from cookies alone, and the
-		// browser starts from what that render read.
 		const server = serverRead(storageConfig);
 		expect(server.records?.choice).toBeNull();
-		// The response must not hand the browser its old ID back.
 		expect(server.subject?.setCookie?.value).not.toBe(startup);
 		if (server.subject?.setCookie) {
 			document.cookie = server.subject.setCookie.header;
@@ -392,7 +370,6 @@ test.each(STORAGE)(
 		const recorded = subjectIdOf(first.kernel) as string;
 		await save(first.kernel, 'none');
 		first.handle.dispose();
-		// Another tab, or a server response, stored its own ID meanwhile.
 		const other = generateSubjectId();
 		document.cookie = `${keys.subject}=${other}; path=/`;
 		localStorage.setItem(keys.subject, other);
@@ -401,7 +378,6 @@ test.each(STORAGE)(
 		const { kernel } = boot({ scope: 'necessary-only', storageConfig });
 
 		expect(server.subject?.subjectId).toBe(subjectIdOf(kernel));
-		// The ID the acknowledgement recorded wins over the bare stored one.
 		expect(subjectIdOf(kernel)).toBe(recorded);
 		expect(server.records?.subject?.subjectId).toBe(recorded);
 		expect(server.records?.choice).toBeNull();
@@ -603,7 +579,6 @@ test.each(
 		const keys = resolveStorageKeys(storageConfig);
 		const first = boot({ scope, storageConfig });
 		const subjectId = subjectIdOf(first.kernel);
-		// A clear first, so the clear epoch is live too.
 		first.handle.clear();
 		await vi.advanceTimersByTimeAsync(1000);
 		await save(first.kernel, refuse(first.kernel, scope));

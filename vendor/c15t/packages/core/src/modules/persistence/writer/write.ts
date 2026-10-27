@@ -1,13 +1,3 @@
-/**
- * Write kernel records to storage.
- *
- * Every write is driven by an explicit kernel event: a recorded choice
- * writes the v3 envelope, a dismissed notice writes the notice record and a
- * recorded vendor toggle writes the vendor record. Category times are
- * written exactly as the kernel holds them; nothing here stamps the clock
- * into a receipt. GPC is a live signal and is never written.
- */
-
 import type { ConsentSnapshot } from '../../../types';
 import type {
 	StoredConsentEnvelope,
@@ -18,7 +8,6 @@ import type {
 import type { StorageConfig } from '../types';
 import type { RecordStore } from './store';
 
-/** Envelope a snapshot's explicit choice serializes to, or `null`. */
 export const buildStoredEnvelope = function buildStoredEnvelope(
 	snapshot: ConsentSnapshot,
 	iab: StoredIabMetadata | null,
@@ -43,10 +32,6 @@ export const buildStoredEnvelope = function buildStoredEnvelope(
 	return envelope;
 };
 
-/**
- * Write the explicit choice to storage. No-op outside the browser or when
- * no choice exists.
- */
 export const writeChoiceToStorage = function writeChoiceToStorage(
 	store: RecordStore,
 	snapshot: ConsentSnapshot,
@@ -71,7 +56,6 @@ export const writeChoiceToStorage = function writeChoiceToStorage(
 	}
 };
 
-/** Write the notice dismissal. No-op outside the browser or when absent. */
 export const writeNoticeToStorage = function writeNoticeToStorage(
 	store: RecordStore,
 	snapshot: ConsentSnapshot,
@@ -88,11 +72,6 @@ export const writeNoticeToStorage = function writeNoticeToStorage(
 	store.writeStoredNoticeDismissal(record, storageConfig, now);
 };
 
-/**
- * Write the vendor denial list. A `null` decision removes the record; an
- * empty list is written, since its time is what lets it supersede an older
- * server denial. No-op outside the browser.
- */
 export const writeVendorChoiceToStorage = function writeVendorChoiceToStorage(
 	store: RecordStore,
 	snapshot: ConsentSnapshot,
@@ -106,9 +85,6 @@ export const writeVendorChoiceToStorage = function writeVendorChoiceToStorage(
 		store.clearStoredVendorChoice(storageConfig);
 		return;
 	}
-	// The subject rides along so a visitor whose only act so far decided
-	// vendors keeps one identity: the envelope cannot hold it without a
-	// category choice.
 	const record: StoredVendorChoice = { ...snapshot.vendorChoice };
 	if (snapshot.subject && Object.keys(snapshot.subject).length > 0) {
 		record.subject = { ...snapshot.subject };
@@ -118,10 +94,6 @@ export const writeVendorChoiceToStorage = function writeVendorChoiceToStorage(
 		console.warn('[c15t] Vendor choice was not written.', result.issues);
 		return;
 	}
-	// A server render reads the cookie only. When the browser dropped it, most
-	// likely because many long ids pushed it past the per-cookie limit, the
-	// next SSR page would seed an older or absent list; say so rather than
-	// let it pass silently.
 	if (result.written && !result.written.cookie) {
 		console.warn(
 			'[c15t] Vendor choice cookie was not stored; the localStorage copy is current but a server render will not see it. Shorten vendor ids or deny fewer vendors.',

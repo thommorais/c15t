@@ -63,8 +63,6 @@ describe('isEligible', () => {
 	});
 
 	test('IAB mode + missing iab slice denies a script with iab metadata', () => {
-		// IAB mode with iab=null is not a real runtime state (the IAB
-		// module would have set the slice), but we exercise the guard.
 		const snap = snapshotForKernel({});
 		const pass = {
 			...buildReconcilePass(snap, scriptLoaderTools),

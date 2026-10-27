@@ -10,11 +10,6 @@ import {
 	assertVisibleFocusIndicator,
 } from '../assertions/focus';
 
-/**
- * Full DOM contract check for the consent banner: every declared element is
- * present with the expected role and attributes. Run this on the `Default`
- * story of every framework's banner to catch structural drift.
- */
 export const bannerContract: PlayFunction = async () => {
 	const body = within(document.body);
 	await body.findByTestId('consent-banner-root');
@@ -27,10 +22,6 @@ export const bannerContract: PlayFunction = async () => {
 	expect(getComputedStyle(title).marginBlockEnd).toBe('0px');
 };
 
-/**
- * Clicks the customize button on the consent banner and verifies
- * the consent dialog opens.
- */
 export const bannerToDialogFlow: PlayFunction = async () => {
 	const body = within(document.body);
 	await userEvent.click(
@@ -42,9 +33,6 @@ export const bannerToDialogFlow: PlayFunction = async () => {
 	).toBeInTheDocument();
 };
 
-/**
- * Verifies keyboard activation of the accept button dismisses the banner.
- */
 export const bannerAcceptViaKeyboard: PlayFunction = async () => {
 	const body = within(document.body);
 	const accept = await body.findByTestId('consent-banner-accept-button');
@@ -56,14 +44,6 @@ export const bannerAcceptViaKeyboard: PlayFunction = async () => {
 	});
 };
 
-/**
- * Verifies the banner's focus behaviour for its resolved blocking state and
- * that every action button renders a visible keyboard-focus indicator.
- *
- * A blocking banner (`data-blocking="true"` on the root) is a modal dialog
- * that receives focus on open. A non-blocking banner is a labelled region
- * that must leave focus on the page.
- */
 export const bannerFocusManagement: PlayFunction = async () => {
 	const body = within(document.body);
 	const root = await body.findByTestId('consent-banner-root');
@@ -80,8 +60,6 @@ export const bannerFocusManagement: PlayFunction = async () => {
 		});
 	}
 
-	// Visible focus rings: the shared button CSS uses high-specificity
-	// variant selectors that can silently override the :focus-visible ring.
 	await assertVisibleFocusIndicator(
 		document.body,
 		'consent-banner-reject-button'

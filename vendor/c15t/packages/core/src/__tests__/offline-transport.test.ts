@@ -1,10 +1,3 @@
-/**
- * Tests for createOfflineTransport.
- *
- * Verifies that offline mode synthesizes the same InitResponse shape as
- * hosted mode, using local policy-pack resolution. Consumers can swap
- * transports without changes to the kernel or adapter.
- */
 import { describe, expect, test } from 'vitest';
 
 import {
@@ -241,8 +234,6 @@ describe('offline(): language changes', () => {
 		expect(german.translations?.translations.cookieBanner.title).toBe(
 			'Wir schätzen Ihre Privatsphäre'
 		);
-		// Without copy for French, English stays English rather than being
-		// labelled French.
 		const french = await transport.init({
 			overrides: { language: 'fr' },
 			user: null,
@@ -268,7 +259,6 @@ describe('offline(): language changes', () => {
 			kernel.getSnapshot().translations?.translations.cookieBanner.title
 		).toBe('Wir schätzen Ihre Privatsphäre');
 
-		// No copy for French: the default copy returns, labelled as English.
 		kernel.set.language('fr');
 		await kernel.commands.init();
 		expect(kernel.getSnapshot().translations?.language).toBe('en');

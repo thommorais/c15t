@@ -1,9 +1,3 @@
-/**
- * Changing the consent language at runtime loads copy in that language,
- * through `useSetLanguage()` in any mode and through `overrides.language`
- * in offline mode. A language a server prefetch detected from
- * `Accept-Language` does not switch offline copy.
- */
 import type { ConsentKernel, InitContext, KernelConfig } from '@c15t/core';
 import { writePolicyResolutionWire } from '@c15t/schema/types';
 import { useContext, useEffect } from 'react';
@@ -191,7 +185,6 @@ describe('offline() language', () => {
 		expect(kernel.getSnapshot().overrides.language).toBe('de');
 		expect(title()).toBe('Privacy');
 
-		// A later init for another reason keeps the startup copy too.
 		kernel.set.overrides({ country: 'FR' });
 		await kernel.commands.init();
 		expect(title()).toBe('Privacy');

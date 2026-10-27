@@ -1,11 +1,6 @@
 /**
  * @vitest-environment jsdom
  */
-/**
- * The `<key>-vendors` sibling record: compact and JSON round trips,
- * rejection of malformed input, storage reads on both paths, the SSR
- * cookie-header read, and independence from the consent envelope.
- */
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import {
@@ -62,8 +57,6 @@ describe('vendor choice compact projection', () => {
 	});
 
 	it('rejects a percent-encoded id that is not a slug', () => {
-		// A cookie anyone can write. An id outside the slug shape would ride
-		// into every later grant map and fail the wire schema on the backend.
 		const text = `v=1&t=${NOW - 1}&d=Bad%20ID|meta-pixel`;
 		expect(decodeVendorChoiceCompact(text, NOW)).toEqual({
 			issues: [{ code: 'invalid-identifier', path: 'denied[0]' }],
@@ -200,7 +193,6 @@ describe('vendor choice storage', () => {
 		);
 		const { records } = readStoredRecords(undefined, NOW);
 		expect(records.subject).toEqual({ subjectId: 'sub_1' });
-		// The kernel's own record shape: the subject is not repeated inside it.
 		expect(records.vendorChoice).toEqual({
 			confirmedAt: NOW - 1,
 			denied: ['meta-pixel'],

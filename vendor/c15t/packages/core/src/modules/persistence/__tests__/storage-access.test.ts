@@ -29,7 +29,6 @@ beforeEach(() => {
 	vi.setSystemTime(NOW);
 	localStorage.clear();
 	clearStoredConsentRecords();
-	// A clear keeps its epoch and the subject ID; start every test without.
 	for (const key of ['c15t-epoch', 'c15t-sid']) {
 		document.cookie = `${key}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/`;
 	}
@@ -112,7 +111,6 @@ test('distinguishes unreadable records from readable empty storage', async () =>
 
 	expect(handle.hydrate()).toBe(false);
 	expect(kernel.getSnapshot().explicitChoice).toBeNull();
-	// The subject ID is not a record: clearing records keeps it.
 	expect(kernel.getSnapshot().subject).toEqual({ subjectId });
 	expect(kernel.getSnapshot().noticeDismissal).toBeNull();
 });
@@ -194,7 +192,6 @@ test.each(['getter', 'methods', 'missing'] as const)(
 		expect(document.cookie).toBe(cookie);
 
 		reader.clear();
-		// The subject ID and the clear epoch are the only things left.
 		expect(document.cookie).toMatch(/^c15t-sid=sub_\w+; c15t-epoch=\d+$/u);
 		expect(restored.getSnapshot().explicitChoice).toBeNull();
 		expect(restored.getSnapshot().noticeDismissal).toBeNull();
@@ -210,7 +207,6 @@ test.each(['getter', 'methods', 'missing'] as const)(
 		await kernel.commands.save({ measurement: false });
 		await kernel.commands.dismissNotice();
 		kernel.set.privacySignals({ gpc: true });
-		// Flush the deferred writes without advancing the receipt expiry timer.
 		expect(() => vi.advanceTimersByTime(0)).not.toThrow();
 		writer.dispose();
 		expect(document.cookie).toContain('c15t=');
@@ -226,9 +222,6 @@ test.each(['getter', 'methods', 'missing'] as const)(
 	}
 );
 
-// A page that cannot read its cookies keeps persisting to localStorage.
-// The subject checks that read the whole Cookie header degrade the same
-// way the per-cookie readers do, at startup and on focus.
 test('a server-seeded start reads the subject from localStorage when cookies cannot be read', () => {
 	const kernel = createKernel();
 	const handle = persist(kernel);
@@ -282,9 +275,6 @@ test('focus keeps a used subject ID when cookies cannot be read', async () => {
 	expect(localStorage.getItem('c15t-sid')).toBe(own);
 });
 
-// A visitor on a site with only necessary categories who linked an account
-// is known by the acknowledgement alone. A load that cannot read cookies
-// takes that subject whole from localStorage, as one that can does.
 test.each([
 	['can be read', 'hydrating'],
 	['cannot be read', 'hydrating'],
@@ -359,9 +349,6 @@ test.each([
 	}
 );
 
-// A tab whose choice record cannot be read takes its subject from the vendor
-// or notice record that carries it, a copy of storage like any other. When
-// another tab renames that ID, the tab follows, as a reload would.
 const vendorList = {
 	declared: [
 		{
@@ -462,8 +449,6 @@ test.each([
 	}
 );
 
-// An ID a save response named came from the server and yields only to a
-// strictly newer record, whether cookies can be read or not.
 test.each(['can be read', 'cannot be read'] as const)(
 	'a tab keeps an ID the server resolved over a rename at the same time when cookies %s',
 	async (cookies) => {

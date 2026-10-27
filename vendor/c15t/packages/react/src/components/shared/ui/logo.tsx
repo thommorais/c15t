@@ -5,10 +5,6 @@ interface IconProps {
 	titleId?: string;
 }
 
-/**
- * c15t icon only (without text).
- * Use this for compact displays like the floating trigger.
- */
 export const C15TIconOnly = ({
 	title = 'c15t',
 	titleId = 'c15t-icon',
@@ -58,9 +54,6 @@ const InthMark = ({
 	</svg>
 );
 
-/**
- * INTH logo for partner branding displays.
- */
 export const InthLogo = (props: SVGProps<SVGSVGElement> & IconProps) => (
 	<InthMark
 		titleId="inth-full-logo"
@@ -68,9 +61,6 @@ export const InthLogo = (props: SVGProps<SVGSVGElement> & IconProps) => (
 	/>
 );
 
-/**
- * INTH icon-only mark for compact placements like floating triggers.
- */
 export const InthIconOnly = (props: SVGProps<SVGSVGElement> & IconProps) => (
 	<InthMark
 		titleId="inth-icon"

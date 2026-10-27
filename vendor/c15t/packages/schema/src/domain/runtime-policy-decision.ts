@@ -51,10 +51,6 @@ export const runtimePolicyDecisionSchema = v.object({
 	),
 	fingerprint: v.string(),
 	id: v.string(),
-	/**
-	 * Regulation label 2.x recorded with each decision. v3 writes `null`;
-	 * rows from 2.x keep their value.
-	 */
 	jurisdiction: v.nullish(v.string()),
 	language: v.nullish(v.string()),
 	matchedBy: v.picklist(['region', 'country', 'default', 'fallback']),

@@ -12,7 +12,6 @@ import tailwind3Plugin, { isC15tUiStylesheetPath } from '../postcss-tailwind3';
 import * as pluginModule from '../postcss-tailwind3';
 
 const TEST_DIR = dirname(fileURLToPath(import.meta.url));
-// This checkout's `packages/`, whose package.json files name c15t packages.
 const PACKAGES_DIR = join(TEST_DIR, '..', '..', '..');
 
 const layeredCss = `
@@ -93,9 +92,6 @@ describe('@c15t/ui/postcss-tailwind3', () => {
 	});
 
 	test('leaves no @layer in any built layered sheet', async () => {
-		// Every layered sheet opens with the layer order statement; Tailwind 3
-		// has no layers to order, so the plugin drops it along with the blocks.
-		// The entrypoints matter most: apps import `styles.css` directly.
 		for (const file of [
 			'styles.css',
 			'iab/styles.css',
@@ -114,9 +110,6 @@ describe('@c15t/ui/postcss-tailwind3', () => {
 	});
 
 	test('unwraps c15t rules inlined into an app stylesheet', async () => {
-		// Vite and postcss-import inline `@import`ed files before other
-		// plugins run. The inlined nodes keep their own source file, so the
-		// plugin unwraps c15t's layers and leaves the app's own alone.
 		const app = parse(
 			'@tailwind components;\n@layer components { .app-card { color: red; } }',
 			{ from: '/app/src/index.css' }
@@ -139,9 +132,6 @@ describe('@c15t/ui/postcss-tailwind3', () => {
 	});
 
 	test('normalizes the in-process module namespace into a working plugin', async () => {
-		// PostCSS (and Next's wrapper) unwrap a `postcss` property, so the
-		// module namespace itself must normalize into a working plugin
-		// without a CommonJS build.
 		const result = await postcss([
 			pluginModule as unknown as AcceptedPlugin,
 		]).process(layeredCss, {
@@ -153,12 +143,6 @@ describe('@c15t/ui/postcss-tailwind3', () => {
 	});
 
 	test('loads through a real require() of the built dist entry', () => {
-		// Next.js `require()`s string plugin names from postcss.config.* and
-		// receives the ESM namespace via require(esm). Drive that path for
-		// real: a plain-Node subprocess (outside Vitest's Vite pipeline)
-		// requires `@c15t/ui/postcss-tailwind3` against the built dist — the
-		// turbo test task depends on build, so dist exists — and feeds the
-		// result to postcss.
 		const raw = execFileSync(
 			process.execPath,
 			[
@@ -176,10 +160,6 @@ describe('@c15t/ui/postcss-tailwind3', () => {
 	});
 
 	test('unwraps c15t layers that an @import inlined into an app stylesheet', async () => {
-		// Vite and postcss-import inline `@import '@c15t/svelte/styles.css'`
-		// before Tailwind runs, so the root is the app's file and only the
-		// inlined nodes remember that they came from c15t. Left layered,
-		// Tailwind 3 adopts them as its own components layer and purges them.
 		const root = parse(
 			'@tailwind components;\n@layer components { .app-card { color: red; } }',
 			{ from: '/app/src/app.css' }
@@ -201,8 +181,6 @@ describe('@c15t/ui/postcss-tailwind3', () => {
 	});
 
 	test('unwraps c15t layers inside an adapter stylesheet that imports @c15t/ui', async () => {
-		// Astro injects `@c15t/astro/styles.css`, which opens with the layer
-		// order and then imports `@c15t/ui/styles.css`.
 		const from = '/app/node_modules/@c15t/astro/dist/styles.css';
 		const root = parse(
 			'@layer properties, theme, base, components, utilities;',
@@ -229,7 +207,6 @@ describe('@c15t/ui/postcss-tailwind3', () => {
 			'/app/node_modules/@c15t/browser/dist/c15t.css',
 			'/app/node_modules/c15t/dist/react/styles.css',
 			join(PACKAGES_DIR, 'svelte', 'dist', 'styles.css'),
-			// Astro's Vite pipeline processes the dialog sheet with a query.
 			'/app/node_modules/@c15t/ui/dist/styles/dialog.css?transform-only',
 		]) {
 			expect(isC15tUiStylesheetPath(path)).toBe(true);
@@ -238,7 +215,6 @@ describe('@c15t/ui/postcss-tailwind3', () => {
 			'/app/node_modules/@other/ui/dist/styles.css',
 			'/app/node_modules/c15t-theme/dist/styles.css',
 			'/repo/packages/web/dist/styles.css',
-			// Another monorepo's workspace package with a c15t-like name.
 			'/home/dev/app/packages/react/dist/styles.css',
 			'/app/src/styles.css',
 		]) {

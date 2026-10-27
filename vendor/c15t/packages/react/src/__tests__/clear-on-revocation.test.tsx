@@ -45,7 +45,6 @@ const assertPreservedData = () => {
 	expect(localStorage.getItem(consentKey)).not.toBeNull();
 };
 
-/** Saves are queued and written once the write code loads; wait for it. */
 const waitForStoredConsent = () =>
 	vi.waitFor(() => {
 		expect(document.cookie).toContain(`${consentKey}=`);
@@ -124,7 +123,6 @@ test('a returning denied visitor clears stale data without restarting the integr
 	await vi.waitFor(() => assertIntegrationData(false));
 	await first.unmount();
 
-	// Keep the actual persisted refusal while simulating leftover vendor data.
 	writeIntegrationData();
 	assertIntegrationData(true);
 	const returning = await render(<App onLoad={onLoad} />);

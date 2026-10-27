@@ -1,11 +1,3 @@
-/**
- * Cross-framework conformance suites.
- *
- * Each per-framework test file constructs a `TestDriver` and passes it
- * into `runConformanceSuite(driver, api)`. The `api` carries the
- * runner-specific `describe`/`test`/`expect` so suites stay agnostic.
- */
-
 import type { TestDriver } from '../driver';
 import { runA11yConformance } from './a11y';
 import { runErrorConformance } from './errors';

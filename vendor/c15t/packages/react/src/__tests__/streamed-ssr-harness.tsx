@@ -1,13 +1,3 @@
-/**
- * Streams a server render into an iframe the way a browser receives it:
- * each chunk goes through `document.write`, so React's inline scripts run
- * and reveal streamed boundaries before any JavaScript of the app does.
- * `hydrateRoot` then hydrates that document, as Next.js does.
- *
- * A timeline records the banner after every task that changed the page,
- * which is what a visitor could see painted: `none`, or `banner:<n>` where
- * `n` numbers each distinct markup the banner had.
- */
 import type { ReactElement } from 'react';
 import { act } from 'react';
 import { hydrateRoot } from 'react-dom/client';
@@ -22,16 +12,11 @@ export interface HydratedPage {
 
 export interface StreamedPage {
 	doc: Document;
-	/** Banner states after each DOM-changing task, repeats dropped. */
 	timeline: string[];
-	/** Marks a point in the timeline as `@label`. */
 	mark: (label: string) => void;
-	/** Waits for the server to finish, writes the rest, waits for reveals. */
 	finish: () => Promise<void>;
 	hasBanner: () => boolean;
-	/** Hydrates inside `act`, effects flushed. */
 	hydrate: (element: ReactElement) => Promise<HydratedPage>;
-	/** Starts hydration and returns in the same task, effects not flushed. */
 	hydrateNow: (element: ReactElement) => HydratedPage;
 	serverErrors: unknown[];
 	dispose: () => void;
@@ -44,7 +29,6 @@ const wait = (ms: number) =>
 
 type Read = ReadableStreamReadResult<string>;
 
-/** The next chunk, or `idle` when the server has none ready. */
 const readWithin = async function readWithin(
 	reader: ReadableStreamDefaultReader<string>,
 	pending: { read?: Promise<Read> },
@@ -76,10 +60,6 @@ const tracked = function tracked(
 	};
 };
 
-/**
- * Renders `element` to a stream and writes what the server has ready (the
- * shell) into a fresh iframe.
- */
 export const streamPage = async function streamPage(
 	element: ReactElement
 ): Promise<StreamedPage> {
@@ -97,16 +77,12 @@ export const streamPage = async function streamPage(
 	const pending: { read?: Promise<Read> } = {};
 	const timeline: string[] = [];
 	const markups: string[] = [];
-	// React parks a streamed boundary in a hidden element until its inline
-	// script reveals it: only a banner outside one is on screen.
 	const visibleBanner = () => {
 		const banner = doc.querySelector(BANNER);
 		return banner && !banner.closest('[hidden]') ? banner : null;
 	};
 	let last = '';
 	const observe = () => {
-		// The branding link adds the site as `?ref=` once hydrated; that is
-		// not a change anyone sees.
 		const html = visibleBanner()?.outerHTML.replace(/\?ref=[^"]*/gu, '');
 		let entry = 'none';
 		if (html) {
@@ -130,8 +106,6 @@ export const streamPage = async function streamPage(
 		doc.write(result.value);
 		observe();
 	};
-	// React 19.2 reveals a completed boundary on a later frame, and
-	// throttles reveals after the first, so wait until none is parked.
 	const revealed = async () => {
 		const started = performance.now();
 		while (doc.querySelector('[hidden][id^="S:"]')) {
@@ -147,7 +121,6 @@ export const streamPage = async function streamPage(
 	const observer = new Observer(observe);
 	observer.observe(doc, { attributes: true, childList: true, subtree: true });
 
-	// The shell: every chunk the server writes before it waits on data.
 	while (!progress.done) {
 		// oxlint-disable-next-line no-await-in-loop -- A stream is read in order.
 		const result = await readWithin(reader, pending, 30);
@@ -200,7 +173,6 @@ export const streamPage = async function streamPage(
 	};
 };
 
-/** A promise whose settlement the test controls. */
 export interface Deferred<Value> {
 	promise: Promise<Value>;
 	resolve: (value: Value) => void;
@@ -212,11 +184,6 @@ export const deferred = function deferred<Value>(): Deferred<Value> {
 	return { promise, reject, resolve };
 };
 
-/**
- * A promise already settled the way React Flight hands one to a client
- * component whose chunk arrived before hydration: it records its value, so
- * `use()` reads it without suspending.
- */
 export const fulfilledThenable = function fulfilledThenable<Value>(
 	value: Value
 ): Promise<Value> {

@@ -1,13 +1,3 @@
-/**
- * Google Additional Consent providers for hosts that resolve `/init` from a
- * manifest. The backend embeds them in its own `/init`; a manifest host loads
- * them from the manifest's `iab.additionalConsent.url`, as it loads the
- * vendor list from `iab.gvl.url`.
- *
- * Unlike the vendor list, a failure never rejects: the Additional Consent
- * string only supplements the TC String, so an unavailable list leaves the
- * field out and the consent surface still renders.
- */
 import {
 	adTechProviderFetchSignal,
 	adTechProviderListUrl,
@@ -22,56 +12,26 @@ import type {
 } from '@c15t/schema/types';
 
 interface CachedProviders {
-	/** Absent when no list has loaded and only a failed fetch is remembered. */
 	providers: AdTechProvider[] | undefined;
-	/**
-	 * Until when this entry is served without asking the endpoint again:
-	 * the list's freshness, or the backoff after a failed fetch.
-	 */
 	expiresAt: number;
-	/** Until when the list is served when a refresh fails. */
 	staleUntil: number;
 }
 
 export type AdTechProviderCache = Map<string, CachedProviders>;
 
 export interface FetchCachedAdTechProvidersOptions {
-	/** The manifest's `iab.additionalConsent`. */
 	reference: ConsentManifestAdditionalConsent;
 	fetch: typeof globalThis.fetch;
-	/** Extra request headers (version headers, for example). */
 	headers?: Record<string, string>;
-	/** Injected for tests. */
 	now?: number;
 	cache?: AdTechProviderCache;
 }
 
 const TTL_MS = 86_400_000;
-/**
- * How long a list is kept for failed refreshes, as long as the backend keeps
- * its own. Past that, an endpoint that stays down stops disclosing providers
- * Google may have removed.
- */
 const STALE_TTL_MS = 30 * TTL_MS;
-/**
- * How long a failed fetch is remembered before the next init tries again, as
- * in the backend. A stalled request holds an init for the full fetch timeout,
- * so without this an endpoint outage would slow every init, not one a minute.
- */
 const FAILURE_BACKOFF_MS = 60_000;
-/**
- * Most lists one cache keeps. Each configuration resolves one set of IDs, so
- * this only bites a server resolving many tenants' or one-off configurations;
- * the oldest goes first.
- */
 const MAX_ENTRIES = 32;
-/** Lists from absolute endpoints, which name the same list for every caller. */
 const sharedCache: AdTechProviderCache = new Map();
-/**
- * Lists from relative endpoints, one cache per fetch implementation. Which
- * list a relative URL names depends on how that fetch resolves it, so two
- * resolvers in one process (two tenants, say) must not share an entry.
- */
 let relativeCaches = new WeakMap<
 	typeof globalThis.fetch,
 	AdTechProviderCache
@@ -101,7 +61,6 @@ const cacheFor = function cacheFor(
 	return cache;
 };
 
-/** Stores `entry` as the newest under `key`, dropping the oldest past the cap. */
 const remember = function remember(
 	cache: AdTechProviderCache,
 	key: string,
@@ -127,10 +86,6 @@ const inflightFor = function inflightFor(cache: AdTechProviderCache) {
 	return inflight;
 };
 
-/**
- * Drops cached provider lists; the next call fetches again. Without an
- * argument, drops every list this module holds.
- */
 export const clearAdTechProviderCache = function clearAdTechProviderCache(
 	cache?: AdTechProviderCache
 ): void {
@@ -144,24 +99,10 @@ export const clearAdTechProviderCache = function clearAdTechProviderCache(
 	relativeCaches = new WeakMap();
 };
 
-/**
- * Loads the providers a manifest lists, through an in-process cache that
- * coalesces concurrent requests. A relative endpoint is cached per fetch
- * implementation, since each may resolve it to a different list.
- *
- * After a failed fetch the endpoint is not asked again for a minute; the
- * last good list, or nothing, is served meanwhile.
- *
- * @param options - The manifest reference and fetch implementation.
- * @returns The listed providers sorted by ID, the last good list when the
- *   endpoint fails and that list is under 30 days old, or `undefined`.
- */
 export const fetchCachedAdTechProviders = function fetchCachedAdTechProviders(
 	options: FetchCachedAdTechProvidersOptions
 ): Promise<AdTechProvider[] | undefined> {
 	const ids = normalizeAdTechProviderIds(options.reference.providers);
-	// No IDs means no providers, whatever the endpoint would answer, and the
-	// `[]` withdraws the ones a client still holds.
 	if (ids.length === 0) {
 		return Promise.resolve([]);
 	}
@@ -182,8 +123,6 @@ export const fetchCachedAdTechProviders = function fetchCachedAdTechProviders(
 	if (pending) {
 		return pending;
 	}
-	// Serves the stale list, or nothing, until the next attempt; never past
-	// the list's own stale bound.
 	const backOff = () => {
 		const staleUntil = stale && cached ? cached.staleUntil : 0;
 		remember(cache, key, {
@@ -227,19 +166,6 @@ export const fetchCachedAdTechProviders = function fetchCachedAdTechProviders(
 	return run;
 };
 
-/**
- * The Google Additional Consent providers to send with an init output.
- *
- * An output that resolved to an IAB policy always says which providers apply:
- * `[]` when the manifest lists none, so a client that held providers from an
- * earlier configuration withdraws them. Only a list that could not be loaded
- * is left out, which the client reads as "keep what you hold".
- *
- * @param manifest - The manifest the output resolved from.
- * @param output - The resolved init output.
- * @param load - Loads the providers a manifest reference lists.
- * @returns The providers to send, or `undefined` to leave the field out.
- */
 export const loadManifestAdTechProviders = function loadManifestAdTechProviders(
 	manifest: ConsentManifest,
 	output: InitOutput,

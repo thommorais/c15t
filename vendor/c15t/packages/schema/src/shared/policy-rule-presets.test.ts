@@ -161,7 +161,6 @@ describe('policyRulePresets', () => {
 				resolvePolicyRules({ countryCode, regionCode, rules })
 			).toMatchObject({ matchedBy, policyId, status: 'matched' });
 		}
-		// A known US visitor keeps opt-out rights even when the state is missing.
 		expect(
 			resolvePolicyRules({ countryCode: 'US', regionCode: null, rules })
 		).toMatchObject({

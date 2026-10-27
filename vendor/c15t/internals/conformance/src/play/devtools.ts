@@ -1,11 +1,6 @@
 import type { PlayFunction } from 'storybook/internal/types';
 import { expect, fireEvent, userEvent, waitFor, within } from 'storybook/test';
 
-/**
- * The mounted panel root. The panel renders inside a shadow root on a
- * `[data-c15t-dev-tools-host]` element by default, and directly in the
- * page when an adapter passes `shadow: false`.
- */
 export const findDevToolsRoot =
 	function findDevToolsRoot(): HTMLElement | null {
 		for (const host of document.querySelectorAll(
@@ -27,7 +22,6 @@ export const devToolsReady: PlayFunction = async () => {
 	});
 };
 
-/** Shared behavior contract for floating and embedded framework adapters. */
 export const devToolsFlow: PlayFunction = async (context) => {
 	await devToolsReady(context);
 	const root = findDevToolsRoot();
@@ -56,11 +50,7 @@ export const devToolsFlow: PlayFunction = async (context) => {
 			expect(within(script).getByText('Loaded', { exact: true })).toBeVisible();
 		}
 	});
-	// Tab changes restore keyboard focus on the next frame. Let that finish
-	// before moving focus into the filter, as a user would between interactions.
 	await waitFor(() =>
-		// `toHaveFocus` reads `document.activeElement`, which stops at the shadow
-		// host; the panel's own root node knows the focused element.
 		expect((root.getRootNode() as Document | ShadowRoot).activeElement).toBe(
 			panel.getByRole('tab', { name: 'Scripts' })
 		)
@@ -73,8 +63,6 @@ export const devToolsFlow: PlayFunction = async (context) => {
 		'analytics-fixture'
 	);
 	expect(panel.queryByText('retained-pixel')).toBeNull();
-	// `userEvent.clear` checks `document.activeElement`, which is the shadow
-	// host here; set the value through an input event instead.
 	await fireEvent.input(
 		panel.getByRole<HTMLInputElement>('textbox', { name: 'Filter scripts' }),
 		{ target: { value: '' } }

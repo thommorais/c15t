@@ -1,9 +1,3 @@
-/**
- * Surface actions at their interface: which surface shows after a visitor
- * acts, and which older action loses to a newer one. Every adapter calls
- * these functions, so the sequences are pinned here rather than per
- * renderer.
- */
 import { describe, expect, test, vi } from 'vitest';
 
 import { createConsentKernel } from '../index';
@@ -35,7 +29,6 @@ const OPT_IN = matchedResolution(optInRule());
 const IAB = matchedResolution(iabRule());
 const CATEGORIES = ['necessary', 'marketing', 'measurement'] as const;
 
-/** A save whose backend never answers unless the test says so. */
 const pendingTransport = function pendingTransport() {
 	const response = Promise.withResolvers<SaveResult>();
 	return {
@@ -54,7 +47,6 @@ const createKernel = function createKernel(config: KernelConfig = {}) {
 	});
 };
 
-/** A visitor who already chose under the current policy: no prompt owed. */
 const returningVisitor = function returningVisitor(config: KernelConfig = {}) {
 	return createKernel({
 		initialRecords: choiceRecords(
@@ -70,7 +62,6 @@ const flush = () =>
 		setTimeout(resolve, 0);
 	});
 
-/** A save that records nothing and resolves when the test says so. */
 const unrecordedSave = function unrecordedSave() {
 	const response = Promise.withResolvers<SaveResult>();
 	return { resolve: response.resolve, save: () => response.promise };
@@ -206,8 +197,6 @@ describe('saveConsentSurface', () => {
 		expect(kernel.getSnapshot().activeUI).toBe('dialog');
 	});
 
-	// A policy change no longer closes an open dialog, so the pending save
-	// decides what happens to it.
 	test.each([
 		['settles once it resolves ok', { ok: true }, 'none'],
 		['keeps the dialog when it fails', { ok: false }, 'dialog'],
@@ -306,7 +295,6 @@ const createIABKernel = function createIABKernel(): ConsentKernel {
 	});
 };
 
-/** A CMP handle whose `save` records a new authority, or fails. */
 const fakeIAB = function fakeIAB(
 	kernel: ConsentKernel,
 	outcome: 'records' | 'records-nothing' | 'throws' = 'records'

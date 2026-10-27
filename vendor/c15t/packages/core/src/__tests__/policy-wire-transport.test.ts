@@ -1,19 +1,3 @@
-/**
- * The v3 policy contract at the transport boundary (#1025).
- *
- * What these pin, independent of any kernel:
- *
- * - Every backend-bound request declares the contract it reads.
- * - A negotiated producer's `policyResolution` is passed through raw; a
- *   producer that predates the contract has its legacy field lifted; a
- *   negotiated producer whose response lacks the field is a failed payload,
- *   never a preserved or permissive policy.
- * - `Sec-GPC` is reported as a detected privacy signal, exactly, and never
- *   folded into the developer override.
- * - A save carries only the receipts the action confirmed, with the kernel's
- *   times and bases untouched, and a 2.x-shaped success body is a success.
- * - Offline resolution emits every outcome explicitly.
- */
 import type {
 	ConsentManifest,
 	InitOutput,
@@ -40,7 +24,6 @@ import {
 import type { SubjectSavePayload } from '../transports';
 import { createManifestTransport } from '../transports/manifest';
 
-// Deliberately missing the negotiated field: tests exercise untrusted responses.
 const BASE_INIT = {
 	branding: 'c15t',
 	location: { countryCode: 'DE', regionCode: null },
@@ -191,8 +174,6 @@ describe('resolveInitPolicyWire', () => {
 				)
 			)
 		).toEqual({ policy: null, reason: 'invalid-payload', status: 'failed' });
-		// A declared contract this client does not speak, or cannot parse, is
-		// refused before the body is considered at all.
 		for (const producerContract of [2, null]) {
 			expect(
 				readPolicyResolutionWire(
@@ -249,7 +230,6 @@ describe('hosted init negotiation', () => {
 			fetch: fetchSpy as unknown as typeof globalThis.fetch,
 		});
 
-		// Declared contract, no wire: failed, so no stale policy can stand in.
 		const negotiated = await transport.init({ overrides: {}, user: null });
 		expect(readPolicyResolutionWire(negotiated.policyResolution)).toEqual({
 			policy: null,
@@ -257,13 +237,11 @@ describe('hosted init negotiation', () => {
 			status: 'failed',
 		});
 
-		// No declaration: a producer from before the contract, lifted.
 		const legacy = await transport.init({ overrides: {}, user: null });
 		expect(readPolicyResolutionWire(legacy.policyResolution)).toMatchObject({
 			reason: 'unsupported-contract',
 			status: 'failed',
 		});
-		// The legacy field still rides along for the presentation bridge.
 		expect(legacy).not.toHaveProperty('policy');
 	});
 });
@@ -288,8 +266,6 @@ describe('unsupported producer contract', () => {
 			fetch: fetchSpy as unknown as typeof globalThis.fetch,
 		});
 		const response = await transport.init({ overrides: {}, user: null });
-		// An unknown contract makes the body no evidence at all: the kernel
-		// adopts the safe opt-in fallback rather than the opt-out it carries.
 		expect(readPolicyResolutionWire(response.policyResolution)).toEqual({
 			policy: null,
 			reason: 'unsupported-contract',
@@ -335,9 +311,6 @@ describe('save body receipts', () => {
 			},
 			version: 3,
 		});
-		// The complete map of explicit values travels for backends that read
-		// it: never the effective permissions, which a GPC mask or a strict
-		// scope may have denied against the subject's own grant.
 		expect(body.preferences).toEqual({
 			marketing: false,
 			measurement: true,
@@ -358,8 +331,6 @@ describe('save body receipts', () => {
 	});
 
 	test('sends an empty confirmation as an empty receipt and rejects payloads without receipts', () => {
-		// Absent `choice` reads as a 2.x body and the backend would stamp
-		// receipts from `preferences`; the empty receipt says nothing renewed.
 		expect(
 			buildConfirmedChoiceWire({
 				choice: CHOICE,
@@ -423,8 +394,6 @@ describe('hosted save result', () => {
 			backendURL: '/api/c15t',
 			fetch: fetchSpy as unknown as typeof globalThis.fetch,
 		});
-		// Without this, every real save was read as `ok: undefined` and queued
-		// for replay forever.
 		await expect(transport.save(PAYLOAD)).resolves.toEqual({
 			ok: true,
 			subjectId: 'sub_test',
@@ -444,8 +413,6 @@ describe('hosted subject record boundary', () => {
 			},
 		],
 		isValid: true,
-		// An earlier v3 alpha backend still sends standing directives. GPC is
-		// a live signal now, so the reader ignores them.
 		privacyDirectives: [
 			{
 				authority: 'subject',
@@ -569,7 +536,6 @@ describe('hosted subject record boundary', () => {
 					categories: {
 						marketing: {
 							basis: { fingerprint: 'choice-fp', kind: 'choice-v1' },
-							// Later than the reader's clock.
 							confirmedAt: 1_700_000_300_000,
 							value: true,
 						},
@@ -632,8 +598,6 @@ describe('offline transport resolution', () => {
 		expect(resolution.fingerprints.choice).not.toBe(
 			SAFE_FALLBACK_POLICY_FINGERPRINTS.choice
 		);
-		// The legacy field is the strictest v2 shape for the old kernel: a
-		// notice-with-GPC rule cannot be expressed, so it is the opt-in banner.
 		expect(response).not.toHaveProperty('policy');
 	});
 
@@ -786,7 +750,6 @@ describe('identity without a server subject', () => {
 			await expect(transport.identify(user, null)).resolves.toBeUndefined();
 			expect(fetchSpy).not.toHaveBeenCalled();
 
-			// The save carries the identity; the transport remembers no subject.
 			await transport.save({ ...PAYLOAD, user });
 			const [saveCall] = fetchSpy.mock.calls;
 			const saveInit = saveCall?.[1] as RequestInit;
@@ -797,7 +760,6 @@ describe('identity without a server subject', () => {
 			await transport.identify(user, null);
 			expect(fetchSpy).toHaveBeenCalledTimes(1);
 
-			// Only the subject the kernel passes is acted on.
 			await transport.identify(user, 'sub_test');
 			expect(fetchSpy.mock.calls[1]?.[0]).toBe(
 				'https://api.example.com/c15t/subjects/sub_test'
@@ -829,15 +791,12 @@ describe('manifest transport', () => {
 		await expect(transport.init({ overrides: {}, user: null })).rejects.toThrow(
 			/\/manifest responded 503/u
 		);
-		// The kernel's retry must reach the network again, not the cached
-		// failure.
 		const response = await transport.init({ overrides: {}, user: null });
 		expect(readPolicyResolutionWire(response.policyResolution)).toEqual({
 			policy: null,
 			status: 'no-match',
 		});
 		expect(calls).toBe(2);
-		// A success is cached: a third init does not fetch again.
 		await transport.init({ overrides: {}, user: null });
 		expect(calls).toBe(2);
 	});

@@ -1,15 +1,3 @@
-/**
- * Guards `@c15t/ui/styles/sheets/*`: the stylesheets React and Svelte
- * surfaces render themselves, and Astro inlines or links.
- *
- * Rendered in order, `first-paint` then `dialog` must apply exactly what
- * `styles.css` applies, rule for rule and in the same order, so a surface
- * that brings its own styles looks the same as an app that imports
- * `styles.css`. `first-paint` must hold no dialog rule, so the dialog's
- * rules load only with the dialog.
- *
- * These read the built artifacts: build `@c15t/ui` first.
- */
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
@@ -59,7 +47,6 @@ const contextOf = function contextOf(node: ChildNode): string {
 	return context.join(' ');
 };
 
-/** Every rule and its context, in source order. */
 const ruleList = function ruleList(css: string): string[] {
 	const rules: string[] = [];
 	parse(css).walkRules((rule) => {
@@ -72,7 +59,6 @@ const ruleList = function ruleList(css: string): string[] {
 	return rules;
 };
 
-/** The layer order statements, which must open every sheet. */
 const layerStatements = (css: string): string[] =>
 	parse(css)
 		.nodes.filter(
@@ -101,7 +87,6 @@ describe('styles/sheets', async () => {
 
 	test('first-paint then dialog apply what styles.css applies, in order', () => {
 		const styles = ruleList(readDist(join(DIST_DIR, 'styles.css')));
-		// Only the token selectors' specificity differs (next test).
 		const asInStyles = (rule: string) =>
 			rule.replaceAll(':where(:root)', ':root').replaceAll('html.', ':root.');
 
@@ -112,10 +97,6 @@ describe('styles/sheets', async () => {
 	});
 
 	test("the default tokens rank below the app's own token rules", () => {
-		// The sheet can land after the app's stylesheets, so an app's
-		// `:root` (0,1,0) and `:root.dark` (0,2,0) overrides must win on
-		// specificity: defaults on `:where(:root)` (0,0,0), dark defaults on
-		// `html.dark` (0,1,1).
 		const selectors = new Set(
 			ruleList(firstPaint.css)
 				.filter((rule) => rule.split('|')[2]?.includes('--c15t-'))
@@ -168,8 +149,6 @@ describe('styles/sheets', async () => {
 	test('IAB sheets preserve every aggregate rule without resetting variables', () => {
 		const asInStyles = (rule: string) =>
 			rule.replaceAll(':where(:root)', ':root').replaceAll('html.', ':root.');
-		// The aggregate keeps its original panel-before-prompt order. Their
-		// selectors are disjoint, so the prompt can arrive before the panel.
 		expect(
 			[...ruleList(iabFirstPaint.css), ...ruleList(iabDialog.css)]
 				.map(asInStyles)

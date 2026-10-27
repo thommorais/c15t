@@ -22,7 +22,6 @@ import {
 } from '../hooks';
 import { useTheme } from '../hooks/use-theme';
 
-/** Replaced by the app's bundler; see the diagnostics effect below. */
 declare const process: { env: { NODE_ENV?: string } };
 
 export type HeadlessConsentSurface = 'banner' | 'dialog';
@@ -46,7 +45,6 @@ export interface HeadlessConsentSurfaceState<
 export type HeadlessConsentBannerState = HeadlessConsentSurfaceState;
 export type HeadlessConsentDialogState = HeadlessConsentSurfaceState;
 
-/** Resolve required controls with optional component-level presentation. */
 export const useHeadlessConsentUI = function useHeadlessConsentUI(
 	overrides?: ConsentPresentation
 ) {
@@ -101,8 +99,6 @@ export const useHeadlessConsentUI = function useHeadlessConsentUI(
 		[policy, presentation, overrides?.preferences, activeUI, appearance]
 	);
 	useEffect(() => {
-		// `globalThis.process` would hide this from the bundler's replacement
-		// and print the diagnostics in production.
 		if (process.env.NODE_ENV === 'production') {
 			return;
 		}

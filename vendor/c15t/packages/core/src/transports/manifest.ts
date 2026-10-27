@@ -1,13 +1,3 @@
-/**
- * `@c15t/core/transports/manifest` — server-only manifest transport.
- *
- * This module resolves `/init` with `@c15t/schema` and imports every
- * translation language. Import it only in server code: route handlers,
- * Server Components, server load functions and edge middleware. Client code
- * resolves with `@c15t/core/transports/manifest-browser`, which bundles
- * English only and loads other languages on demand.
- */
-
 import {
 	POLICY_CONTRACT_VERSION,
 	resolveInitFromManifest,
@@ -72,122 +62,48 @@ const getDefined = <Value>(
 };
 
 export interface ManifestTransportOptions {
-	/** Defer a public list for SSR. Client-only transports retain their fetched list. */
 	deferGvl?: boolean;
-	/** Init route that serves versioned GVL requests. */
 	gvlRoute?: string;
-	/**
-	 * Base translations used for local manifest resolution. Defaults to every
-	 * language bundled by `@c15t/translations`.
-	 */
 	baseTranslations?: BaseTranslations;
 
-	/**
-	 * URL for `GET /manifest`. Either `manifestURL` or `snapshot` is required.
-	 */
 	manifestURL?: string;
 
-	/**
-	 * The manifest itself. Either `manifestURL` or `snapshot` is required.
-	 */
 	snapshot?: ConsentManifest;
 
-	/**
-	 * Backend URL used for `POST /subjects`. Defaults to `manifestURL` with a
-	 * trailing `/manifest` segment removed.
-	 */
 	backendURL?: string;
 
-	/**
-	 * Fetch implementation. Defaults to `globalThis.fetch`.
-	 */
 	fetch?: typeof globalThis.fetch;
 
-	/**
-	 * Optional GVL fetcher. Called only when the locally resolved policy is IAB.
-	 */
 	fetchGvl?: (input: {
 		reference: ConsentManifestGVLReference;
 		language: string;
 		fetch: typeof globalThis.fetch;
 	}) => Promise<GlobalVendorList | null>;
 
-	/**
-	 * Caller-provided decision inputs, usually derived from request headers on
-	 * the host server/edge.
-	 */
 	inputs?: ResolveInitFromManifestInputs;
 
-	/**
-	 * Prefetched init output from a same-origin server route. Used to seed the
-	 * asserted decision inputs sent with the first manifest-mode save.
-	 */
 	initialInit?: InitOutput;
 
-	/**
-	 * Request headers for fetching `manifestURL`.
-	 */
 	headers?: Record<string, string>;
 
-	/**
-	 * Fetch credentials mode. Defaults to `'include'`.
-	 */
 	credentials?: RequestCredentials;
 
-	/**
-	 * Domain sent to POST /subjects. Defaults to the browser hostname, or the
-	 * backend URL hostname for absolute URLs in server runtimes.
-	 */
 	domain?: string;
 
-	/**
-	 * Clock used to validate records read from the backend. Defaults to
-	 * `Date.now`. Inject for deterministic tests.
-	 */
 	now?: () => number;
 
-	/**
-	 * Send a session report to `POST /sessions` after each `init()`, so the
-	 * backend still counts a visitor it never served `/init` to. Server
-	 * callers set this; a browser must not, since the report forwards the
-	 * visitor's IP and user agent from the incoming request's headers.
-	 * Absent means no report.
-	 */
 	report?: ManifestTransportReportOptions;
 }
 
-/** Session reporting for a server-side manifest transport. */
 export interface ManifestTransportReportOptions {
-	/** Where the resolution happened; `render` for an SSR or RSC prefetch. */
 	source: ConsentSessionSource;
-	/**
-	 * Backend URL as configured, not resolved against the request. Defaults
-	 * to the transport's `backendURL`. Only an absolute URL is reported to;
-	 * a relative one resolved to the app's own origin would be its proxy,
-	 * and nothing is inferred from the manifest URL.
-	 */
 	backendURL?: string;
-	/** Package that resolved init, for example `@c15t/nextjs`. */
 	adapter?: string;
-	/**
-	 * The visitor's request headers. Only the client IP chain and user agent
-	 * are forwarded. Defaults to the transport's `headers`.
-	 */
 	headers?: SessionReportHeaders;
-	/** The request's method, when there is one; only a `GET` is reported. */
 	method?: string;
-	/**
-	 * Receives the report's promise so a runtime that stops detached work
-	 * once the response is sent can keep it alive. The promise never
-	 * rejects.
-	 */
 	waitUntil?: (task: Promise<void>) => void;
 }
 
-/**
- * The manifest transport's full surface. Same record boundary as the hosted
- * transport, against the same backend routes.
- */
 export interface ManifestKernelTransport extends KernelTransport {
 	init: (ctx: InitContext) => Promise<TransportInitResponse>;
 	save: (payload: SubjectSavePayload) => Promise<SaveResult>;
@@ -219,12 +135,6 @@ const deriveBackendURL = function deriveBackendURL(
 		: trimmed;
 };
 
-/**
- * Places a relative provider list endpoint on the manifest's location, the
- * way a document resolves its own links. Node's fetch rejects a bare path.
- * With no absolute base the endpoint is left for the supplied fetch, such as
- * an in-process adapter, to resolve.
- */
 const resolveEndpoint = function resolveEndpoint(
 	url: string,
 	base: string | undefined
@@ -296,10 +206,6 @@ const shouldFetchGvl = function shouldFetchGvl(
 	);
 };
 
-/**
- * A `SaveResult` from the backend's answer. Success is the HTTP status; the
- * 2.x body has no `ok` and must not be read as one.
- */
 const toSaveResult = function toSaveResult(data: unknown): SaveResult {
 	const subjectId =
 		typeof data === 'object' &&
@@ -324,34 +230,6 @@ const defaultFetchGvl = function defaultFetchGvl(input: {
 	});
 };
 
-/**
- * Build a transport that resolves `/init` locally from a consent manifest
- * and posts saves to the backend.
- *
- * Server-only: resolution pulls in `@c15t/schema` and every translation
- * language, so import it from `@c15t/core/transports/manifest` in server
- * code (route handlers, RSC, edge) only. `@c15t/core` deliberately does not
- * re-export it. Browser code uses `createBrowserManifestTransport` from
- * `@c15t/core/transports/manifest-browser`.
- *
- * Saves without a signed `policySnapshotToken` carry the resolved policy
- * id, fingerprint, geo, language, and GPC signal so the backend can reject
- * a consent recorded against a stale policy.
- *
- * @param options - Manifest source, backend URL, and resolver inputs.
- * @returns A kernel transport backed by local manifest resolution.
- * @throws {Error} When neither `snapshot` nor `manifestURL` is provided, or no
- * `fetch` implementation is available.
- * @example
- * ```ts
- * import { createManifestTransport } from '@c15t/core/transports/manifest';
- *
- * const transport = createManifestTransport({
- *   manifestURL: 'https://api.example.com/c15t/manifest',
- *   inputs: { country: 'DE', language: 'de', region: null },
- * });
- * ```
- */
 export const createManifestTransport = function createManifestTransport(
 	options: ManifestTransportOptions
 ): ManifestKernelTransport {
@@ -388,10 +266,6 @@ export const createManifestTransport = function createManifestTransport(
 		`${requireBackendURL('read a subject')}/subjects/${encodeURIComponent(subjectId)}`;
 	let manifestPromise: Promise<ConsentManifest> | undefined;
 	const unreported = createUnreportedJourneys();
-	/**
-	 * Without a report nothing carries an init's journey, so the saves that
-	 * follow send none either.
-	 */
 	const noteJourney = function noteJourney(
 		journey: InitContext['journey']
 	): void {
@@ -416,8 +290,6 @@ export const createManifestTransport = function createManifestTransport(
 			return Promise.resolve(options.snapshot);
 		}
 		if (!manifestPromise) {
-			// Cached on success only. A rejected fetch is dropped so the kernel's
-			// init retry fetches again instead of replaying the same failure.
 			manifestPromise = (async () => {
 				try {
 					const response = await fetchImpl(getDefined(options.manifestURL), {
@@ -450,9 +322,6 @@ export const createManifestTransport = function createManifestTransport(
 	return {
 		async identify(user, subjectId): Promise<void> {
 			if (!subjectId) {
-				// No server subject to link. The identity stays in the kernel and
-				// travels with the next save; nothing is owed to the network. Same
-				// contract as the hosted transport.
 				return;
 			}
 			const response = await fetchImpl(subjectURL(subjectId), {
@@ -465,9 +334,6 @@ export const createManifestTransport = function createManifestTransport(
 				headers: jsonHeaders,
 				method: 'PATCH',
 			});
-			// A backend older than first-load subject IDs only knows subjects
-			// a save created. The identity then travels with the next save.
-			// The backend rejects an ID of another form, and so would the save.
 			if (response.status === 404 && isValidSubjectId(subjectId)) {
 				return;
 			}
@@ -482,13 +348,11 @@ export const createManifestTransport = function createManifestTransport(
 		async init(ctx: InitContext): Promise<TransportInitResponse> {
 			const manifest = await getManifest();
 			const inputs = mergeInputs(options.inputs, ctx.overrides);
-			// Read once: the request this init would have made is the report.
 			const { journey } = ctx;
 			let payload: InitOutput = resolveInitFromManifest(manifest, inputs, {
 				baseTranslations: options.baseTranslations ?? baseTranslations,
 			});
 
-			// Google Additional Consent providers load beside the vendor list.
 			const providers = loadManifestAdTechProviders(
 				manifest,
 				payload,
@@ -531,13 +395,8 @@ export const createManifestTransport = function createManifestTransport(
 			lastDecisionInputs = rememberDecisionInputs(payload, inputs.gpc);
 			noteJourney(journey);
 			if (options.report) {
-				// Detached: the report is telemetry and the decision is already
-				// made. It never rejects, so nothing here can fail the init.
 				reportConsentSession({
 					adapter: options.report.adapter,
-					// The caller's own backend, never the derived one: for a
-					// manifest URL that is not `<backend>/manifest`, the derived
-					// value is the manifest asset itself.
 					backendURL: options.report.backendURL ?? options.backendURL,
 					experiment: ctx.experiment,
 					fetch: fetchImpl,
@@ -551,8 +410,6 @@ export const createManifestTransport = function createManifestTransport(
 					waitUntil: options.report.waitUntil,
 				});
 			}
-			// Local resolution always produces the v3 wire; the manifest's own
-			// schema version decides matched, lifted, or failed inside it.
 			return mapInitOutputToInitResponse(payload, toHeadersFromInputs(inputs), {
 				producerContract: POLICY_CONTRACT_VERSION,
 			});

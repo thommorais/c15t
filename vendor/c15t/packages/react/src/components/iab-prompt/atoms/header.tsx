@@ -13,14 +13,6 @@ interface IABConsentBannerHeaderProps extends HTMLAttributes<HTMLDivElement> {
 	'data-testid'?: string;
 }
 
-/**
- * Header component for the IAB Consent Banner.
- *
- * @remarks
- * Container for title, description, purpose list, and legitimate interest notice.
- *
- * @public
- */
 const IABConsentBannerHeader = createForwardRef<
 	HTMLDivElement,
 	IABConsentBannerHeaderProps

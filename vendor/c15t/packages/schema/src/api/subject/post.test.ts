@@ -24,8 +24,6 @@ describe('postSubjectInputSchema givenAt', () => {
 		expect(parseGivenAt(givenAt).success).toBe(true);
 	});
 
-	// Each finite out-of-range value produces an Invalid Date. Non-finite
-	// numbers are rejected by Valibot's number schema.
 	it.each([
 		['beyond the Date range', 8_640_000_000_000_001],
 		['below the Date range', -8_640_000_000_000_001],

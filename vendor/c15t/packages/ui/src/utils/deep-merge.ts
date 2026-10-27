@@ -1,6 +1,3 @@
-/**
- * Deep merges two objects recursively.
- */
 const isIndexableObject = function isIndexableObject(
 	value: unknown
 ): value is Record<string, unknown> {

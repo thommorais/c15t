@@ -58,7 +58,6 @@ describe('prefetch utilities', () => {
 			).__c15tInitialDataPromises;
 			const scripted = Object.values(entries ?? {})[0]?.promise;
 			expect(scripted).toBeDefined();
-			// The same key: priming finds the script's entry and fetches nothing.
 			expect(primePrefetchedInitialData(options)).toBe(scripted);
 			expect(fetchSpy).toHaveBeenCalledOnce();
 			expect(Object.keys(entries ?? {})).toHaveLength(1);
@@ -108,7 +107,6 @@ describe('prefetch utilities', () => {
 		});
 		const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
 		expect(new URL(url).searchParams.get('v')).toEqual(expect.any(String));
-		// A cross-origin backend answers this without a CORS preflight.
 		expect(corsPreflightReasons(init)).toEqual([]);
 		expect(init.headers).toEqual({ 'accept-language': 'de' });
 	});
@@ -158,8 +156,6 @@ describe('prefetch utilities', () => {
 		const fetch = vi.fn(() => Promise.resolve(new Response('{}')));
 		vi.stubGlobal('fetch', fetch);
 		try {
-			// Nitro's rollup replace: `typeof window` becomes `"undefined"` as
-			// text, in string literals too, wherever c15t is bundled.
 			const bundled = buildPrefetchScript({ backendURL: '/api/c15t' }).replace(
 				/\btypeof window\b(?![.$])/gu,
 				'"undefined"'
@@ -256,7 +252,6 @@ describe('prefetch utilities', () => {
 				overrides: { gpc: true },
 			})
 		).toBe(primed);
-		// The browser signal alone (false) must not pick up the override entry.
 		expect(
 			getMatchingPrefetchedInitialData({ backendURL: '/api/c15t' })
 		).toBeUndefined();
@@ -324,7 +319,6 @@ describe('prefetch utilities', () => {
 			expect(
 				(window as Window & { __c15tJourney?: unknown }).__c15tJourney
 			).toEqual(journey);
-			// A page journey touches no storage.
 			expect(sessionStorage.length).toBe(0);
 		});
 
@@ -349,7 +343,6 @@ describe('prefetch utilities', () => {
 			try {
 				window.eval(buildPrefetchScript({ backendURL: '/api/c15t' }));
 				expect(sent(fetch)?.storedChoice).toBe(true);
-				// The script's twin reads the same keys.
 				delete (window as Window & { __c15tJourney?: unknown }).__c15tJourney;
 				void primePrefetchedInitialData({ backendURL: '/api/other' });
 				expect(
@@ -378,7 +371,6 @@ describe('prefetch utilities', () => {
 			vi.stubGlobal('fetch', fetch);
 			window.eval(buildPrefetchScript({ backendURL: '/api/c15t' }));
 			expect(sent(fetch)).toEqual({ id, scope: 'tab', storedChoice: false });
-			// The script's twin makes the same call.
 			delete (window as Window & { __c15tJourney?: unknown }).__c15tJourney;
 			void primePrefetchedInitialData({ backendURL: '/api/other' });
 			expect(readJourneyParams(String(fetch.mock.calls[1]?.[0]))).toEqual({
@@ -495,7 +487,6 @@ describe('prefetch utilities', () => {
 			'picks by the split for a new visitor (random %d), as the runtime does',
 			(random, arm) => {
 				vi.spyOn(Math, 'random').mockReturnValue(random);
-				// An arm the browser saw for another experiment is not reused.
 				storeArm('control', 'other-test');
 				const split = { bar: 1, control: 0, floating: 3 };
 				const fetch = respond();
@@ -507,7 +498,6 @@ describe('prefetch utilities', () => {
 					})
 				);
 				expect(sentArm(fetch)?.arm).toBe(arm);
-				// The script's twin picks the same arm from the same draw.
 				delete (window as Window & { __c15tExperiment?: unknown })
 					.__c15tExperiment;
 				void primePrefetchedInitialData({
@@ -597,7 +587,6 @@ describe('prefetch utilities', () => {
 			);
 			expect(sentArm(fetch)).toBeNull();
 			expect(early()).toBeUndefined();
-			// Says it sent none, so a runtime running an arm fetches its own.
 			expect(await resolved('/api/c15t')).toBeNull();
 		});
 	});

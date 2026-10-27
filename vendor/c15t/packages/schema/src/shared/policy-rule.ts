@@ -1,27 +1,5 @@
 import { isLegacyMaterialCompatibility } from './legacy-material-policy';
 import type { LegacyMaterialCompatibility } from './legacy-material-policy';
-/**
- * v3 policy rules: the behavior contract a policy pack entry declares.
- *
- * A rule owns behavior only. It says which permission model applies, which
- * first-layer interaction is required, which categories are in scope, which
- * actions and rights the interaction must offer, how long a choice or a
- * notice dismissal stays valid, and how the Global Privacy Control signal is
- * mapped. Presentation (layout, order, variants, copy) belongs to the host.
- *
- * `PolicyRule` is author input. `ResolvedPolicyRule` is the canonical
- * normalized form: every set is sorted and deduplicated, wildcards are
- * expanded, defaults are filled. The wire carries `ResolvedPolicyRule`, and
- * every fingerprint hashes it.
- *
- * Validation reads own fields of plain objects only and rejects unknown
- * keys, so inherited or extra fields can never smuggle semantics through.
- * `collectResolvedPolicyRuleIssues` holds the semantic invariants shared by
- * authored normalization, the client wire reader and the valibot schema.
- *
- * No valibot here so `@c15t/schema/types` consumers can validate without the
- * runtime. The valibot mirror lives in `policy-wire-schema.ts`.
- */
 import {
 	canonicalizePolicySet,
 	CHOICE_ACTION_SET,
@@ -67,28 +45,16 @@ export {
 	requiredPolicyRights,
 } from './policy-rule-invariants';
 
-/**
- * Permission models. A notice is a prompt, never a model.
- *
- * `none` means processing is permitted by default, no first-layer prompt is
- * required and no rights are owed: the regime grants the subject nothing to
- * exercise. It renders no consent UI unless the host adds rights.
- */
 export type PolicyRuleModel = 'opt-in' | 'opt-out' | 'iab' | 'none';
 
-/** First-layer interaction a rule requires. */
 export type PolicyPrompt = 'choice' | 'notice' | 'none';
 
-/** Actions a prompt can offer. `dismiss` belongs to notice prompts only. */
 export type PolicyPromptAction = 'accept' | 'reject' | 'customize' | 'dismiss';
 
-/** Actions an author may configure on a choice prompt. */
 export type PolicyChoiceAction = Exclude<PolicyPromptAction, 'dismiss'>;
 
-/** Persistent rights a deployment must keep reachable regardless of prompts. */
 export type PolicyRight = 'disclosure' | 'preferences' | 'opt-out';
 
-/** Every category the runtime knows about, including `necessary`. */
 export type PolicyConsentCategory =
 	| 'necessary'
 	| 'functionality'
@@ -96,89 +62,49 @@ export type PolicyConsentCategory =
 	| 'measurement'
 	| 'marketing';
 
-/** Categories a subject can decide on. `necessary` is never a choice. */
 export type PolicyOptionalCategory = Exclude<
 	PolicyConsentCategory,
 	'necessary'
 >;
 
-/** Product default for how long a positive category choice stays valid. */
 export const DEFAULT_CHOICE_VALIDITY_DAYS = 365;
 
-/** Product default for how long a notice dismissal stays valid. */
 export const DEFAULT_NOTICE_VALIDITY_DAYS = 365;
 
 const DAY_MS = 86_400_000;
 const POLICY_CATEGORY_WILDCARD = '*';
 
-/** Review metadata for presets and reviewed deployments. Never hashed. */
 export interface PolicyRuleReview {
-	/** `pending` until a source review has been recorded. */
 	status: 'pending' | 'reviewed';
-	/** ISO date of the last review. */
 	reviewedOn?: string;
-	/** ISO date by which the rule should be reviewed again. */
 	reviewBy?: string;
-	/** Primary sources the assumptions were checked against. */
 	sources?: string[];
-	/** Mechanical assumptions the rule encodes. Not a legal verdict. */
 	assumptions?: string[];
 }
 
-/**
- * Author-facing policy rule. One entry in a v3 policy pack.
- *
- * @remarks
- * Presentation is deliberately absent. Configure layout and variants on the
- * host. `review` documents assumptions and is never part of any fingerprint.
- *
- * @see {@link https://c15t.com/docs/concepts/policies}
- */
 export interface PolicyRule {
-	/** Frozen v2 receipt metadata. Never part of resolved behavior or presentation. */
 	legacyMaterial?: LegacyMaterialCompatibility;
 	id: string;
 	match: PolicyMatch;
 	model: PolicyRuleModel;
 	prompt: PolicyPrompt;
-	/**
-	 * Optional categories in scope. Omitted or `'*'` means every optional
-	 * category. `necessary` is tolerated and dropped. Unknown names are
-	 * rejected. Applies to every model, including `iab`.
-	 */
 	categories?: string[];
-	/** How categories outside `categories` behave. Required for a partial scope. */
 	scopeMode?: PolicyScopeMode;
-	/** Categories a preference form pre-selects. Inside scope; never for `iab`. */
 	preselectedCategories?: string[];
-	/**
-	 * Actions a choice prompt offers. `accept` and `reject` are always
-	 * required; `customize` is optional. Leave unset for notice and none.
-	 */
 	actions?: PolicyChoiceAction[];
-	/** Extra rights beyond the ones every rule already carries. */
 	rights?: PolicyRight[];
-	/** Semantic validity in days. Finite and greater than zero. */
 	validity?: {
 		choiceDays?: number;
 		noticeDays?: number;
 	};
-	/** Explicit privacy-signal handling. Omit to ignore the signal. */
 	privacySignals?: {
 		gpc?: {
-			/** Categories an active GPC signal denies. Inside scope, no `necessary`. */
 			denyCategories: string[];
 		};
 	};
-	/**
-	 * Author-controlled legal-copy revision. Bump it when the wording a
-	 * subject agreed to changes materially; it is hashed into both prompt
-	 * fingerprints so returning subjects are asked again.
-	 */
 	copyRevision?: string;
 	i18n?: {
 		language?: string;
-		/** `preferences` uses generic preference labels instead of US sale/sharing wording. */
 		messageProfile?: string;
 	};
 	proof?: {
@@ -189,50 +115,33 @@ export interface PolicyRule {
 	review?: PolicyRuleReview;
 }
 
-/** Action constraints derived from the rule, independent of presentation. */
 export interface PolicyActionConstraints {
-	/** Every action the prompt may offer, sorted. */
 	allowed: PolicyPromptAction[];
-	/** Actions presentation cannot remove, sorted. */
 	required: PolicyPromptAction[];
-	/**
-	 * Groups whose members need equivalent prominence and interaction depth.
-	 * Order, labels, colors and variants stay host decisions.
-	 */
 	equivalent: PolicyPromptAction[][];
 }
 
-/**
- * Canonical normalized rule. Every set is sorted and deduplicated so two
- * authors writing the same behavior produce identical fingerprints.
- */
 export interface ResolvedPolicyRule {
 	id: string;
 	model: PolicyRuleModel;
 	prompt: PolicyPrompt;
-	/** Optional categories in scope, sorted. */
 	scope: PolicyOptionalCategory[];
 	scopeMode: PolicyScopeMode;
-	/** Sorted. Always empty for `iab`. */
 	preselectedCategories: PolicyOptionalCategory[];
 	actions: PolicyActionConstraints;
-	/** Sorted. Contains `disclosure` and `preferences` for every model but `none`. */
 	rights: PolicyRight[];
-	/** Milliseconds. Finite, greater than zero, within the safe integer range. */
 	validity: {
 		choiceMs: number;
 		noticeMs: number;
 	};
 	privacySignals: {
 		gpc: {
-			/** Sorted. Empty means the signal is not honored. */
 			denyCategories: PolicyOptionalCategory[];
 		};
 	};
 	copyRevision: string | null;
 	i18n?: {
 		language?: string;
-		/** `preferences` uses generic preference labels instead of US sale/sharing wording. */
 		messageProfile?: string;
 	};
 	proof: {
@@ -281,12 +190,10 @@ const REVIEW_KEYS = [
 	'assumptions',
 ] as const;
 
-/** Own property value, or `undefined` when the key is inherited or absent. */
 const own = function own(value: Record<string, unknown>, key: string): unknown {
 	return Object.hasOwn(value, key) ? value[key] : undefined;
 };
 
-/** Own keys not in the allowlist, including non-enumerable ones. */
 const unknownKeys = function unknownKeys(
 	value: Record<string, unknown>,
 	allowed: readonly string[]
@@ -304,7 +211,6 @@ const isStringArray = function isStringArray(
 	);
 };
 
-/** Finite, greater than zero, and still a safe integer once in milliseconds. */
 const isValidDays = function isValidDays(value: unknown): value is number {
 	return (
 		typeof value === 'number' &&
@@ -409,8 +315,6 @@ const resolveScope = function resolveScope(
 	const optional = canonicalizePolicySet(
 		trimmed.filter(isPolicyOptionalCategory)
 	);
-	// An empty list, or one that only names `necessary`, does not restrict
-	// optional categories. This mirrors the v2 allowlist semantics.
 	return optional.length > 0 ? optional : [...POLICY_OPTIONAL_CATEGORIES];
 };
 
@@ -916,23 +820,6 @@ const collectPackWarnings = function collectPackWarnings(
 	return [...warnings];
 };
 
-/**
- * Inspects a v3 policy pack and returns errors and warnings.
- *
- * @remarks
- * Errors mean the pack is invalid and resolution fails safely. Warnings point
- * at ambiguous or risky configuration, such as a pack without a default
- * matcher. Only own fields of plain objects count; unknown fields anywhere in
- * a rule are errors.
- *
- * @param rules - The pack to inspect. Anything that is not an array is an error.
- * @param options - Pass `iabEnabled` to check that `iab` rules are backed by IAB support.
- * @returns Errors and warnings as human-readable strings.
- * @example
- * ```ts
- * const { errors } = inspectPolicyRules([policyRulePresets.europeOptIn()]);
- * ```
- */
 export const inspectPolicyRules = function inspectPolicyRules(
 	rules: unknown,
 	options?: { iabEnabled?: boolean }
@@ -954,11 +841,6 @@ export const inspectPolicyRules = function inspectPolicyRules(
 	};
 };
 
-/**
- * Validates a v3 policy pack and throws on the first error.
- *
- * @throws {TypeError} with the first validation error.
- */
 export const validatePolicyRules = function validatePolicyRules(
 	rules: unknown,
 	options?: { iabEnabled?: boolean }
@@ -1028,17 +910,6 @@ const resolveGpcDenyCategories = function resolveGpcDenyCategories(
 	);
 };
 
-/**
- * Normalizes a validated rule into its canonical form.
- *
- * @remarks
- * Validation runs first, so an invalid rule throws before anything is
- * hashed. Sets are sorted and deduplicated; the wildcard scope expands to
- * every optional category; validity is converted to milliseconds; every rule
- * carries the universal disclosure and preferences rights.
- *
- * @throws {TypeError} with the first validation error.
- */
 export const normalizePolicyRule = function normalizePolicyRule(
 	rule: PolicyRule
 ): ResolvedPolicyRule {

@@ -1,10 +1,4 @@
 /** @vitest-environment jsdom */
-/**
- * A site that declares no category, under a permissive policy, asks about
- * strictly necessary alone. The banner still shows, any action on it is an
- * acknowledgement that sends a receipt and is stored, and a category
- * declared later asks again.
- */
 import type { PolicyResolution } from '@c15t/schema/types';
 import { writePolicyResolutionWire } from '@c15t/schema/types';
 import { translations } from '@c15t/translations/en';
@@ -44,7 +38,6 @@ const start = async (options: Partial<ConsentRuntimeOptions> = {}) => {
 		mode: hosted({
 			backendURL: '/api/c15t',
 			fetch: (input, init) => {
-				// The path alone: the runtime adds its consent journey as a query.
 				const url = String(input).split('?')[0] ?? '';
 				if (url.endsWith('/subjects')) {
 					saves.push(JSON.parse(String(init?.body)));
@@ -100,7 +93,6 @@ test('a strict policy with nothing declared keeps its whole scope', async () => 
 	expect(runtime.kernel.getSnapshot().evaluationPolicy.choiceScope).toBe(
 		undefined
 	);
-	// In consentTypes order: the resolved scope is sorted, not ordered.
 	expect(runtime.consentCategories).toEqual([
 		'necessary',
 		'functionality',
@@ -146,14 +138,11 @@ test.each([
 );
 
 test('an IAB policy with nothing declared keeps its whole scope', async () => {
-	// TCF consent is given per purpose and recorded in the TC string, so it
-	// never shrinks to an acknowledgement.
 	policy = matchedResolution(optInRule({ model: 'iab' }));
 	const runtime = await start();
 	const snapshot = runtime.kernel.getSnapshot();
 	expect(snapshot.policyRule.scopeMode).toBe('permissive');
 	expect(snapshot.evaluationPolicy.choiceScope).toBe(undefined);
-	// In consentTypes order: the resolved scope is sorted, not ordered.
 	expect(runtime.consentCategories).toEqual([
 		'necessary',
 		'functionality',

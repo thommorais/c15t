@@ -1,14 +1,3 @@
-/**
- * Structural validation helpers shared by the record readers.
- *
- * Deterministic and side-effect free. Timestamps must be finite,
- * non-negative safe integers in epoch milliseconds and must not be later
- * than the supplied `now`; there is deliberately no clock-skew tolerance
- * in this slice.
- *
- * @internal
- */
-
 import { OPTIONAL_CONSENT_CATEGORIES } from './types';
 import type {
 	CategoryDecision,
@@ -18,7 +7,6 @@ import type {
 	OptionalConsentCategory,
 } from './types';
 
-/** One structural problem found while reading a record. */
 export interface RecordIssue {
 	code:
 		| 'not-an-object'
@@ -34,7 +22,6 @@ export interface RecordIssue {
 	path: string;
 }
 
-/** Largest epoch millisecond value `Date` can represent. */
 const MAX_DATE_MS = 8_640_000_000_000_000;
 
 const OPTIONAL_CATEGORY_SET: ReadonlySet<string> = new Set(
@@ -47,11 +34,6 @@ export const isOptionalConsentCategory = function isOptionalConsentCategory(
 	return OPTIONAL_CATEGORY_SET.has(value);
 };
 
-/**
- * Plain object with a plain or null prototype. Class instances and objects
- * with a custom prototype are rejected so inherited fields cannot pose as
- * record data.
- */
 export const isPlainRecord = function isPlainRecord(
 	value: unknown
 ): value is Record<string, unknown> {
@@ -62,14 +44,12 @@ export const isPlainRecord = function isPlainRecord(
 	return prototype === Object.prototype || prototype === null;
 };
 
-/** All own string keys, including non-enumerable category fields. */
 export const ownKeys = function ownKeys(
 	value: Record<string, unknown>
 ): string[] {
 	return Object.getOwnPropertyNames(value);
 };
 
-/** Own property value, or `undefined` when the key is inherited or absent. */
 export const ownValue = function ownValue(
 	value: Record<string, unknown>,
 	key: string
@@ -77,10 +57,6 @@ export const ownValue = function ownValue(
 	return Object.hasOwn(value, key) ? value[key] : undefined;
 };
 
-/**
- * Checks an epoch-millisecond timestamp. Returns the issue code when the
- * value is unusable, or `null` when it is valid.
- */
 export const checkTimestamp = function checkTimestamp(
 	value: unknown,
 	now: number
@@ -176,18 +152,10 @@ const normalizeDecision = function normalizeDecision(
 	return { basis, confirmedAt, value };
 };
 
-/**
- * Result of validating a v3 in-memory record. The whole record is rejected
- * on any structural issue; grants are never salvaged from a broken record.
- */
 export type ValidationResult<RecordType> =
 	| { ok: true; record: RecordType }
 	| { ok: false; issues: RecordIssue[] };
 
-/**
- * Validates a version 3 explicit choice. Unknown versions never fall
- * through to the legacy reader.
- */
 export const validateExplicitChoice = function validateExplicitChoice(
 	input: unknown,
 	now: number
@@ -233,7 +201,6 @@ export const validateExplicitChoice = function validateExplicitChoice(
 	return { ok: true, record: { categories, version: 3 } };
 };
 
-/** Validates a version 1 notice dismissal. */
 export const validateNoticeDismissal = function validateNoticeDismissal(
 	input: unknown,
 	now: number

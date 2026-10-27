@@ -26,7 +26,6 @@ const IABConsentBannerOverlay = createForwardRef<HTMLDivElement, OverlayProps>(
 		} = useTheme();
 		const { components } = useUIConfig();
 
-		// Show when banner is active (model filtering is handled by the root component)
 		const shouldShow = activeUI === 'banner';
 
 		const theme = mergeSlotProps(components?.['iab-banner']?.overlay, {
@@ -40,8 +39,6 @@ const IABConsentBannerOverlay = createForwardRef<HTMLDivElement, OverlayProps>(
 		const shouldApplyAnimation =
 			!(contextNoStyle || noStyle) && !disableAnimation;
 
-		// The overlay shows on its first frame; `overlayEntering` marks the
-		// mount, and with `data-entry="late"` the stylesheet fades it in.
 		const animationClass = shouldApplyAnimation
 			? `${styles.overlayVisible} ${styles.overlayEntering}`
 			: undefined;

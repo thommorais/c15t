@@ -1,51 +1,16 @@
-/**
- * Per-iframe reconciliation.
- *
- * Pure-ish: `reconcileIframe` reads attributes from the iframe and
- * mutates `src` / `data-src` based on consent. No closure capture, no
- * kernel access — the snapshot-derived `ReconcilePass` is built once
- * by `buildReconcilePass` and shared across every iframe in the pass.
- *
- * Semantics:
- * - iframes WITHOUT `data-category` or `data-vendor` are untouched.
- * - iframes WITH `data-category` and/or `data-vendor`:
- *   - consent granted + HTTP(S) `data-src` but no `src` → set resolved src
- *   - consent NOT granted + has `src`              → removeAttribute('src')
- *   Outside IAB mode a `data-vendor` the subject turned off denies the
- *   iframe even when its category passes.
- */
 import type { AllConsentNames } from '../../consent/consent-types';
 import { allConsentNames } from '../../consent/consent-types';
 import type { ConsentSnapshot, ConsentState } from '../../types';
 import { deniedVendorIds, getEffectiveGateState, has } from '../has';
 
-/**
- * Per-pass eligibility context. Built once per kernel tick / DOM scan
- * and reused for every iframe in that pass.
- */
 export interface ReconcilePass {
 	consents: ConsentState;
-	/**
-	 * Vendors the subject turned off that the gate honors: declared and not
-	 * `disabled`. `null` when none is denied.
-	 */
 	vendorDenied: ReadonlySet<string> | null;
-	/**
-	 * Every stored denial, declared or not. A frame with only `data-vendor`
-	 * has no category to fall back to, so a denial recorded for its slug
-	 * holds before the backend declares the vendor and after that
-	 * declaration is gone. `null` when nothing is stored.
-	 */
 	storedDenied: ReadonlySet<string> | null;
-	/** Ids with a current declaration, so `vendorDenied` speaks for them. */
 	declared: ReadonlySet<string>;
-	/** Vendor denials are inert in IAB mode. */
 	isIabMode: boolean;
 }
 
-/**
- * Build a `ReconcilePass` from the current snapshot. Pure.
- */
 export const buildReconcilePass = function buildReconcilePass(
 	snapshot: ConsentSnapshot
 ): ReconcilePass {
@@ -59,10 +24,6 @@ export const buildReconcilePass = function buildReconcilePass(
 	};
 };
 
-/**
- * Read the `data-vendor` attribute. Unknown ids are not an error: a vendor
- * the subject never saw cannot have been turned off, so it is granted.
- */
 export const determineVendor = function determineVendor(
 	iframe: HTMLIFrameElement
 ): string | undefined {
@@ -70,15 +31,6 @@ export const determineVendor = function determineVendor(
 	return raw ? raw : undefined;
 };
 
-/**
- * Read the `data-category` attribute and validate it as a known consent
- * category name. Returns `undefined` when the attribute is absent and
- * `null` when it names no known category, including an empty value.
- *
- * An invalid value is a config bug, but throwing here stopped every other
- * iframe in the pass from being gated. `reconcileIframe` keeps an iframe
- * with an invalid category blocked and warns about it instead.
- */
 export const determineCategory = function determineCategory(
 	iframe: HTMLIFrameElement
 ): AllConsentNames | null | undefined {
@@ -92,14 +44,8 @@ export const determineCategory = function determineCategory(
 	return raw as AllConsentNames;
 };
 
-/**
- * Marks an iframe the blocker paused, as opposed to one whose author uses
- * `data-src` for their own lazy loading. Only a marked iframe is restored
- * when its last gate attribute is removed.
- */
 export const PAUSED_ATTRIBUTE = 'data-c15t-paused';
 
-/** Move a paused `data-src` back to `src` when it is a web URL. */
 const restoreSource = function restoreSource(iframe: HTMLIFrameElement): void {
 	const dataSrc = iframe.getAttribute('data-src');
 	if (!dataSrc) {
@@ -111,7 +57,6 @@ const restoreSource = function restoreSource(iframe: HTMLIFrameElement): void {
 	} catch {
 		return;
 	}
-	// Parse before checking the scheme: browsers normalize control characters.
 	if (source.protocol !== 'http:' && source.protocol !== 'https:') {
 		return;
 	}
@@ -120,25 +65,12 @@ const restoreSource = function restoreSource(iframe: HTMLIFrameElement): void {
 	iframe.removeAttribute(PAUSED_ATTRIBUTE);
 };
 
-/**
- * Apply the consent gate to a single iframe. Mutates the iframe's
- * `src` / `data-src` attributes. No-op for iframes without a
- * `data-category` or `data-vendor` attribute. An iframe with only
- * `data-vendor` is gated on the vendor alone, against every stored denial:
- * with no category to follow, an undeclared slug the visitor turned off
- * stays off rather than loading in the window before the backend declares
- * it. An iframe whose `data-category` names no known category stays
- * blocked, as the on-demand hook in `@c15t/react` holds it.
- */
 export const reconcileIframe = function reconcileIframe(
 	iframe: HTMLIFrameElement,
 	pass: ReconcilePass
 ): void {
 	const category = determineCategory(iframe);
 	const vendor = determineVendor(iframe);
-	// No gate left. An iframe the blocker paused earlier is restored: its
-	// last attribute was removed, so nothing gates it any more. One that was
-	// never gated has no `data-src` of ours and is left alone.
 	if (category === undefined && vendor === undefined) {
 		if (iframe.getAttribute(PAUSED_ATTRIBUTE) !== null) {
 			restoreSource(iframe);
@@ -158,9 +90,6 @@ export const reconcileIframe = function reconcileIframe(
 	} else if (category) {
 		categoryAllowed = has(category, pass.consents);
 	}
-	// A vendor-only frame holds against every stored denial only while its
-	// slug is undeclared. Once declared, the gate's own filtered set decides,
-	// so a `disabled` declaration lifts a stale denial here as everywhere.
 	const denied =
 		category !== undefined ||
 		(vendor !== undefined && pass.declared.has(vendor))
@@ -181,7 +110,6 @@ export const reconcileIframe = function reconcileIframe(
 		return;
 	}
 
-	// Not allowed. Clear src if present.
 	const src = iframe.getAttribute('src');
 	if (!src) {
 		return;
@@ -190,18 +118,9 @@ export const reconcileIframe = function reconcileIframe(
 		iframe.setAttribute('data-src', src);
 	}
 	iframe.removeAttribute('src');
-	// Marked only when the blocker itself moved a source: an iframe with no
-	// `src`, whether bare or with an author's own lazy `data-src`, was never
-	// paused and is never restored.
 	iframe.setAttribute(PAUSED_ATTRIBUTE, '');
 };
 
-/**
- * `reconcileIframe` for one iframe of many. An iframe page script can't
- * read is skipped: Firefox throws "Permission denied to access property"
- * for some nodes, such as ones an extension inserted, and one such iframe
- * must not stop the rest of the pass from being gated.
- */
 export const reconcileIframeSafely = function reconcileIframeSafely(
 	iframe: HTMLIFrameElement,
 	pass: ReconcilePass
@@ -209,14 +128,9 @@ export const reconcileIframeSafely = function reconcileIframeSafely(
 	try {
 		reconcileIframe(iframe, pass);
 	} catch {
-		// Unreadable iframe: page script can't gate it either.
 	}
 };
 
-/**
- * Walk every iframe in the document and apply the consent gate. Builds
- * the `ReconcilePass` once and reuses it across iframes — O(n) work.
- */
 export const reconcileAllIframes = function reconcileAllIframes(
 	snapshot: ConsentSnapshot
 ): void {

@@ -14,7 +14,6 @@ export default defineConfig({
 	],
 	output: {
 		cleanDistPath: true,
-		// The stylesheet ships as a string inside the panel's shadow root.
 		injectStyles: false,
 		target: 'web',
 	},

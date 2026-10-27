@@ -1,8 +1,4 @@
 /** @vitest-environment jsdom */
-/**
- * A tap on a server-rendered banner before the page hydrated: the inline
- * script holds it, and the runtime records it once it can.
- */
 import { writePolicyResolutionWire } from '@c15t/schema/types';
 import { translations } from '@c15t/translations/en';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
@@ -30,7 +26,6 @@ import { replayEarlyConsentTaps } from '../early-taps';
 let policy = matchedResolution(optInRule());
 let unavailable = false;
 const runtimes: ConsentRuntime[] = [];
-/** Request bodies the current test's runtimes sent to `/subjects`. */
 let saves: string[] = [];
 
 const queue = () =>
@@ -53,20 +48,17 @@ afterEach(() => {
 	}
 	document.body.innerHTML = '';
 	document.getElementById(EARLY_TAP_STYLE_ID)?.remove();
-	// A script no replay claimed still listens on the shared document.
 	queue()?.stop?.();
 	Reflect.deleteProperty(window, EARLY_TAPS_WINDOW_KEY);
 	vi.restoreAllMocks();
 	clearStoredConsentRecords();
 });
 
-/** Run the inline script as the server HTML would. */
 const runScript = () => {
 	// oxlint-disable-next-line no-new-func -- The script is shipped as text.
 	new Function(EARLY_CONSENT_TAP_SCRIPT)();
 };
 
-/** The stock banner's markup, as a server would render it. */
 const renderBanner = (model = 'opt-in', prompt = 'choice') => {
 	document.body.innerHTML = `<div data-testid="consent-banner-root" data-model="${model}" data-prompt="${prompt}"><button data-action="reject">Reject all</button><button data-action="accept"><span>Accept all</span></button><button data-action="customize">Customize</button></div>`;
 };
@@ -75,7 +67,6 @@ const tap = (action: string) => {
 	const button = document.querySelector<HTMLButtonElement>(
 		`[data-action="${action}"]`
 	);
-	// A click on the label inside the button, as a finger would land.
 	(button?.firstElementChild ?? button)?.dispatchEvent(
 		new MouseEvent('click', { bubbles: true })
 	);
@@ -89,10 +80,6 @@ const nextFrame = () =>
 	});
 
 const createRuntime = () => {
-	// An init near the end of a test starts an outbox replay that can
-	// outlive `dispose()`. Every runtime shares the outbox in localStorage,
-	// so that replay can resend the save the next test just queued. A
-	// runtime's requests count for the test that created it.
 	const sent = saves;
 	const runtime = createConsentRuntime({
 		consentCategories: ['necessary', 'measurement', 'marketing'],
@@ -135,7 +122,6 @@ const startAndInit = async (runtime: ConsentRuntime) => {
 	});
 	runtime.start();
 	await completed.promise;
-	// The replay runs outside the commit that resolved the policy.
 	await Promise.resolve();
 };
 
@@ -149,7 +135,6 @@ describe('the inline script', () => {
 			?.addEventListener('click', handler);
 		const before = Date.now();
 		tap('accept');
-		// A framework that hydrates later never sees the same click.
 		expect(handler).not.toHaveBeenCalled();
 		expect(queue()?.taps).toEqual([
 			{
@@ -198,8 +183,6 @@ describe('the inline script', () => {
 	});
 
 	test('leaves taps alone while the page has more than one banner', () => {
-		// Two banners can belong to two runtimes, and the first to hydrate
-		// would claim the shared queue.
 		runScript();
 		renderBanner();
 		document.body.insertAdjacentHTML('beforeend', document.body.innerHTML);
@@ -240,12 +223,10 @@ describe('replayEarlyConsentTaps', () => {
 			tap(action);
 			const tapAt = queue()?.taps?.[0]?.at;
 			const runtime = createRuntime();
-			// The banner hydrates before the runtime starts.
 			const stop = replayEarlyConsentTaps(runtime.kernel, {
 				categories: () => runtime.consentCategories,
 				started: () => runtime.started,
 			});
-			// From here the hydrated banner's own handlers take clicks.
 			const handler = vi.fn();
 			document.addEventListener('click', handler);
 			tap('accept');
@@ -260,7 +241,6 @@ describe('replayEarlyConsentTaps', () => {
 			});
 			expect(snapshot.effectivePermissions.measurement).toBe(granted);
 			expect(snapshot.activeUI).toBe('none');
-			// Persistence writes after the commit.
 			await vi.waitFor(() =>
 				expect(JSON.parse(localStorage.getItem('c15t') ?? '{}')).toMatchObject({
 					categories: { marketing: { value: granted } },
@@ -271,13 +251,11 @@ describe('replayEarlyConsentTaps', () => {
 				uiSource: 'banner',
 			});
 
-			// Hidden until the framework removes the banner it tapped.
 			expect(hidden()).toBe(true);
 			document.body.innerHTML = '';
 			await nextFrame();
 			expect(hidden()).toBe(false);
 
-			// A later init with the same policy keeps the choice.
 			await runtime.reinit();
 			expect(
 				runtime.kernel.getSnapshot().explicitChoice?.categories.marketing
@@ -309,7 +287,6 @@ describe('replayEarlyConsentTaps', () => {
 			'<div data-testid="consent-banner-root" data-model="opt-out" data-prompt="notice"><button data-action="dismiss">OK</button></div>';
 		tap('dismiss');
 		const tapAt = queue()?.taps?.[0]?.at ?? 0;
-		// Hydration ends well after the tap.
 		const { now } = Date;
 		vi.spyOn(Date, 'now').mockImplementation(() => now() + 5000);
 		const runtime = createRuntime();

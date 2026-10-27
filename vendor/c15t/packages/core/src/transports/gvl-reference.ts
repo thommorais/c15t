@@ -10,15 +10,6 @@ import { resolveIABBannerSummary } from '../libs/iab-banner-summary';
 const normalizeLanguage = (language?: string): string =>
 	language?.split('-')[0]?.toLowerCase() || 'en';
 
-/**
- * Replace a fetched list with a reference and its banner summary.
- * The same summary renders on the server and during browser hydration.
- * @param payload - Init payload, left unchanged.
- * @param url - Public GVL URL, or a same-origin init route serving versioned lists.
- * @param format - Set to `init` when the URL returns an init envelope.
- * @param requestHeaders - Server request headers; only geo and GPC inputs are retained.
- * @returns Init data without the full list.
- */
 export const deferInitGvl = <
 	Payload extends {
 		gvl?: GlobalVendorList | null;
@@ -47,10 +38,6 @@ export const deferInitGvl = <
 		format === 'init'
 			? extractConsentRequestInputs(new Headers(requestHeaders))
 			: undefined;
-	// Custom vendors and ad tech providers stay in the payload and are added
-	// by the display resolver. The reference count covers registered vendors
-	// only to avoid double counting, but the items include the purposes the
-	// providers need.
 	const summary = resolveIABBannerSummary(
 		{
 			adTechProviders: payload.adTechProviders,
@@ -81,13 +68,6 @@ export const deferInitGvl = <
 	};
 };
 
-/**
- * Builds a versioned list URL on an existing init route.
- * @param initURL - Absolute or root-relative init route.
- * @param gvl - List whose version the route must serve.
- * @param language - Language of the public list.
- * @returns The init URL with version and language query parameters.
- */
 export const createGvlReferenceURL = (
 	initURL: string,
 	gvl: GlobalVendorList,
@@ -99,13 +79,6 @@ export const createGvlReferenceURL = (
 	return initURL.startsWith('/') ? `${url.pathname}${url.search}` : url.href;
 };
 
-/**
- * Serve only a public vendor list for a versioned request. A changed version
- * must never be cached under the old URL. Policy and visitor data stay out.
- * @param request - Incoming init or versioned-list request.
- * @param load - Loads the public list for the requested language.
- * @returns A list response, or null when this is an ordinary init request.
- */
 export const serveGvlReference = async (
 	request: Request,
 	load: (language: string) => Promise<GlobalVendorList | null>
@@ -131,12 +104,6 @@ export const serveGvlReference = async (
 	});
 };
 
-/**
- * Prepare init data for an adapter whose init route also serves the list.
- * @param payload - Resolved init data; left unchanged.
- * @param route - Init route that handles versioned-list requests.
- * @returns Init data carrying a versioned reference in place of a full list.
- */
 export const deferInitGvlToRoute = (
 	payload: InitOutput,
 	route: string

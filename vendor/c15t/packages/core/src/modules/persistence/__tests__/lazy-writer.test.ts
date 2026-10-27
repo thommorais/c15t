@@ -40,7 +40,6 @@ import {
 	writeStoredConsentEnvelope,
 } from './record-writes';
 
-/** A loader whose write code lands on `land()`; `fail()` fails the next load. */
 const heldBackLoader = function heldBackLoader(): {
 	loader: WriterLoader;
 	land: () => Promise<void>;
@@ -79,7 +78,6 @@ const heldBackLoader = function heldBackLoader(): {
 const storedChoice = () =>
 	readStoredConsentRecord(undefined, Date.now()).selected;
 
-/** Run timers until `pending` settles. */
 const settle = async function settle<ResultType>(
 	pending: Promise<ResultType>
 ): Promise<ResultType> {
@@ -96,7 +94,6 @@ const settle = async function settle<ResultType>(
 	return watched;
 };
 
-/** Store a choice through a handle whose write code is already loaded. */
 const seedChoice = async function seedChoice(
 	input: Parameters<InternalKernel['commands']['save']>[0]
 ): Promise<void> {
@@ -106,7 +103,6 @@ const seedChoice = async function seedChoice(
 	handle.dispose();
 };
 
-/** A kernel whose transport records what storage held when each save left. */
 const kernelWithTransport = function kernelWithTransport(
 	result: () => Promise<SaveResult> = () => Promise.resolve({ ok: true })
 ): { kernel: InternalKernel; storedAtSend: (string | null)[] } {
@@ -137,8 +133,6 @@ afterEach(() => {
 	vi.useRealTimers();
 });
 
-// First in the file: several tests below leave a handle mounted, and the
-// focus events here would reach them.
 describe('<key>-sid follows the records that carry the subject', () => {
 	const sidKey = `${STORAGE_KEY_V2}-sid`;
 	const expireSid = () => {
@@ -162,8 +156,6 @@ describe('<key>-sid follows the records that carry the subject', () => {
 		});
 		const handle = createPersistence({ kernel, sync: false }, loader);
 		kernel.set.subjectId('sub_next');
-		// Another tab, still on the saved ID, records a newer denial. It
-		// shares storage, not this page's queued writes.
 		vi.setSystemTime(NOW + 1000);
 		const before = storedChoice();
 		const granted = before?.choice.categories.marketing;
@@ -183,8 +175,6 @@ describe('<key>-sid follows the records that carry the subject', () => {
 		);
 
 		await land();
-		// The subject-only rewrite yields to the newer record, which still
-		// carries the saved ID, so <key>-sid keeps that ID too.
 		expect(storedChoice()?.subject?.subjectId).toBe(saved);
 		expect(localStorage.getItem(sidKey)).toBe(saved);
 		expect(storedChoice()?.choice.categories.marketing).toMatchObject({
@@ -192,7 +182,6 @@ describe('<key>-sid follows the records that carry the subject', () => {
 			value: false,
 		});
 
-		// This runtime's next save stores its ID with the merged records.
 		vi.setSystemTime(NOW + 2000);
 		await settle(kernel.commands.save({ measurement: true }));
 		expect(sent).toEqual(['sub_next']);
@@ -232,8 +221,6 @@ describe('<key>-sid follows the records that carry the subject', () => {
 			const kernel = createConsentKernel({ now: Date.now() });
 			const handle = createPersistence({ kernel }, loader);
 			expect(kernel.getSnapshot().subject?.subjectId).toBe('sub_next');
-			// The browser lost the record cookie (localStorage still holds the
-			// record), or <key>-sid altogether.
 			if (recordCookie === 'dropped') {
 				document.cookie = `${STORAGE_KEY_V2}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/`;
 			}
@@ -242,7 +229,6 @@ describe('<key>-sid follows the records that carry the subject', () => {
 				localStorage.removeItem(sidKey);
 			}
 			window.dispatchEvent(new Event('focus'));
-			// The records still carry the saved ID until the queued writes land.
 			expect(
 				readStoredRecordsForReconcile(undefined, Date.now()).recordedSubjectId
 			).toBe(saved);
@@ -345,8 +331,6 @@ describe('<key>-sid follows the records that carry the subject', () => {
 
 			await land();
 			await settle(saving);
-			// The queued decision lands with its time, under the newer ID, and
-			// <key>-sid follows it. No save was made after the replacement.
 			expect(storedChoice()?.subject?.subjectId).toBe(replaced);
 			expect(storedChoice()?.choice.categories.marketing).toMatchObject({
 				confirmedAt: NOW + 1000,
@@ -421,8 +405,6 @@ describe('<key>-sid follows the records that carry the subject', () => {
 				}
 			}
 			await settle(saving);
-			// No save after the remounts: the queued decision keeps its time,
-			// under the last handle's whole subject, and <key>-sid follows.
 			expect(storedChoice()?.subject).toEqual(subject);
 			expect(storedChoice()?.choice.categories.marketing).toMatchObject({
 				confirmedAt: NOW + 1000,
@@ -453,7 +435,6 @@ describe('<key>-sid follows the records that carry the subject', () => {
 		leaving.set.subjectId('sub_next');
 		left.dispose();
 
-		// A server render seeded another ID and the account linked to it.
 		const kernel = createConsentKernel({ now: Date.now() });
 		kernel.hydrate({
 			subject: {
@@ -515,7 +496,6 @@ describe('<key>-sid follows the records that carry the subject', () => {
 			expect([saved, 'sub_next']).not.toContain(replaced);
 
 			await land();
-			// No save: the records carry the newer ID, and <key>-sid with them.
 			expect(storedChoice()?.subject?.subjectId).toBe(replaced);
 			expect(localStorage.getItem(sidKey)).toBe(replaced);
 			expect(storedChoice()?.choice.categories.marketing?.value).toBe(true);
@@ -550,7 +530,6 @@ describe('before the write code lands', () => {
 		createPersistence({ kernel }, loader);
 
 		const saving = kernel.commands.save({ marketing: true });
-		// The request would normally leave after one macrotask.
 		await vi.advanceTimersByTimeAsync(50);
 		expect(storedAtSend).toEqual([]);
 		expect(storedChoice()).toBeNull();
@@ -604,12 +583,10 @@ describe('before the write code lands', () => {
 		const revoking = kernel.commands.save({ marketing: false });
 		await vi.advanceTimersByTimeAsync(0);
 		expect(loads()).toBe(1);
-		// The load failed: nothing reloads, and the save stays open.
 		await vi.advanceTimersByTimeAsync(500);
 		expect(storedAtReload).toEqual([]);
 		expect(storedChoice()?.choice.categories.marketing?.value).toBe(true);
 
-		// The retry lands the write; only then does the save settle and reload.
 		await vi.advanceTimersByTimeAsync(500);
 		expect(loads()).toBe(2);
 		await land();
@@ -640,7 +617,6 @@ describe('before the write code lands', () => {
 	});
 
 	test('a clear empties memory, storage and the save outbox at once', async () => {
-		// A failed save is queued in the outbox.
 		const { kernel } = kernelWithTransport(() =>
 			Promise.reject(new Error('offline'))
 		);
@@ -679,7 +655,6 @@ describe('before the write code lands', () => {
 
 	test('a clear removes the stored grant before it returns, so a reload cannot restore it', async () => {
 		await seedChoice({ marketing: true });
-		// The write code never lands on this page.
 		const { loader, loads } = heldBackLoader();
 		const kernel = createConsentKernel({ now: Date.now() });
 		const handle = createPersistence({ kernel }, loader);
@@ -696,7 +671,6 @@ describe('before the write code lands', () => {
 		);
 		expect(loads()).toBe(0);
 
-		// The next page reads no grant.
 		const next = createConsentKernel({ now: Date.now() });
 		createPersistence({ kernel: next }, heldBackLoader().loader);
 		expect(next.getSnapshot().effectivePermissions.marketing).toBe(false);
@@ -759,7 +733,6 @@ describe('before the write code lands', () => {
 		window.dispatchEvent(
 			new PageTransitionEvent('pagehide', { persisted: true })
 		);
-		// No write code yet, so nothing can be written while the page hides.
 		expect(storedChoice()).toBeNull();
 		window.dispatchEvent(
 			new PageTransitionEvent('pageshow', { persisted: true })
@@ -800,7 +773,6 @@ describe('before the write code lands', () => {
 		await land();
 
 		expect(kernel.getSnapshot().effectivePermissions.marketing).toBe(true);
-		// Landed: reconciliation is synchronous again.
 		expect(handle.reconcile()).toBe(false);
 	});
 
@@ -820,7 +792,6 @@ describe('before the write code lands', () => {
 	});
 
 	test('a handle mounted while an earlier revocation waits for the write code starts from the revocation', async () => {
-		// An earlier page stored a grant.
 		await seedChoice({ marketing: true });
 		const { land, loader } = heldBackLoader();
 		const first = createConsentKernel({ now: Date.now() });
@@ -829,7 +800,6 @@ describe('before the write code lands', () => {
 		const accepting = first.commands.save({ marketing: true });
 		vi.setSystemTime(NOW + 2000);
 		const rejecting = first.commands.save({ marketing: false });
-		// The provider remounts before the write code has loaded.
 		firstHandle.dispose();
 		expect(storedChoice()?.choice.categories.marketing?.value).toBe(true);
 
@@ -874,7 +844,6 @@ describe('before the write code lands', () => {
 		const rejecting = first.commands.save({ marketing: false });
 		firstHandle.dispose();
 
-		// A server render seeded the grant from the cookie.
 		const kernel = createConsentKernel({ now: Date.now() });
 		kernel.hydrate({
 			choice: readStoredConsentRecord(undefined, Date.now()).selected?.choice,
@@ -911,7 +880,6 @@ describe('before the write code lands', () => {
 		expect(storedChoice()?.choice.categories.marketing?.value).toBe(true);
 		expect(kernel.getSnapshot().effectivePermissions.marketing).toBe(true);
 
-		// A third mount reads the newer choice, not the first handle's.
 		const third = createConsentKernel({ now: Date.now() });
 		createPersistence({ kernel: third }, loader).dispose();
 		expect(third.getSnapshot().effectivePermissions.marketing).toBe(true);
@@ -945,20 +913,16 @@ describe('before the write code lands', () => {
 			now: Date.now(),
 		});
 		createPersistence({ kernel }, loader);
-		// Nothing loads before a prompt is shown.
 		await vi.advanceTimersByTimeAsync(1000);
 		expect(loads()).toBe(0);
 
 		kernel.markLive();
-		// jsdom has no requestIdleCallback, so it loads right after the delay.
 		await vi.advanceTimersByTimeAsync(2999);
 		expect(loads()).toBe(0);
 		await vi.advanceTimersByTimeAsync(2);
 		expect(loads()).toBe(1);
 
 		await land();
-		// Landed: the next save writes in the macrotask after its commit, so
-		// it is stored before its request would leave.
 		const saving = kernel.commands.save({ marketing: true });
 		expect(storedChoice()).toBeNull();
 		await vi.advanceTimersByTimeAsync(0);
@@ -983,10 +947,8 @@ describe('before the write code lands', () => {
 		const outside = document.createElement('button');
 		document.body.append(banner, outside);
 		try {
-			// Before a banner is shown, a press does nothing.
 			button.dispatchEvent(new Event('pointerdown', { bubbles: true }));
 			kernel.markLive();
-			// Outside the banner, neither.
 			outside.dispatchEvent(new Event('pointerdown', { bubbles: true }));
 			outside.dispatchEvent(new FocusEvent('focusin', { bubbles: true }));
 			await vi.advanceTimersByTimeAsync(0);
@@ -996,7 +958,6 @@ describe('before the write code lands', () => {
 			await vi.advanceTimersByTimeAsync(0);
 			expect(loads()).toBe(1);
 
-			// The delayed idle preload and later presses do not load it again.
 			button.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true }));
 			await vi.advanceTimersByTimeAsync(5000);
 			expect(loads()).toBe(1);
@@ -1068,9 +1029,6 @@ describe('before the write code lands', () => {
 			heldBackLoader().loader
 		);
 		leaving.set.subjectId('sub_left');
-		// The page unloads before the write code lands: the records still
-		// carry the saved ID, so <key>-sid keeps it too. Its queued writes go
-		// with the page.
 		left.dispose();
 		queuedWrites.clear();
 		expect(storedSid()).toBe(saved);
@@ -1100,7 +1058,6 @@ describe('a remount while a new subject ID waits for the write code', () => {
 			await seedChoice({ marketing: true });
 			const saved = localStorage.getItem(sidKey);
 
-			// One page, one loader: the leaving handle's writes land with it.
 			const { land, loader } = heldBackLoader();
 			const leaving = createConsentKernel({ now: Date.now() });
 			const left = createPersistence({ kernel: leaving }, loader);
@@ -1119,7 +1076,6 @@ describe('a remount while a new subject ID waits for the write code', () => {
 				},
 			});
 			if (skipHydration) {
-				// A server render seeded the stored records, old ID included.
 				const stored = readStoredRecordsForReconcile(undefined, Date.now());
 				kernel.hydrate({
 					choice: stored.records.choice,
@@ -1130,7 +1086,6 @@ describe('a remount while a new subject ID waits for the write code', () => {
 				skipHydration ? saved : undefined
 			);
 			const handle = createPersistence({ kernel, skipHydration }, loader);
-			// It starts from the queued records, and from the subject they carry.
 			expect(kernel.getSnapshot().subject?.subjectId).toBe('sub_next');
 
 			await land();

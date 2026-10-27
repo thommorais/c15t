@@ -48,7 +48,6 @@ const createRuntime = (options: Partial<ConsentRuntimeOptions> = {}) => {
 				}
 				return Promise.resolve(
 					Response.json(
-						// The path alone: the runtime adds its consent journey as a query.
 						String(input).split('?')[0]?.endsWith('/init')
 							? {
 									branding: 'c15t',
@@ -322,7 +321,6 @@ test.each([
 		});
 		runtime.start();
 		const snapshot = runtime.kernel.getSnapshot();
-		// No record seed: a stored grant applies too, not only a newer denial.
 		expect(snapshot.explicitChoice?.categories.measurement?.value).toBe(true);
 		expect(snapshot.subject?.subjectId).toBe(expectedSubject);
 	}

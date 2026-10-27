@@ -1,11 +1,4 @@
 import { readStoredRecords } from '@c15t/core/modules/persistence';
-/**
- * E2E tests for the complete consent flow.
- *
- * Tests the full user journey from first visit through consent management.
- *
- * @packageDocumentation
- */
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { render } from 'vitest-browser-react';
 import { userEvent } from 'vitest/browser';
@@ -32,7 +25,6 @@ const getDefined = <Value,>(
 	return value;
 };
 
-// Mock localStorage
 const localStorageMock = (() => {
 	let store: Record<string, string> = {};
 	return {
@@ -75,7 +67,6 @@ const defaultOptions: ConsentProviderOptions = {
 		prompt: 'choice',
 		scopeMode: 'permissive',
 	}),
-	// These tests seed or read records under the default key.
 	storageConfig: DEFAULT_KEY_STORAGE,
 };
 
@@ -97,7 +88,6 @@ const storedAcceptAllConsent = () => ({
 describe('Consent Flow E2E Tests', () => {
 	beforeEach(() => {
 		window.localStorage.clear();
-		// Clear cookies
 		const cookies = document.cookie.split(';');
 		for (const cookie of cookies) {
 			const name = cookie.split('=')[0]?.trim();
@@ -269,7 +259,6 @@ describe('Consent Flow E2E Tests', () => {
 
 	describe('Returning Visitor Flow', () => {
 		test('should not show banner if user has already consented', async () => {
-			// Set existing consent
 			window.localStorage.setItem(
 				'c15t',
 				JSON.stringify(storedAcceptAllConsent())
@@ -281,7 +270,6 @@ describe('Consent Flow E2E Tests', () => {
 				</ConsentProvider>
 			);
 
-			// Wait a bit to ensure banner would have shown if it was going to
 			await new Promise<void>((resolve) => {
 				setTimeout(resolve, 500);
 			});
@@ -336,7 +324,6 @@ describe('Consent Flow E2E Tests', () => {
 				{ timeout: 3000 }
 			);
 
-			// Check for consent toggles
 			await vi.waitFor(
 				() => {
 					const switches = document.querySelectorAll('[role="switch"]');
@@ -359,7 +346,6 @@ describe('Consent Flow E2E Tests', () => {
 						'[data-testid="consent-widget-switch-necessary"]'
 					);
 					expect(necessarySwitch).toBeInTheDocument();
-					// Necessary consent is always required, so the switch should be disabled
 					expect(necessarySwitch?.getAttribute('data-disabled')).toBe('');
 				},
 				{ timeout: 3000 }
@@ -580,7 +566,6 @@ describe('Consent Flow E2E Tests', () => {
 				</ConsentProvider>
 			);
 
-			// Step 1: Banner should appear
 			await vi.waitFor(
 				() => {
 					const banner = document.querySelector(
@@ -591,13 +576,11 @@ describe('Consent Flow E2E Tests', () => {
 				{ timeout: 3000 }
 			);
 
-			// Step 2: Click customize
 			const customizeButton = document.querySelector(
 				'[data-testid="consent-banner-customize-button"]'
 			);
 			await userEvent.click(getDefined(customizeButton));
 
-			// Step 3: Dialog should open
 			await vi.waitFor(
 				() => {
 					const dialog = document.querySelector(
@@ -608,19 +591,16 @@ describe('Consent Flow E2E Tests', () => {
 				{ timeout: 3000 }
 			);
 
-			// Step 4: Toggle a consent category
 			const marketingSwitch = document.querySelector(
 				'[data-testid="consent-widget-switch-marketing"]'
 			);
 			await userEvent.click(getDefined(marketingSwitch));
 
-			// Step 5: Save preferences
 			const saveButton = document.querySelector(
 				'[data-testid="consent-widget-footer-save-button"]'
 			);
 			await userEvent.click(getDefined(saveButton));
 
-			// Step 6: Verify consent was saved
 			await vi.waitFor(
 				() => {
 					const stored = readStoredRecords(undefined, Date.now()).records

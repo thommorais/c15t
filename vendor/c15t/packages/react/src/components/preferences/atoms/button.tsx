@@ -5,14 +5,6 @@ import { useConsentLabels } from '~/component-hooks/use-consent-labels';
 import { ConsentButton } from '~/components/shared/primitives/button';
 import type { ConsentButtonProps } from '~/components/shared/primitives/button.types';
 
-/**
- * Button to accept all available cookies.
- *
- * @remarks
- * - Enables all consent options
- * - Closes dialog after action
- * - Triggers necessary callbacks
- */
 const ConsentWidgetAcceptAllButton = createForwardRef<
 	HTMLButtonElement,
 	ConsentButtonProps
@@ -77,14 +69,6 @@ const ConsentWidgetSaveButton = createForwardRef<
 });
 ConsentWidgetSaveButton.displayName = 'ConsentWidgetSaveButton';
 
-/**
- * Button to reject all non-essential cookies.
- *
- * @remarks
- * - Sets all optional consents to false
- * - Maintains required consents
- * - Closes dialog after action
- */
 const ConsentWidgetRejectButton = createForwardRef<
 	HTMLButtonElement,
 	ConsentButtonProps

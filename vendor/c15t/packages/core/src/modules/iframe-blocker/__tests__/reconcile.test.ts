@@ -131,7 +131,6 @@ describe('reconcileIframe', () => {
 
 	test('keeps an iframe with an unknown category blocked, even with every category granted', () => {
 		const warn = vi.spyOn(console, 'warn').mockImplementation(() => {
-			/* asserted below */
 		});
 		const snap = createConsentKernel({
 			initialRecords: choiceRecords({

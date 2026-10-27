@@ -21,7 +21,6 @@ export type ConsentBannerPolicyActionRenderProps =
 	PolicyActionRenderProps<HeadlessConsentBannerAction>;
 
 export interface ConsentBannerPolicyActionsProps {
-	/** Replaces the default preferences buttons before the policy actions. */
 	children?: ReactNode;
 	renderAction?: (
 		action: HeadlessConsentBannerAction,

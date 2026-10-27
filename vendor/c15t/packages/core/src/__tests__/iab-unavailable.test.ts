@@ -11,7 +11,6 @@ import {
 import { createOfflineTransport } from '../transports/offline';
 import type { GlobalVendorList, KernelConfig } from '../types';
 
-/** Only its presence matters here. */
 const GVL = {
 	purposes: {},
 	vendorListVersion: 1,
@@ -101,8 +100,6 @@ describe('policyNeedsIAB', () => {
 			});
 			await kernel.commands.init();
 
-			// Offline mode sends no vendor list without IAB: the recommended
-			// pack picks its non-IAB rule, and an `iab` rule fails to resolve.
 			expect(kernel.getSnapshot().iab?.gvl ?? null).toBeNull();
 			expect(policyNeedsIAB(kernel.getSnapshot())).toBe(false);
 		}

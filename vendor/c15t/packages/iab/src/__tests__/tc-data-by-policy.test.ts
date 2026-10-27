@@ -1,8 +1,4 @@
 /** @vitest-environment jsdom */
-/**
- * `__tcfapi` answers by the visitor's policy: full TC data when it uses IAB
- * TCF, only the base fields when it does not.
- */
 import { createConsentKernel } from '@c15t/core';
 import type { ConsentKernel } from '@c15t/core';
 import {

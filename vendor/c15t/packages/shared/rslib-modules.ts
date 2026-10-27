@@ -1,7 +1,5 @@
 import type { Minify, RsbuildPlugin } from '@rsbuild/core';
 
-// Keep Rslib's conservative compression, with compact whitespace. Names,
-// annotations and license comments must survive downstream tree shaking.
 export const compactModuleMinify: Minify = {
 	css: false,
 	js: true,
@@ -26,19 +24,12 @@ export const compactModuleMinify: Minify = {
 	},
 };
 
-/**
- * Emit public re-exports as compilation assets so build/watch share the same
- * output path, cleanup and error handling. Bundleless entry names follow source
- * paths, so public filenames that differ need these aliases.
- * @internal
- */
 export const publicEntryAliases = function publicEntryAliases(
 	aliases: Readonly<Record<string, string>>
 ): RsbuildPlugin {
 	return {
 		name: 'public-entry-aliases',
 		setup(api) {
-			// Run after minification to retain the small, stable alias bytes.
 			api.processAssets({ stage: 'report' }, ({ compilation, sources }) => {
 				if (compilation.errors.length > 0) {
 					return;

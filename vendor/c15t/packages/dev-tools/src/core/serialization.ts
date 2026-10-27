@@ -1,4 +1,3 @@
-/** Serialize diagnostic data without letting transport values break the panel. */
 export const serializeDiagnostic = (value: unknown): string => {
 	const seen = new WeakSet<object>();
 	try {

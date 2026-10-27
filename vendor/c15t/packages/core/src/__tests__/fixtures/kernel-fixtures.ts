@@ -1,10 +1,3 @@
-/**
- * Shared kernel test fixtures.
- *
- * Builds real policy resolutions (through the schema normalizer and
- * fingerprint producer) and validated hydration records so tests drive
- * the kernel through its public boundaries instead of snapshot setters.
- */
 import type {
 	PolicyMatchedBy,
 	PolicyResolution,
@@ -25,11 +18,9 @@ import type { HydrationRecords } from '../../types';
 export const NOW = 1_800_000_000_000;
 export const DAY = 86_400_000;
 
-/** Choice fingerprint of the safe fallback rule (unconfigured kernels). */
 export const FALLBACK_CHOICE_FINGERPRINT =
 	SAFE_FALLBACK_POLICY_FINGERPRINTS.choice;
 
-/** A matched resolution for an authored rule. Hashes once, in the test. */
 export const matchedResolution = function matchedResolution(
 	rule: PolicyRule,
 	matchedBy: PolicyMatchedBy = 'default'
@@ -68,7 +59,6 @@ export const optOutRule = function optOutRule(
 	};
 };
 
-/** A `none` regime: processing permitted, no prompt, no rights. */
 export const noneRule = function noneRule(
 	overrides: Partial<PolicyRule> = {}
 ): PolicyRule {
@@ -100,17 +90,12 @@ export const iabRule = function iabRule(
 };
 
 export interface ChoiceOptions {
-	/** Confirmation time. Defaults to one second before `now`. */
 	confirmedAt?: number;
-	/** Clock the records are validated against. Defaults to {@link NOW}. */
 	now?: number;
-	/** Choice fingerprint. Defaults to the safe fallback rule's. */
 	fingerprint?: string;
-	/** Use a legacy basis, optionally with a material fingerprint. */
 	legacy?: boolean | string;
 }
 
-/** A v3 explicit choice for the given values. */
 export const explicitChoice = function explicitChoice(
 	values: Partial<Record<OptionalConsentCategory, boolean>>,
 	options: ChoiceOptions = {}
@@ -147,7 +132,6 @@ export const explicitChoice = function explicitChoice(
 	return { categories, version: 3 };
 };
 
-/** Hydration records that carry one explicit choice. */
 export const choiceRecords = function choiceRecords(
 	values: Partial<Record<OptionalConsentCategory, boolean>>,
 	options: ChoiceOptions & { subjectId?: string } = {}

@@ -13,17 +13,12 @@ import type { Theme } from '~/types/theme';
 
 export interface V3UIConfigValue {
 	components?: ReactComponentSlots;
-	/** The host's base presentation, before any experiment arm is applied. */
 	presentation?: ConsentPresentation;
-	/** The configured experiment; the assigned arm lives on the snapshot. */
 	experiment?: ConsentExperiment;
-	/** The host's base theme, before any experiment arm is applied. */
 	theme?: Theme;
 	legalLinks?: LegalLinks;
 	preloadDialog?: DialogPreload;
-	/** CSP nonce for the `<style>` elements the surfaces render. */
 	nonce?: string;
-	/** `false` when the app loads `styles.css` itself. */
 	styles?: boolean;
 }
 

@@ -25,7 +25,6 @@ test('useEventDispatcher keeps one dispatcher and pageview history through conse
 	const dispatchers = new Set<unknown>();
 
 	const Page = ({ path }: { path: string }) => {
-		// Re-renders on every consent change, as a consent-aware page does.
 		useConsent('measurement');
 		const save = useSaveConsents();
 		const events = useEventDispatcher({ globals, pageviews: ['posthog'] });
@@ -87,11 +86,9 @@ test('useEventDispatcher keeps one dispatcher and pageview history through conse
 	);
 	await vi.waitFor(() => expect(capture).toHaveBeenCalledWith('$pageview'));
 
-	// Consent is read when the event is sent, not when the page rendered.
 	await screen.getByRole('button', { name: 'revoke and track' }).click();
 	expect(capture).toHaveBeenCalledTimes(1);
 
-	// Turning c15t off swaps the kernel, and the dispatcher follows it.
 	await screen.rerender(
 		<App
 			enabled={false}

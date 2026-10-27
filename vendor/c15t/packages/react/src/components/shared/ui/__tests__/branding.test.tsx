@@ -256,10 +256,6 @@ describe('BrandingLink', () => {
 	});
 
 	test('adds the referral hostname only after hydration', async () => {
-		// The server has no `window`. If the hydration render produced a
-		// different href than the server markup, React would log an attribute
-		// mismatch and leave the server value in place, so the referral
-		// parameter has to wait for hydration.
 		const markup = renderToString(
 			createConsentTree(
 				<BrandingLink

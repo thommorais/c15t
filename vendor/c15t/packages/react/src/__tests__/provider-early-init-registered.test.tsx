@@ -1,11 +1,3 @@
-/**
- * A mode registered in `earlyInitModes` (as `manifest()` from
- * `@c15t/browser` registers) gets the same render-time `/init` as
- * `hosted()`, but only when it says its first `init()` would ask the
- * backend and the visitor has no stored choice. These tests stand in for
- * `manifest()` with a mode built the way it is: one hosted transport per
- * factory call, whose `init()` starts its request synchronously.
- */
 import {
 	createConsentKernel,
 	createHostedTransport,
@@ -65,10 +57,8 @@ const initCalls = () =>
 		String(url).split('?')[0]?.endsWith('/init')
 	);
 
-/** Shared by every mode `registeredMode` builds, so they count as one backend. */
 const backend = {};
 
-/** A registered mode: a new transport per call, `requestsInit` as given. */
 const registeredMode = function registeredMode(
 	requestsInit: boolean
 ): ProviderTransportFactory {
@@ -85,7 +75,6 @@ const registeredMode = function registeredMode(
 	return factory;
 };
 
-/** Records how many `/init` requests were out at render and at mount. */
 const Timing = ({
 	atRender,
 	atMount,
@@ -125,13 +114,11 @@ test('sends /init during render, before mount effects, once under StrictMode', a
 		</StrictMode>
 	);
 
-	// Out before any child rendered, so before every mount effect.
 	expect(atRender[0]).toBe(1);
 	expect(atMount[0]).toBe(1);
 	await expect.element(view.getByTestId('policy')).toHaveTextContent('pending');
 	expect(initCalls()).toHaveLength(1);
 
-	// The mounted kernel takes that response instead of asking again.
 	respond[0]?.('early');
 	await expect.element(view.getByTestId('policy')).toHaveTextContent('early');
 	expect(initCalls()).toHaveLength(1);
@@ -178,7 +165,6 @@ test('sends nothing during render when the mode resolves locally', async () => {
 			/>
 		</ConsentProvider>
 	);
-	// The mount effect asks, as it did before.
 	expect(atRender[0]).toBe(0);
 	await view.unmount();
 });
@@ -228,8 +214,6 @@ test('an unmount before the answer leaves nothing for the next provider', async 
 	await first.unmount();
 	respond[0]?.('late');
 
-	// The next provider asks for its own answer: the old request was
-	// neither kept for it nor applied anywhere.
 	delete (window as Window & { __c15tJourney?: unknown }).__c15tJourney;
 	const second = await render(
 		<ConsentProvider

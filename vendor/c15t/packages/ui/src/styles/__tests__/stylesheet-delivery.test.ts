@@ -1,25 +1,3 @@
-/**
- * Guards the stylesheet contract: each component rule reaches the page once.
- *
- * - `styles.css` / `styles.tw3.css`: default tokens, every variable, and the
- *   rules for the banner, dialog trigger, ConsentGate, dialog and preference
- *   widget. The app imports it once.
- * - `styles/dialog.css`: empty, kept so existing imports resolve.
- * - `styles/primitives.css`: rules for the primitive class maps.
- * - `iab/styles.css`: IAB variables and rules, loaded next to `styles.css`.
- *
- * Class maps stay CSS-free. If one imported its component stylesheet,
- * bundlers would emit that stylesheet as a second asset holding rules an
- * aggregate already carries. Next.js with Turbopack did exactly that for the
- * banner, actions, legal links and consent gate on first load, and for the
- * dialog on open.
- *
- * Vue keeps its component-only loading by importing the per-component `.css`
- * files explicitly next to each class map.
- *
- * These read the built artifacts, so `bun run --cwd packages/ui build` (or
- * `turbo run build --filter=@c15t/ui`, which `test` depends on) must have run.
- */
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
@@ -57,7 +35,6 @@ const listFiles = function listFiles(dir: string, suffix: string): string[] {
 		.sort();
 };
 
-/** `@layer` is a delivery detail: the aggregate adds or reuses it. */
 const contextOf = function contextOf(node: ChildNode): string {
 	const context: string[] = [];
 	for (
@@ -75,10 +52,6 @@ const contextOf = function contextOf(node: ChildNode): string {
 	return context.join(' ');
 };
 
-/**
- * The aggregate widens `:root` blocks to `:root, :host` for shadow-root hosts.
- * Drop the `:host` parts so both sides compare equal.
- */
 const normalizeSelector = function normalizeSelector(selector: string): string {
 	return selector
 		.split(',')
@@ -87,7 +60,6 @@ const normalizeSelector = function normalizeSelector(selector: string): string {
 		.join(',');
 };
 
-/** Every style rule as `context|selector|declarations`, keyframes excluded. */
 const ruleKeys = function ruleKeys(css: string): Set<string> {
 	const keys = new Set<string>();
 	parse(css).walkRules((rule) => {
@@ -135,7 +107,6 @@ describe('class maps carry no CSS', () => {
 	}
 });
 
-/** `:root` custom-property blocks, which always go into `styles.css`. */
 const isVariableRule = (key: string) => key.split('|')[1]?.includes(':root');
 
 const sheets = {
@@ -166,12 +137,6 @@ const groupOf = function groupOf(
 const missingFrom = (rules: string[], sheet: Set<string>) =>
 	rules.filter((rule) => !sheet.has(rule));
 
-/**
- * Where each group's rules and variables must appear. IAB variables and
- * rules ship in the IAB sheet only. Every other variable rides in the
- * render-blocking sheet, so a host's override of one is never re-declared by
- * a sheet that loads later.
- */
 const TARGETS = {
 	dialog: {
 		rules: [sheets.styles, sheets.stylesTw3],
@@ -218,7 +183,6 @@ describe('each component rule lands in the stylesheet for its surface', () => {
 });
 
 describe('styles.css holds no primitive or IAB rule', () => {
-	/** Hashed class names of a class map in `dist/styles/<dir>/<name>.js`. */
 	const classNamesOf = function classNamesOf(path: string): string[] {
 		return [...readDist(path).matchAll(/c15t-ui-[\w-]+/gu)].map(
 			(match) => match[0]
@@ -250,8 +214,6 @@ describe('styles.css holds no primitive or IAB rule', () => {
 	}
 
 	test('the primitive and IAB sheets declare no variables', () => {
-		// Only styles.css declares variables. The IAB sheet adds IAB variables,
-		// which styles.css does not declare.
 		expect([...sheets.primitives].filter(isVariableRule)).toEqual([]);
 		expect(
 			[...sheets.iab].filter(
@@ -271,7 +233,6 @@ describe('styles.css holds no primitive or IAB rule', () => {
 
 	test('the primitive sheet keeps its rules in @layer components', () => {
 		const root = parse(readDist(join(DIST_DIR, 'styles', 'primitives.css')));
-		// The layer order statement, then one block holding every rule.
 		const topLevel = root.nodes.filter((node) => node.type !== 'comment');
 		expect(topLevel).toHaveLength(2);
 		expect(topLevel[1]).toMatchObject({

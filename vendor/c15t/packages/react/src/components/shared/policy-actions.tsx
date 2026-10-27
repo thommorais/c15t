@@ -46,7 +46,6 @@ interface PolicyActionsRendererProps<TAction extends string> {
 		action: TAction,
 		props: PolicyActionRenderProps<TAction>
 	) => ReactNode;
-	/** Rendered inside the footer before the action groups, such as right links. */
 	leading?: ReactNode;
 }
 

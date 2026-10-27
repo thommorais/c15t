@@ -82,16 +82,8 @@ function deepMergeSection<TSection extends Record<string, unknown>>(
 
 let warnedLegacyFrame = false;
 
-// Typed here so this package needs no Node types. TypeScript erases it,
-// leaving the expression bundlers look for.
 declare const process: { env: { NODE_ENV?: string } };
 
-/**
- * Whether this is a production build. Bundlers replace the literal
- * `process.env.NODE_ENV`, so the warning stays out of production browser
- * builds; `globalThis.process` would hide it from that replacement. Without
- * a bundler or `process`, the read throws and counts as development.
- */
 const isProductionBuild = function isProductionBuild(): boolean {
 	try {
 		return process.env.NODE_ENV === 'production';
@@ -110,24 +102,6 @@ const warnLegacyFrameOnce = function warnLegacyFrameOnce(): void {
 	);
 };
 
-/**
- * Read `frame`, the name of the `consentGate` section before the rename, as
- * `consentGate`.
- *
- * Stored copy, custom translations and responses from older backends can
- * still carry `frame`. Its keys fill whatever `consentGate` does not set,
- * and the `frame` key is dropped. Warns once outside production when it
- * finds one.
- *
- * @param translations - Translations that may use the old key.
- * @returns The translations with `frame` folded into `consentGate`, or the
- * input unchanged when it has no `frame` key.
- * @example
- * ```ts
- * migrateLegacyTranslationKeys({ frame: { title: 'Blocked' } });
- * // { consentGate: { title: 'Blocked' } }
- * ```
- */
 export const migrateLegacyTranslationKeys =
 	function migrateLegacyTranslationKeys<
 		TranslationsType extends Partial<Translations>,
@@ -146,15 +120,6 @@ export const migrateLegacyTranslationKeys =
 		} as TranslationsType;
 	};
 
-/**
- * Deep merges translation objects
- *
- * This performs a deep merge across all translation sections so that
- * nested overrides (for example, only overriding the title of a consent
- * type) still preserve default values for other keys. Either side may use
- * the old `frame` key for `consentGate`; see
- * {@link migrateLegacyTranslationKeys}.
- */
 export const deepMergeTranslations = function deepMergeTranslations(
 	legacyBase: Translations,
 	legacyOverride: Partial<Translations>
@@ -183,8 +148,6 @@ export const deepMergeTranslations = function deepMergeTranslations(
 		}
 	}
 
-	// Older bundles used dismiss for notice acknowledgement. Keep their label
-	// when adding the new key from the base language.
 	if (
 		override.common?.acknowledge === undefined &&
 		override.common?.dismiss !== undefined &&
@@ -193,17 +156,9 @@ export const deepMergeTranslations = function deepMergeTranslations(
 		result.common.acknowledge = override.common.dismiss;
 	}
 
-	// All required sections are present on the base translations object,
-	// so after merging we can safely treat the result as complete.
 	return result as Translations;
 };
 
-/**
- * Parses an Accept-Language header into a list of normalized language codes.
- *
- * The result is ordered by client preference. Each entry is the primary
- * language subtag in lowercase (e.g. "de" from "de-DE").
- */
 export const parseAcceptLanguage = function parseAcceptLanguage(
 	header: string | null | undefined
 ): string[] {
@@ -269,14 +224,6 @@ interface SelectLanguageOptions {
 	fallback?: string;
 }
 
-/**
- * Selects the best matching language given an Accept-Language header and
- * a list of available language codes.
- *
- * - Tries languages from the header in order of preference.
- * - Matches on primary language code (e.g. "de" for "de-DE").
- * - Falls back to the provided fallback or "en".
- */
 export const selectLanguage = function selectLanguage(
 	available: string[],
 	options?: SelectLanguageOptions
@@ -298,13 +245,6 @@ export const selectLanguage = function selectLanguage(
 	return fallback;
 };
 
-/**
- * Normalizes legacy translation config and v2 i18n config into a canonical shape.
- *
- * Precedence:
- * - `i18n.*` values take priority when present
- * - Legacy translation config is used as fallback
- */
 export const normalizeI18nConfig = function normalizeI18nConfig(
 	config?: TranslationInputConfig
 ): I18nConfig {
@@ -321,9 +261,6 @@ export const normalizeI18nConfig = function normalizeI18nConfig(
 	};
 };
 
-/**
- * Maps canonical i18n config back to the legacy translation config shape.
- */
 export const toTranslationConfig = function toTranslationConfig(
 	config: I18nConfig
 ): TranslationConfig {
@@ -337,12 +274,6 @@ export const toTranslationConfig = function toTranslationConfig(
 	};
 };
 
-/**
- * Resolves legacy and v2 i18n inputs into a normalized legacy translation config.
- *
- * @param legacyConfig Legacy translation input.
- * @param i18nConfig Preferred v2 i18n input.
- */
 export const resolveTranslationInput = function resolveTranslationInput(
 	legacyConfig?: Partial<TranslationConfig>,
 	i18nConfig?: Partial<I18nConfig>
@@ -359,9 +290,6 @@ export const resolveTranslationInput = function resolveTranslationInput(
 	return toTranslationConfig(normalizeI18nConfig(config));
 };
 
-/**
- * Merges custom translations with defaults
- */
 export const mergeTranslationConfigs = function mergeTranslationConfigs(
 	defaultConfig: TranslationInputConfig,
 	customConfig?: TranslationInputConfig
@@ -406,9 +334,6 @@ export const mergeTranslationConfigs = function mergeTranslationConfigs(
 	});
 };
 
-/**
- * Detects browser language and returns appropriate default language
- */
 export const detectBrowserLanguage = function detectBrowserLanguage(
 	translations: Record<string, unknown>,
 	defaultLanguage: string | undefined,
@@ -428,9 +353,6 @@ export const detectBrowserLanguage = function detectBrowserLanguage(
 		: defaultLanguage || 'en';
 };
 
-/**
- * Prepares the translation configuration by merging defaults and detecting language
- */
 export const prepareTranslationConfig = function prepareTranslationConfig(
 	defaultConfig: TranslationInputConfig,
 	customConfig?: TranslationInputConfig

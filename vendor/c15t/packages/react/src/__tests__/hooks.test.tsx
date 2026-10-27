@@ -1,11 +1,3 @@
-/**
- * v3 React adapter tests.
- *
- * Three categories:
- * 1. Selector hooks subscribe correctly and update on relevant mutations.
- * 2. ZERO unrelated re-renders invariant — key v3 gate.
- * 3. Stale-closure bug (c15t/c15t#604) is structurally resolved.
- */
 import type { ReactNode } from 'react';
 import { Profiler, StrictMode, useEffect } from 'react';
 import { describe, expect, test, vi } from 'vitest';
@@ -27,7 +19,6 @@ const withProvider = function withProvider(options = {}) {
 	const Wrapper = ({ children }: { children: ReactNode }) => (
 		<ConsentProvider
 			options={{
-				// A permissive policy offers only what the site declares.
 				consentCategories: [
 					'functionality',
 					'experience',
@@ -191,10 +182,6 @@ describe('v3 react: selector hook basics', () => {
 });
 
 describe('v3 react: zero unrelated re-renders', () => {
-	// The load-bearing invariant. Each hook subscribes via
-	// useSyncExternalStore with a slice selector, so a child reading
-	// `useConsent('marketing')` must not re-render when
-	// `useConsent('measurement')` flips elsewhere.
 	test('flipping marketing does not re-render a measurement-only component', async () => {
 		const { Wrapper } = withProvider();
 		const marketingRenders: number[] = [];
@@ -245,7 +232,6 @@ describe('v3 react: zero unrelated re-renders', () => {
 			</Wrapper>
 		);
 
-		// Wait for initial mount to settle.
 		await new Promise((resolve) => {
 			setTimeout(resolve, 10);
 		});
@@ -259,10 +245,7 @@ describe('v3 react: zero unrelated re-renders', () => {
 			setTimeout(resolve, 10);
 		});
 
-		// Marketing hook's returned value changed → exactly one more commit.
 		expect(marketingRenders.length).toBeGreaterThan(marketingAfterMount);
-		// Measurement hook's returned value is unchanged → zero additional
-		// commits.
 		expect(measurementRenders.length).toBe(measurementAfterMount);
 	});
 
@@ -303,8 +286,6 @@ describe('v3 react: zero unrelated re-renders', () => {
 		});
 		const afterMount = renders.length;
 
-		// necessary is already true; this should be a no-op at the kernel
-		// level and should not trigger subscribers.
 		await document
 			.querySelector<HTMLButtonElement>('[data-testid="noop"]')
 			?.click();
@@ -317,11 +298,6 @@ describe('v3 react: zero unrelated re-renders', () => {
 });
 
 describe('v3 react: stale-closure resolved (issue #604)', () => {
-	// In v2, useConsentManager().has('marketing') could return stale
-	// values under React Compiler because `has` was a stable reference.
-	// In v3 the hook returns a primitive boolean — no method reference
-	// to cache. Even if this test ran under React Compiler the result
-	// would be correct by construction.
 	test('useConsent result is always fresh after mutations', async () => {
 		const { Wrapper } = withProvider();
 
@@ -407,8 +383,6 @@ describe('v3 react: network blocker lifecycle', () => {
 				expect(window.fetch).not.toBe(fetch.fetchStub);
 			});
 			view.unmount();
-			// Whether or not the blocker had loaded, what it patched is gone
-			// once the unmount settles, and requests reach the page's fetch.
 			await new Promise<void>((resolve) => {
 				setTimeout(resolve, 0);
 			});
@@ -464,8 +438,6 @@ describe('v3 react: network blocker lifecycle', () => {
 				</ConsentProvider>
 			);
 
-			// Sent right after the commit, before the runtime's update module
-			// has loaded: the new rule still holds it until the blocker decides.
 			const late = window.fetch('https://second.example.com/x');
 			expect((await late).status).toBe(451);
 			expect((await window.fetch('https://first.example.com/x')).status).toBe(
@@ -540,7 +512,6 @@ describe('v3 react: action hooks', () => {
 		await getByTestId('toggle').click();
 		await expect.element(getByTestId('measurement')).toHaveTextContent('true');
 
-		// Reference stability across re-renders caused by unrelated state.
 		expect(references[0]).toBe(references[1]);
 		expect(typeof references[0]).toBe('function');
 		expect(observedMeasurements).toEqual([false, true]);

@@ -1,16 +1,3 @@
-/**
- * Tests for @c15t/core/modules/network-blocker.
- *
- * Verifies feature parity with v2:
- * - window.fetch and XHR are patched
- * - domain / path / method rule matching
- * - blocked fetch returns 451 Response
- * - blocked XHR aborts and fires synthetic error event
- * - rule updates take effect immediately
- * - disable toggles without reinstalling
- * - dispose restores originals
- * - IAB-aware evaluation via shared has()
- */
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
 import {
@@ -72,8 +59,6 @@ class StubXMLHttpRequest {
 beforeEach(() => {
 	fetchCalls = [];
 
-	// Pretend we're in a browser — the blocker's hasBrowserAPIs check
-	// relies on window.fetch, window.location, and XMLHttpRequest.
 	const win = {
 		fetch: (input: RequestInfo | URL, init?: RequestInit) => {
 			fetchCalls.push({ init, input });
@@ -105,7 +90,6 @@ describe('network-blocker: fetch interception', () => {
 		);
 		expect(response.status).toBe(451);
 		expect(response.statusText).toBe('Request blocked by consent');
-		// originalFetch not reached
 		expect(fetchCalls).toHaveLength(0);
 	});
 
@@ -288,15 +272,10 @@ describe('network-blocker: dispose', () => {
 			rules: [{ category: 'marketing', domain: 'example.com' }],
 		});
 
-		// The patched fetch replaces the original reference.
 		expect(window.fetch).not.toBe(originalRef);
 
 		blocker.dispose();
 
-		// After dispose, requests to previously-blocked domains pass through.
-		// (We don't strictly assert reference equality because the blocker
-		// stores `originalFetch.bind(window)`, so the restored reference
-		// wraps the original one tick deep.)
 		const res = await window.fetch('https://example.com/x');
 		expect(res.status).toBe(200);
 	});
@@ -337,10 +316,6 @@ describe('network-blocker: IAB evaluation when model="iab"', () => {
 			],
 		});
 
-		// NOTE: The current v2 NetworkBlockerRule shape doesn't carry IAB
-		// fields, so this test documents that hosting IAB-aware rules is a
-		// future extension, not a hard parity break. For now, marketing=true
-		// does not replace the required confirmed vendor authority.
 		const res = await window.fetch('https://example.com/x');
 		expect(res.status).toBe(451);
 	});

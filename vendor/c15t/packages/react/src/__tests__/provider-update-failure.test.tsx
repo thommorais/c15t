@@ -1,8 +1,3 @@
-/**
- * A rerender whose options changed hands them to the runtime's `update()`,
- * which rejects when its update module fails to load. The provider must
- * not leave that rejection unhandled: the next update loads it again.
- */
 import type * as ProviderRuntimeModule from '@c15t/core/runtime/provider';
 import { expect, test, vi } from 'vitest';
 import { render } from 'vitest-browser-react';
@@ -29,7 +24,6 @@ test('an update that rejects is not an unhandled rejection', async () => {
 	const rejections: unknown[] = [];
 	const onRejection = (event: PromiseRejectionEvent) => {
 		rejections.push(event.reason);
-		// Reported here, not as a stray error in the run.
 		event.preventDefault();
 	};
 	window.addEventListener('unhandledrejection', onRejection);

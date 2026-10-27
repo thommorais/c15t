@@ -1,7 +1,3 @@
-/**
- * The browser manifest resolver: English bundled, other languages loaded on
- * demand, and a location from the page, `geoURL` or the backend's `/init`.
- */
 import {
 	createConsentManifestPolicyPack,
 	policyRulePresets,
@@ -139,7 +135,6 @@ describe('createBrowserManifestTransport()', () => {
 			expect.objectContaining({ method: 'GET' })
 		);
 		expect(response?.gvl).toEqual(vendorList);
-		// A CORS simple request: only safelisted headers, so no preflight
 		const headers = new Headers(fetchSpy.mock.calls[0]?.[1]?.headers);
 		expect([...headers.keys()]).toEqual(['accept-language']);
 	});
@@ -190,7 +185,6 @@ describe('createBrowserManifestTransport()', () => {
 		expect(response?.adTechProviders).toEqual([
 			{ id: 89, name: 'Meta', policyUrl: 'https://meta.example/p' },
 		]);
-		// A CORS simple request: no custom header that would need a preflight
 		const providerRequest = fetchSpy.mock.calls.find(([input]) =>
 			String(input).startsWith('https://lists.example/ac-browser')
 		);
@@ -338,10 +332,6 @@ describe('createBrowserManifestTransport()', () => {
 	});
 });
 
-/**
- * Keyed by location, but every location gets the same opt-in banner: only
- * the policy ids differ.
- */
 const sameBannerEverywhere: ConsentManifest = {
 	...everywhereManifest,
 	policyPacks: [
@@ -355,7 +345,6 @@ const sameBannerEverywhere: ConsentManifest = {
 	],
 };
 
-/** A banner in Europe and Quebec, none in California or anywhere else. */
 const bannerSomewhere: ConsentManifest = {
 	...everywhereManifest,
 	policyPacks: [
@@ -377,8 +366,6 @@ describe('manifestNeedsLocation()', () => {
 	});
 
 	test('is true when a country with region packs and no region fails to match', () => {
-		// Default but no fallback: a Canadian visitor without a province is
-		// insufficient input, which shows no banner.
 		expect(
 			manifestNeedsLocation({
 				...everywhereManifest,
@@ -447,7 +434,6 @@ describe('createBrowserManifestTransport() for an unknown location', () => {
 		const fetchSpy = vi.fn<typeof fetch>(
 			() =>
 				new Promise<Response>(() => {
-					/* never settles */
 				})
 		);
 		const transport = createBrowserManifestTransport({
@@ -493,7 +479,6 @@ describe('withEarlyInit()', () => {
 			somewhere?.requestsInit({ country: 'US', language: 'en', region: 'NY' })
 		).toBe(false);
 		expect(same?.requestsInit({ language: 'en' })).toBe(false);
-		// A fetched manifest cannot tell before its request.
 		expect(fetched?.requestsInit({ language: 'en' })).toBe(false);
 		expect(fetchSpy).not.toHaveBeenCalled();
 	});

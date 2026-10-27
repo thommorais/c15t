@@ -1,14 +1,3 @@
-/**
- * Snapshot patching.
- *
- * Callers describe which input fields change; `buildNextSnapshot` merges
- * the patch, re-runs the pure evaluator and re-derives every dependent
- * field. Derived fields keep their previous reference when their value did
- * not change, so subscribers can rely on `===`.
- *
- * Pure: takes the current snapshot + a patch, returns the next snapshot.
- * Does not notify subscribers.
- */
 import type { LocationResponse, PolicyResolution } from '@c15t/schema/types';
 
 import { evaluateConsentRecord } from '../consent-record/evaluate';
@@ -45,12 +34,6 @@ import type {
 } from '../types';
 import { evaluateExternalPermissions } from './external-permissions';
 
-/**
- * Partial update applied to a snapshot. Only input fields are patchable;
- * permissions, prompt, restrictions, deadline and model are always derived.
- *
- * Nullable fields: `undefined` (omitted) preserves, `null` clears.
- */
 export interface SnapshotPatch {
 	externalPermissions?: Readonly<ConsentState>;
 	consentCategories?: readonly AllConsentNames[] | null;
@@ -58,7 +41,6 @@ export interface SnapshotPatch {
 	noticeDismissal?: NoticeDismissal | null;
 	resolution?: PolicyResolution;
 	subject?: ConsentSubject | null;
-	/** Detected user-agent GPC signal. */
 	privacyDetected?: boolean;
 	overrides?: KernelOverrides;
 	user?: KernelUser | null;
@@ -75,7 +57,6 @@ export interface SnapshotPatch {
 	vendorChoice?: VendorChoice | null;
 	experiment?: ExperimentAssignment | null;
 	experimentPending?: boolean;
-	/** Evaluation time. Defaults to the current `evaluatedAt`. */
 	now?: number;
 }
 
@@ -86,19 +67,12 @@ const pick = function pick<Value>(
 	return patched === undefined ? current : patched;
 };
 
-/**
- * Whether a patch can retain the current snapshot without constructing a
- * candidate. Only identical inputs qualify, and time must remain within
- * the interval already covered by the current evaluation.
- */
 // oxlint-disable-next-line complexity -- Every patch input must match before bypassing candidate derivation.
 export const isUnchangedPatch = function isUnchangedPatch(
 	current: ConsentSnapshot,
 	patch: SnapshotPatch
 ): boolean {
 	const now = pick(patch.now, current.evaluatedAt);
-	// Initial IAB authority can need normalization even with identical inputs.
-	// Keep that work on the full snapshot derivation path.
 	if (
 		current.iab?.authority ||
 		now < current.evaluatedAt ||
@@ -205,7 +179,6 @@ const samePrivacySignals = function samePrivacySignals(
 	);
 };
 
-/** Derive the privacy-signal view from the override and the detection. */
 export const derivePrivacySignals = function derivePrivacySignals(
 	override: boolean | undefined,
 	detected: boolean
@@ -219,17 +192,6 @@ export const derivePrivacySignals = function derivePrivacySignals(
 	};
 };
 
-/**
- * Re-derive the surface only when the prompt or the visibility inputs
- * changed. An adapter that opened the dialog keeps it open across an
- * unrelated re-evaluation; an explicit patch always wins.
- *
- * An open dialog closes only for a choice. A policy, experiment or clock
- * re-evaluation leaves it open: the visitor may have opened it before init
- * resolved, and closing it would drop their click. Stored records that init
- * adopts change the choice too, so the init fold keeps the dialog
- * explicitly.
- */
 const deriveNextActiveUI = function deriveNextActiveUI(input: {
 	current: ConsentSnapshot;
 	patch: SnapshotPatch;
@@ -258,11 +220,6 @@ const deriveNextActiveUI = function deriveNextActiveUI(input: {
 	return input.current.activeUI;
 };
 
-/**
- * Merge a patch over the current snapshot and re-derive every dependent
- * field. Returns an unfrozen candidate at `revision + 1`; the kernel
- * decides whether anything changed before adopting it.
- */
 // oxlint-disable-next-line complexity -- One pass over every derived field keeps the derivation order visible.
 export const buildNextSnapshot = function buildNextSnapshot(
 	current: ConsentSnapshot,
@@ -312,9 +269,6 @@ export const buildNextSnapshot = function buildNextSnapshot(
 		iab = { ...iab, authority: null };
 	}
 
-	// Frozen evaluator inputs remain valid until their next deadline. Changes
-	// to presentation, identity or metadata do not alter record authority.
-	// A clock moving backwards must re-evaluate previously expired grants.
 	const reuseEvaluation =
 		evaluationPolicy === current.evaluationPolicy &&
 		explicitChoice === current.explicitChoice &&
@@ -426,8 +380,6 @@ export const buildNextSnapshot = function buildNextSnapshot(
 		restrictions,
 		revision: current.revision + 1,
 		subject,
-		// Impressions are stamped by the runtime once its lifecycle started;
-		// derivation only carries the record through.
 		surfaceShownAt: current.surfaceShownAt,
 		translations: pick(patch.translations, current.translations),
 		user: pick(patch.user, current.user),
@@ -436,11 +388,6 @@ export const buildNextSnapshot = function buildNextSnapshot(
 	};
 };
 
-/**
- * Whether a candidate differs from the current snapshot in any field other
- * than `revision` and `evaluatedAt`. Derived fields are reference-stable,
- * so a shallow comparison is exact.
- */
 export const snapshotChanged = function snapshotChanged(
 	current: ConsentSnapshot,
 	next: ConsentSnapshot

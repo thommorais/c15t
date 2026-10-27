@@ -1,8 +1,3 @@
-/**
- * The restriction notice explains why a *saved* grant is not in effect.
- * It must not appear for an unsaved draft toggle, which under opt-in is
- * always "on in the draft, off in effect" until the visitor saves.
- */
 import { describe, expect, test, vi } from 'vitest';
 import { render } from 'vitest-browser-react';
 import { page } from 'vitest/browser';
@@ -42,10 +37,6 @@ describe('consent widget restriction notice', () => {
 			</ConsentProvider>
 		);
 
-		// A locator re-resolves the switch on every step and waits for it to be
-		// visible, enabled and stable before clicking, so a click cannot land on
-		// a node that a later commit replaces or on a control that is not yet
-		// interactive on a slow runner.
 		const experience = page.getByTestId('consent-widget-switch-experience');
 		await expect.element(experience).toHaveAttribute('aria-checked', 'false');
 		await experience.click();
@@ -85,7 +76,6 @@ describe('consent widget restriction notice', () => {
 		});
 		expect(notice.textContent).toContain('restricted');
 
-		// The notice is a sibling of the trigger row, not a child of it.
 		const row = document.querySelector(
 			'[data-testid="consent-widget-accordion-trigger-marketing"]'
 		);
@@ -96,7 +86,6 @@ describe('consent widget restriction notice', () => {
 		);
 		expect(marketing?.getAttribute('aria-describedby')).toBe(notice.id);
 
-		// A saved grant that nothing restricts gets no notice.
 		expect(restriction('measurement')).toBeNull();
 	});
 });

@@ -1,14 +1,3 @@
-/**
- * `window.fetch` patch installer.
- *
- * The patched function evaluates each request through `evaluateBlock`.
- * If the rules + current snapshot deny the request, a 451 `Response`
- * is returned synchronously and the original `fetch` is never called.
- * Otherwise the original `fetch` runs unchanged.
- *
- * Returns an uninstall function that restores `window.fetch` only if
- * no other consumer has wrapped our patched version on top.
- */
 import type { ConsentSnapshot } from '../../types';
 import { evaluateBlock } from './decide';
 import type {
@@ -24,17 +13,9 @@ export interface FetchPatchDeps {
 	isEnabled: () => boolean;
 	notifyBlocked: (info: BlockedRequestInfo) => void;
 	tools: Pick<NetworkBlockerTools, 'blockedResponse' | 'evaluate'>;
-	/**
-	 * Promise that settles once consent is known, or `null` when it already
-	 * is. A request that would be blocked waits for it and is evaluated again.
-	 */
 	whenSettled?: () => Promise<void> | null;
 }
 
-/**
- * Install the `window.fetch` patch. Returns a teardown fn that restores
- * the original `fetch` when this install is still the active wrapper.
- */
 export const installFetchPatch = function installFetchPatch(
 	deps: FetchPatchDeps
 ): () => void {
@@ -84,8 +65,6 @@ export const installFetchPatch = function installFetchPatch(
 	window.fetch = patchedFetch as typeof window.fetch;
 
 	return () => {
-		// Only restore if our patch is still on top — a later consumer may
-		// have wrapped us, in which case restoring would skip their layer.
 		if (window.fetch === patchedFetch) {
 			window.fetch = originalFetch;
 		}

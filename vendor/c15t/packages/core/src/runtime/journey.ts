@@ -1,9 +1,3 @@
-/**
- * The browser runtime's consent journey. Created on the first `start()`,
- * after hydration; continues a server, early-request or tab id when there is
- * one. `'tab'` keeps the id in `sessionStorage` only while a prompt is due.
- */
-
 import { parseJourneyId } from '@c15t/schema/types';
 
 import {
@@ -28,64 +22,29 @@ const hasStoredAnswer = (
 ): boolean =>
 	snapshot.explicitChoice !== null || snapshot.noticeDismissal !== null;
 
-/** Options for {@link createJourneyController}. */
 export interface JourneyControllerOptions {
-	/** The runtime's `journey` option. */
 	option: ConsentJourneyOption | undefined;
-	/** The journey id a server render handed over, if any. */
 	serverId?: string;
-	/**
-	 * Where a `'tab'` journey is kept. Defaults to `window.sessionStorage`.
-	 * Throwing, or returning `null`, makes the journey a `'page'` one.
-	 */
 	storage?: () => JourneyStorage | null;
 }
 
-/** A runtime's journey. @internal */
 export interface JourneyController {
-	/**
-	 * Create the journey on the first call, then (for `'tab'`) keep
-	 * `sessionStorage` in step with the kernel until the returned cleanup
-	 * runs. Later calls resume the same journey.
-	 */
 	start: (kernel: ConsentKernel) => () => void;
-	/**
-	 * Continue the journey a server state started, when that state arrives
-	 * after construction (a streamed prefetch), or end it when the state
-	 * says the page has none (`null`). A server's id makes it a `'page'`
-	 * journey. Ignored once a save carried the current id.
-	 */
 	adopt: (id: string | null | undefined) => void;
-	/** The journey an `init` carries, or `undefined` for none. */
 	forInit: () => KernelJourney | undefined;
-	/** The journey a save carries, or `undefined` for none. */
 	forSave: () => SavePayload['journey'];
 }
 
-/**
- * Create the journey controller of one runtime. Pure: nothing is read or
- * written before `start()`.
- *
- * @param options - The `journey` option, the server's id and the storage.
- * @returns The controller.
- * @internal
- */
 export const createJourneyController = function createJourneyController(
 	options: JourneyControllerOptions
 ): JourneyController {
 	const storage = options.storage ?? sessionStorageOf;
 	let serverId = parseJourneyId(options.serverId);
 	let journey: KernelJourney | undefined;
-	// The id came from an earlier page of this tab.
 	let continued = false;
-	// A save carried the id, so it can no longer change.
 	let sent = false;
-	// The id is in `sessionStorage` as far as this runtime knows.
 	let stored = false;
-	// A server state said this page has no journey.
 	let off = false;
-	// A choice or a notice dismissal answered the prompt on this page; the
-	// id is never written again here, even when preferences reopen.
 	let answered = false;
 
 	const asPage = function asPage(): void {
@@ -94,11 +53,6 @@ export const createJourneyController = function createJourneyController(
 		}
 	};
 
-	/**
-	 * A server-rendered page is a `'page'` journey on both sides: the server
-	 * reported its id as one, and a render cannot read `sessionStorage`. Drop
-	 * a tab's id so the next page the browser resolves starts fresh.
-	 */
 	const forgetTab = function forgetTab(): void {
 		stored = false;
 		continued = false;
@@ -108,19 +62,15 @@ export const createJourneyController = function createJourneyController(
 		try {
 			storage()?.removeItem(JOURNEY_STORAGE_KEY);
 		} catch {
-			// Unusable storage holds nothing this page wrote.
 		}
 	};
 
 	const create = function create(kernel: ConsentKernel): void {
-		// A server render's id first, then one an early request of this page
-		// already sent (React's early `/init`, the inline prefetch script).
 		const fromServer = serverId !== null;
 		const opened = openJourney({
 			adopted: serverId ?? readEarlyJourney()?.id,
 			option: fromServer && options.option === 'tab' ? 'page' : options.option,
 			storage,
-			// A persisted answer hydration applied: a choice or a dismissal.
 			storedChoice: hasStoredAnswer(kernel.getSnapshot()),
 		});
 		if (!opened) {
@@ -158,16 +108,9 @@ export const createJourneyController = function createJourneyController(
 		try {
 			storage()?.removeItem(JOURNEY_STORAGE_KEY);
 		} catch {
-			// The id outlives this page in a storage that rejects writes;
-			// nothing else reads it.
 		}
 	};
 
-	/**
-	 * The resolved state shows no first layer: the resolution failed, or it
-	 * settled on a policy that prompts for nothing. An id an earlier page left
-	 * would otherwise stay in `sessionStorage` and join unrelated page loads.
-	 */
 	const owesNoPrompt = function owesNoPrompt(
 		snapshot: ConsentSnapshot
 	): boolean {
@@ -217,7 +160,6 @@ export const createJourneyController = function createJourneyController(
 		adopt(id) {
 			if (id === null) {
 				if (!sent) {
-					// A kept tab id must not outlive the page that ended it.
 					remove();
 					off = true;
 					journey = undefined;
@@ -232,7 +174,6 @@ export const createJourneyController = function createJourneyController(
 				serverId = parsed;
 				return;
 			}
-			// The server resolved this page: its id, as a page journey.
 			journey = Object.freeze({ ...journey, id: parsed, scope: 'page' });
 			forgetTab();
 		},
@@ -253,17 +194,6 @@ export const createJourneyController = function createJourneyController(
 	};
 };
 
-/**
- * Wrap a transport so each `init` context carries the journey and each save
- * carries it as it leaves. Methods are read from `transport` on every call,
- * so a host that swaps one in place (React's early `/init`) still reaches
- * the swapped method. Methods the transport lacks stay absent.
- *
- * @param transport - The transport the runtime's `mode` built.
- * @param journey - The runtime's journey.
- * @returns The wrapped transport.
- * @internal
- */
 export const withJourney = function withJourney(
 	transport: KernelTransport,
 	journey: Pick<JourneyController, 'forInit' | 'forSave'>
@@ -271,9 +201,6 @@ export const withJourney = function withJourney(
 	const wrapped: KernelTransport = {};
 	if (transport.init) {
 		wrapped.init = (ctx) => {
-			// Read when the request is built, not now: a streamed prefetch can
-			// hand over the server's journey while this init waits for it, and
-			// the `/init` it falls back to must carry the id the save will.
 			const next = { ...ctx };
 			Object.defineProperty(next, 'journey', {
 				configurable: true,
@@ -285,7 +212,6 @@ export const withJourney = function withJourney(
 	}
 	if (transport.save) {
 		wrapped.save = (payload, context) => {
-			// Only the page that made a save sends it with its journey.
 			const save = transport.save as NonNullable<KernelTransport['save']>;
 			if (context?.replay) {
 				return save(payload, context);

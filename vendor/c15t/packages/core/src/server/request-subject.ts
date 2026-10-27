@@ -1,19 +1,3 @@
-/**
- * The visitor's subject ID for one server request, set as a first-party
- * cookie on the first response.
- *
- * A browser runtime takes its subject ID from the records, else from
- * `<storageKey>-sid`, else makes one. When a server answers the first
- * request, it can make that ID instead: the response sets `<storageKey>-sid`,
- * the render in the same request reads it, and the browser starts with it.
- * The cookie holds only the ID. It is never read as a choice, so the banner
- * still shows.
- *
- * A shared render (prerendered or cached HTML) and a speculative request
- * (prefetch or prerender) get nothing: a cookie set on either would belong
- * to every visitor the response reaches, or to a page the visitor never
- * opened.
- */
 import { isSpeculativeRequest } from '@c15t/schema/types';
 
 import { rootDomainOf } from '../libs/cookie/domain-utils';
@@ -27,92 +11,41 @@ import {
 import { resolveRequestOrigin } from './request-origin';
 import type { RequestHeaderSource } from './request-origin';
 
-/** Options for {@link resolveRequestSubject}. */
 export interface ResolveRequestSubjectOptions {
-	/** The incoming request. */
 	request: {
-		/** The request headers. `cookie` is read unless `cookie` is given. */
 		headers?: RequestHeaderSource;
-		/** The URL the framework resolved the request under. */
 		url?: string | URL;
-		/** The request `Cookie` header, when the adapter reads it natively. */
 		cookie?: string;
 	};
 
-	/**
-	 * The storage configuration the browser runtime uses: `storageKey` names
-	 * the cookie, `defaultExpiryDays`, `defaultDomain` and `crossSubdomain`
-	 * set its attributes the way the browser would.
-	 */
 	storage?: StorageConfig;
 
-	/**
-	 * Whether the response is shared by every visitor (prerendered or cached
-	 * HTML). A shared response gets no subject.
-	 *
-	 * @defaultValue false
-	 */
 	shared?: boolean;
 
-	/**
-	 * Read the request's scheme and host from forwarding headers. See
-	 * {@link ResolveRequestOriginOptions.trustForwardedHeaders}.
-	 *
-	 * @defaultValue false
-	 */
 	trustForwardedHeaders?: boolean;
 
-	/** The clock for reading stored records. Defaults to `Date.now()`. */
 	now?: number;
 }
 
-/** The subject cookie a response sets. */
 export interface SubjectCookie {
-	/** `<storageKey>-sid`. */
 	name: string;
-	/** The subject ID, not encoded. Cookie APIs encode it on write. */
 	value: string;
-	/** Lifetime in seconds, from `defaultExpiryDays`. */
 	maxAge: number;
 	path: '/';
 	sameSite: 'lax';
-	/** Set when the request came over `https`. */
 	secure: boolean;
-	/** The browser reads the ID, so the cookie is never HTTP-only. */
 	httpOnly: false;
-	/**
-	 * The request's root domain with `crossSubdomain`, else `defaultDomain`.
-	 * Unset with `crossSubdomain` when the request's host holds characters a
-	 * cookie domain cannot, such as `;`.
-	 */
 	domain?: string;
-	/** The whole cookie as a `Set-Cookie` header value. */
 	header: string;
 }
 
-/** The subject for one request. */
 export interface RequestSubject {
-	/** The visitor's subject ID. */
 	subjectId: string;
-	/**
-	 * The request `Cookie` header, with `<storageKey>-sid` added when the
-	 * request had none and `setCookie` is set. Hand it to the render in the
-	 * same request, so it reads the ID before the browser has the cookie.
-	 */
 	cookie: string;
-	/**
-	 * The cookie to set on the response. `null` when the request already
-	 * has a `<storageKey>-sid` cookie, even one holding a different ID, or
-	 * when the ID has no URI encoding, such as one with a lone surrogate:
-	 * the browser keeps such an ID without the cookie, too.
-	 */
 	setCookie: SubjectCookie | null;
 }
 
 const SECONDS_PER_DAY = 86_400;
-// A URL host may hold characters such as `;` that would end the `Domain`
-// attribute and start another, so a domain taken from the request is used
-// only when it is made of hostname characters or is an IPv6 literal.
 const COOKIE_DOMAIN = /^(?:[a-z0-9_.-]+|\[[0-9a-f:.]+\])$/iu;
 
 const readCookieHeader = function readCookieHeader(
@@ -128,8 +61,6 @@ const readCookieHeader = function readCookieHeader(
 	if (typeof (headers as Headers).get === 'function') {
 		return (headers as Headers).get('cookie') ?? '';
 	}
-	// Header names are case-insensitive, and a record keeps whatever casing
-	// the runtime or the client used.
 	return Object.entries(
 		headers as Record<string, string | string[] | undefined>
 	)
@@ -141,9 +72,6 @@ const readCookieHeader = function readCookieHeader(
 const toHeaders = function toHeaders(
 	headers: RequestHeaderSource | undefined
 ): Headers {
-	// Like `readCookieHeader`: a Headers object from a polyfill or another
-	// realm is not an instance of this realm's Headers, and has no
-	// enumerable entries to copy.
 	if (typeof (headers as Headers | undefined)?.get === 'function') {
 		return headers as Headers;
 	}
@@ -157,7 +85,6 @@ const toHeaders = function toHeaders(
 	return result;
 };
 
-/** `cookieHeader` with every `name` cookie replaced by `name=value`. */
 const withCookie = function withCookie(
 	cookieHeader: string,
 	name: string,
@@ -170,11 +97,6 @@ const withCookie = function withCookie(
 	return [...others, `${name}=${value}`].join('; ');
 };
 
-/**
- * `subjectId` URI-encoded for its cookie, or `null` for an ID with no URI
- * encoding, such as one with a lone surrogate. The browser keeps such an ID
- * in localStorage and its records and writes no cookie copy.
- */
 const cookieValueOf = function cookieValueOf(subjectId: string): string | null {
 	try {
 		return encodeURIComponent(subjectId);
@@ -200,10 +122,6 @@ const subjectCookie = function subjectCookie(
 	});
 	const url = origin ? new URL(origin) : null;
 	const secure = url?.protocol === 'https:';
-	// The browser's `writeCookie` puts the cookie on the root domain
-	// whenever `crossSubdomain` is set, even with a `defaultDomain`. Two
-	// cookies of one name on different domains could bring back an old ID,
-	// so this follows the same rule.
 	let domain = storage?.defaultDomain || undefined;
 	if (storage?.crossSubdomain && url) {
 		const root = rootDomainOf(url.hostname);
@@ -233,39 +151,6 @@ const subjectCookie = function subjectCookie(
 	};
 };
 
-/**
- * Reads the visitor's subject ID from the request, or makes one for a
- * visitor who has none, with the cookie the response sets to keep it.
- *
- * The ID the stored consent records carry wins, then the one in
- * `<storageKey>-sid`, then a new one: the order the browser runtime uses.
- * While the browser's cookie writes succeed, it starts with the same ID.
- * Only cookies are read. If the browser refused to rewrite a record cookie
- * after the subject ID changed, that cookie keeps the old ID and this
- * returns it, while the browser starts with the new ID from localStorage.
- * This happens even when the request's `<storageKey>-sid` cookie already
- * holds the new ID. It lasts until a later write of the record reaches the
- * cookie, which may never happen while the browser keeps refusing it. A
- * `<storageKey>-sid` cookie the request already holds is never replaced,
- * so the old ID is never stored over the new one.
- *
- * Call it from request middleware, set `setCookie` on the response when it
- * is not `null`, and pass `cookie` to the render in the same request.
- *
- * @param options - The request, the storage configuration and whether the
- * response is shared.
- * @returns The subject, or `null` for a shared or speculative request.
- * @example
- * ```ts
- * const subject = resolveRequestSubject({ request: { headers, url } });
- * if (subject?.setCookie) {
- * 	// A response from fetch() or Response.redirect() has immutable
- * 	// headers, so the cookie goes on a copy.
- * 	response = new Response(response.body, response);
- * 	response.headers.append('set-cookie', subject.setCookie.header);
- * }
- * ```
- */
 export const resolveRequestSubject = function resolveRequestSubject(
 	options: ResolveRequestSubjectOptions
 ): RequestSubject | null {
@@ -288,8 +173,6 @@ export const resolveRequestSubject = function resolveRequestSubject(
 	).subject?.subjectId;
 	const subjectId = recorded ?? stored ?? generateSubjectId();
 	const value = cookieValueOf(subjectId);
-	// The recorded ID stays the visitor's when it has no cookie copy, as in
-	// the browser; the render reads it from the same records.
 	if (stored || value === null) {
 		return { cookie: cookieHeader, setCookie: null, subjectId };
 	}

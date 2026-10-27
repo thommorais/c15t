@@ -1,12 +1,3 @@
-/**
- * Framework-agnostic headless IAB logic.
- *
- * Pure functions for IAB state derivation — no React, Svelte, or Vue.
- * Each framework package wraps these in its own reactivity system.
- *
- * @packageDocumentation
- */
-
 export {
 	IAB_BANNER_MAX_DISPLAY_ITEMS,
 	resolveIABBannerSummary,

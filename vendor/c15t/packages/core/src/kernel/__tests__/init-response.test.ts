@@ -1,7 +1,3 @@
-/**
- * How `init()` folds a complete `/init` response into the snapshot, seen
- * through the kernel interface.
- */
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
 import {
@@ -29,7 +25,6 @@ afterEach(() => {
 	vi.restoreAllMocks();
 });
 
-/** The snapshot after one `init()` the transport answers with `response`. */
 const initWith = async function initWith(
 	response: InitResponse,
 	config: KernelConfig = {}
@@ -175,8 +170,6 @@ describe('init folds the response', () => {
 	});
 
 	test('records apply as receipts with the server subject', async () => {
-		// No policy contract: the safe fallback, whose choice fingerprint the
-		// fixture records carry.
 		const snapshot = await initWith({
 			records: choiceRecords({ measurement: true }),
 			subjectId: 'sub_server',
@@ -291,7 +284,6 @@ describe('a dialog opened before init resolves', () => {
 		return kernel;
 	};
 
-	/** A stored refusal of every category under the opt-in rule. */
 	const storedRefusal = function storedRefusal() {
 		const { fingerprint } = createConsentKernel({
 			initialPolicyResolution: matchedResolution(optInRule()),
@@ -342,7 +334,6 @@ describe('a dialog opened before init resolves', () => {
 		kernel.set.activeUI('dialog');
 		failed.reject(new Error('offline'));
 		await initialized;
-		// The policy stays pending for the retry, which shows the dialog.
 		expect(kernel.getSnapshot()).toMatchObject({
 			activeUI: 'dialog',
 			policyPending: true,

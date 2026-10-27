@@ -1,15 +1,8 @@
-/**
- * Vitest setup file for Node.js environment
- *
- * Provides mock implementations for browser globals in Node.js environment
- * using specialized testing libraries for better compatibility.
- */
 import { vi } from 'vitest';
 import 'vitest-localstorage-mock';
 
 import { preloadPersistenceWriter } from './src/modules/persistence/mount';
 
-// Create simple storage implementation
 const mockStorage = {
 	clear: vi.fn(() => mockStorage.store.clear()),
 	getItem: vi.fn((key) => mockStorage.store.get(key) || null),
@@ -20,7 +13,6 @@ const mockStorage = {
 	store: new Map(),
 };
 
-// Create a mock window object with location property
 const mockWindow = {
 	XMLHttpRequest: class MockXMLHttpRequest {
 		static UNSENT = 0;
@@ -55,12 +47,10 @@ const mockWindow = {
 	},
 };
 
-// If globals don't exist (Node.js environment), mock them
 if (typeof window === 'undefined') {
 	vi.stubGlobal('window', mockWindow);
 }
 
-// Mock location globally for PostHog and other libraries
 if (typeof location === 'undefined') {
 	vi.stubGlobal('location', mockWindow.location);
 }
@@ -76,18 +66,15 @@ if (typeof document === 'undefined') {
 	});
 }
 
-// Create fetch mock
 const fetchMock = vi
 	.fn()
 	.mockImplementation(() => Promise.resolve(new Response()));
 vi.stubGlobal('fetch', fetchMock);
 
-// Export mock objects for direct use in tests
 export const mockLocalStorage = mockStorage;
 export const mockDocument = globalThis.document;
 export { fetchMock };
 
-// Helper function for tracking blocker tests
 export const createRejectingFetch = function createRejectingFetch(
 	predicateFn: (url: string, options?: RequestInit) => boolean
 ) {
@@ -101,7 +88,4 @@ export const createRejectingFetch = function createRejectingFetch(
 	});
 };
 
-// Persistence loads its write code on demand. Most tests drive a handle
-// synchronously, so load it once up front; `lazy-writer.test.ts` covers a
-// handle whose write code has not landed yet.
 await preloadPersistenceWriter();

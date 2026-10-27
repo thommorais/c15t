@@ -5,66 +5,35 @@ import type {
 	NonIABVendor,
 	PublisherRestriction,
 } from '@c15t/core';
-/**
- * Headless IAB types shared across all framework wrappers.
- *
- * @packageDocumentation
- */
 
 export type HeadlessIABBannerAction = 'accept' | 'reject' | 'customize';
 export type HeadlessIABDialogAction = 'accept' | 'reject' | 'customize';
 export type HeadlessIABPreferenceTab = 'purposes' | 'vendors';
 export type HeadlessIABVendorId = number | string;
 
-/**
- * Minimal IAB state needed by the pure headless derivation helpers.
- *
- * React, Vue, Svelte, and direct kernel consumers can all pass their local
- * IAB state as long as it has this structural shape.
- */
 export interface HeadlessIABStateInput {
 	gvl: GlobalVendorList | null;
-	/** Server summary and fetch location, present while the full gvl is absent. */
 	gvlReference?: KernelIABState['gvlReference'];
 	isLoadingGVL?: boolean;
 	nonIABVendors?: NonIABVendor[];
 	customVendors?: NonIABVendor[];
-	/** Google ad tech providers disclosed for Additional Consent. */
 	adTechProviders?: AdTechProvider[];
-	/**
-	 * Publisher restrictions configured on the CMP. Vendors are listed under
-	 * the legal basis the restrictions leave them, so each control edits the
-	 * signal the IAB gates evaluate.
-	 */
 	publisherRestrictions?: readonly PublisherRestriction[];
-	/**
-	 * Language the consent UI shows, such as `'de'`. Picks each vendor's
-	 * privacy links from the GVL `urls[]`, falling back to English.
-	 */
 	language?: string;
 }
 
 export interface HeadlessIABBannerState {
-	/** Whether the banner summary is ready to display */
 	isReady: boolean;
-	/** Total vendor count (GVL + custom + Google ad tech providers) */
 	vendorCount: number;
-	/** Display items (stacks, standalone purposes, special features) */
 	displayItems: string[];
-	/** Count of items not shown in the display list */
 	remainingCount: number;
 }
 
 export interface HeadlessIABDialogState {
-	/** Whether GVL is still loading */
 	isLoading: boolean;
-	/** Active preference center tab */
 	activeTab: HeadlessIABPreferenceTab;
 }
 
-/**
- * Processed vendor data for framework UI rendering.
- */
 export interface HeadlessIABProcessedVendor {
 	id: HeadlessIABVendorId;
 	name: string;
@@ -90,9 +59,6 @@ export interface HeadlessIABProcessedVendor {
 	dataDeclaration?: number[];
 }
 
-/**
- * Processed purpose data for framework UI rendering.
- */
 export interface HeadlessIABProcessedPurpose {
 	id: number;
 	name: string;
@@ -101,23 +67,10 @@ export interface HeadlessIABProcessedPurpose {
 	illustrations: string[];
 	vendors: HeadlessIABProcessedVendor[];
 	isSpecialPurpose?: boolean;
-	/**
-	 * Whether listed Google ad tech providers need consent to this purpose
-	 * before the AC string counts theirs. Such a purpose offers consent even
-	 * when no vendor processes it on consent.
-	 */
 	neededByAdTechProviders?: boolean;
-	/**
-	 * The listed Google ad tech providers that need this purpose. Count and
-	 * list them with `vendors`, since they may be the only partners a
-	 * purpose has.
-	 */
 	adTechProviders?: AdTechProvider[];
 }
 
-/**
- * Special feature data for framework UI rendering.
- */
 export interface HeadlessIABProcessedSpecialFeature {
 	id: number;
 	name: string;
@@ -127,9 +80,6 @@ export interface HeadlessIABProcessedSpecialFeature {
 	vendors: HeadlessIABProcessedVendor[];
 }
 
-/**
- * Feature data for framework UI rendering.
- */
 export interface HeadlessIABProcessedFeature {
 	id: number;
 	name: string;
@@ -139,9 +89,6 @@ export interface HeadlessIABProcessedFeature {
 	vendors: HeadlessIABProcessedVendor[];
 }
 
-/**
- * Stack data with resolved purposes.
- */
 export interface HeadlessIABProcessedStack {
 	id: number;
 	name: string;
@@ -149,9 +96,6 @@ export interface HeadlessIABProcessedStack {
 	purposes: HeadlessIABProcessedPurpose[];
 }
 
-/**
- * Processed GVL data ready for rendering in a consent dialog.
- */
 export interface HeadlessIABDialogData {
 	purposes: HeadlessIABProcessedPurpose[];
 	specialPurposes: HeadlessIABProcessedPurpose[];
@@ -159,7 +103,6 @@ export interface HeadlessIABDialogData {
 	features: HeadlessIABProcessedFeature[];
 	stacks: HeadlessIABProcessedStack[];
 	standalonePurposes: HeadlessIABProcessedPurpose[];
-	/** GVL vendors, custom vendors and Google ad tech providers. */
 	totalVendors: number;
 	isLoading: boolean;
 	isReady: boolean;

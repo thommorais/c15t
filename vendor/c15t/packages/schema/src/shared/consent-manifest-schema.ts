@@ -19,7 +19,6 @@ import {
 import type { I18nMessageProfiles } from './translations-runtime';
 import { vendorSchema } from './vendor';
 
-/** Keep partial copy shaped like the default translations, including legacy frame copy. */
 const translationTemplate = {
 	...enTranslations,
 	frame: enTranslations.consentGate,
@@ -142,13 +141,6 @@ const manifestSchema: v.GenericSchema<unknown, ConsentManifest> = v.looseObject(
 	}
 );
 
-/**
- * Validates a fetched manifest before a build accepts it.
- * @param input - Untrusted JSON from the manifest endpoint.
- * @returns The manifest with a supported contract and valid policy packs.
- * @throws {Error} When required fields, policy packs or optional data are invalid.
- * @internal
- */
 export const parseConsentManifest = (input: unknown): ConsentManifest => {
 	const manifest = v.parse(manifestSchema, input);
 	const resolution = resolvePolicyResolutionFromManifest(

@@ -113,7 +113,6 @@ describe('createGPP: US state sections', () => {
 			signalStatus: 'ready',
 		});
 		expect(data.supportedAPIs).toContain('8:usca');
-		// The default fallback can emit usnat, so the CMP lists it.
 		expect(data.supportedAPIs).toContain('7:usnat');
 
 		const decoded = new GppModel(data.gppString);
@@ -509,7 +508,6 @@ describe('createGPP: TCF EU section', () => {
 		await iab.whenReady();
 		kernel.set.activeUI('none');
 		mount({ kernel });
-		// The applicable section does not exist until a TC String does.
 		expect(ping()).toMatchObject({
 			applicableSections: [2],
 			cmpId: 28,
@@ -550,7 +548,6 @@ describe('createGPP: TCF EU section', () => {
 		});
 		expect(events.map(({ eventName }) => eventName)).toContain('sectionChange');
 
-		// TCF consent is read from events, never on demand.
 		expect(call('hasSection', 'tcfeuv2').data).toBe(true);
 		expect(call('getSection', 'tcfeuv2')).toEqual({
 			data: null,
@@ -606,12 +603,6 @@ describe('createGPP: TCF EU section', () => {
 	});
 });
 
-/**
- * The sample stub from the GPP CMP API specification, with its two typos
- * fixed (`events.splice`, `__gpp_addFrame`). It returns values instead of
- * calling back, keeps listeners on `__gpp.events` and has no `'events'`
- * command.
- */
 const installSpecSampleStub = function installSpecSampleStub(): () => void {
 	const pingData = {
 		applicableSections: [-1],
@@ -697,7 +688,6 @@ const installSpecSampleStub = function installSpecSampleStub(): () => void {
 	};
 };
 
-/** Sends one `__gppCall` from a fake frame and returns every reply. */
 const callFromFrame = function callFromFrame(
 	command: string,
 	parameter?: unknown

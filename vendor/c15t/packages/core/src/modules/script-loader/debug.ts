@@ -1,21 +1,5 @@
-/**
- * Debug-event emission.
- *
- * Two paths:
- * - `onDebug` — synchronous listener supplied by the consumer.
- * - v2 compat — listeners installed on
- *   `window.__c15tScriptDebugListeners` (still consumed by the v2
- *   devtools surface). Optional and browser-only.
- *
- * Listener errors are swallowed on both paths so debug instrumentation
- * cannot break script loading.
- */
 import type { ScriptLoaderDebugEvent } from './types';
 
-/**
- * Dispatch a debug event to v2-compat listeners, if any are registered
- * on `window.__c15tScriptDebugListeners`. No-op outside the browser.
- */
 export const emitV2Debug = function emitV2Debug(
 	event: ScriptLoaderDebugEvent
 ): void {
@@ -33,23 +17,15 @@ export const emitV2Debug = function emitV2Debug(
 		try {
 			listener(event);
 		} catch {
-			// Listener errors are swallowed (v2 parity).
 		}
 	}
 };
 
 export interface DebugEmitterOptions {
-	/** Optional consumer listener. */
 	onDebug?: (event: ScriptLoaderDebugEvent) => void;
-	/** Whether to also dispatch to v2 window listeners. */
 	emitToV2: boolean;
 }
 
-/**
- * Build the merged emit function used throughout the loader. Wraps
- * both callbacks behind a single function call site so other modules
- * don't have to know about the dual-path policy.
- */
 export const createDebugEmitter = function createDebugEmitter(
 	options: DebugEmitterOptions
 ) {
@@ -59,7 +35,6 @@ export const createDebugEmitter = function createDebugEmitter(
 			try {
 				onDebug(event);
 			} catch {
-				// Swallow consumer listener errors.
 			}
 		}
 		if (emitToV2) {

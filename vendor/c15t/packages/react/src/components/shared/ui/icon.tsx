@@ -24,7 +24,6 @@ const Icon = (
 );
 
 type LucideIconProps = SVGProps<SVGSVGElement> & {
-	/** Omit for a decorative icon that must add nothing to an accessible name. */
 	title?: string;
 	iconPath: JSX.Element;
 };

@@ -1,6 +1,5 @@
 import type { ConsentSnapshot, ConsentState } from '@c15t/core';
 
-/** Read a displayed selection without copying masked effective permissions. */
 export const readSelection = (
 	snapshot: ConsentSnapshot,
 	draft: Partial<ConsentState>,

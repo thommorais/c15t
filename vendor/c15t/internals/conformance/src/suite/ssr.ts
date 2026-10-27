@@ -5,7 +5,6 @@ import { conformanceTest } from './helpers';
 import type { SuiteApi } from './helpers';
 import { runPolicyScenarioConformance } from './policy-scenarios';
 
-/** Run the shared ssr scenarios against real adapter observations. */
 export const runSsrConformance = function runSsrConformance(
 	driver: TestDriver,
 	api: SuiteApi
@@ -17,11 +16,6 @@ export const runSsrConformance = function runSsrConformance(
 	);
 };
 
-/**
- * Prompts that must reach the first HTML when the server already resolved
- * the policy: the root and its accept action, so a visitor who never
- * hydrates still sees the decision the server made.
- */
 const SERVER_RENDERED_PROMPTS: readonly {
 	component: MountableComponent;
 	ids: { root: string; acceptButton: string };
@@ -30,15 +24,6 @@ const SERVER_RENDERED_PROMPTS: readonly {
 	{ component: 'iab-consent-banner', ids: TEST_IDS.iabConsentBanner },
 ];
 
-/**
- * Server HTML carries every prebuilt prompt, the IAB banner included.
- *
- * The policy-scenario `ssr-hydrate` steps only exercise the standard
- * banner, which is how an IAB banner gated on a client-only handle went
- * unnoticed. This suite renders each prompt through the driver's
- * `serverRender` with an authoritative policy and asserts the markup is in
- * the string a server would send.
- */
 export const runServerRenderConformance = function runServerRenderConformance(
 	driver: TestDriver,
 	api: SuiteApi

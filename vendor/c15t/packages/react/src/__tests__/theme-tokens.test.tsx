@@ -1,23 +1,14 @@
-/**
- * The prebuilt styles read `--c15t-*` custom properties. `ConsentTheme`
- * renders them for a custom theme; the provider no longer generates theme
- * CSS in the browser. Kept in its own file: the provider suite leaves
- * overlapping act() work behind that starves a trailing render of its
- * effects.
- */
 import { describe, expect, test, vi } from 'vitest';
 import { render } from 'vitest-browser-react';
 
 import { ConsentProvider, ConsentTheme, offline } from '../index';
 
-// Raw source text, inlined by Vite so the scan works in browser-mode vitest.
 const rawSources = import.meta.glob(
 	[
 		'../**/*.{ts,tsx}',
 		'!../**/__tests__/**',
 		'!../**/*.test.*',
 		'!../consent-theme.tsx',
-		// The public `@c15t/react/utils` helpers, for server or build-time use.
 		'!../utils/theme-utils.ts',
 	],
 	{ eager: true, import: 'default', query: '?raw' }

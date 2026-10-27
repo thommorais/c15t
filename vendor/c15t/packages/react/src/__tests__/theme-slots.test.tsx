@@ -1,7 +1,3 @@
-/**
- * `theme.slots` styles the stock parts in React too, through the same
- * mapping onto `components` the Astro React island used to apply itself.
- */
 import { CONSENT_COMPONENT_SLOT_KEY_MAP } from '@c15t/schema/config';
 import type { ConsentComponentSlotKey } from '@c15t/schema/config';
 import bannerStyles from '@c15t/ui/styles/components/consent-banner';
@@ -67,7 +63,6 @@ describe('theme.slots in React', () => {
 		const card = part('consent-banner-card');
 		expect(card?.classList).toContain('theme-card');
 		expect(card?.classList).toContain('app-card');
-		// `components` wins where both set a property.
 		expect(card).toHaveStyle({
 			backgroundColor: 'rgb(1, 2, 3)',
 			color: 'rgb(4, 5, 6)',
@@ -102,10 +97,8 @@ describe('theme.slots in React', () => {
 		const card = part('consent-banner-card');
 		expect(card?.className).toBe('theme-card app-card');
 		expect(card?.hasAttribute('nostyle')).toBe(false);
-		// A slot with only `noStyle` still applies.
 		const title = part('consent-banner-title');
 		expect(title?.classList).not.toContain(bannerStyles.title);
-		// Parts without the flag keep their stock classes.
 		expect(part('consent-banner-header')?.classList).toContain(
 			bannerStyles.header
 		);
@@ -151,7 +144,6 @@ describe('theme.slots in React', () => {
 		);
 		const placeholder = part('consent-gate-placeholder');
 		expect(placeholder?.classList).toContain('theme-gate');
-		// `components` wins where both set a property.
 		expect(placeholder).toHaveStyle({
 			backgroundColor: 'rgb(1, 2, 3)',
 			color: 'rgb(4, 5, 6)',

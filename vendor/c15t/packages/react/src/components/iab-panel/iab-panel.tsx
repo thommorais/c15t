@@ -1,11 +1,6 @@
 'use client';
 
 import type * as C15tCoreTypes from '@c15t/core';
-/**
- * @packageDocumentation
- * Provides the IAB TCF 2.4 compliant consent dialog component.
- * Implements an accessible, pre-built consent dialog following IAB requirements.
- */
 import { applyPublisherRestrictionsToGVL } from '@c15t/iab/headless';
 import { isDialogDismissKey } from '@c15t/ui/primitives/dialog';
 import actionStyles from '@c15t/ui/styles/components/consent-actions';
@@ -53,91 +48,28 @@ const DEFAULT_MODELS: C15tCoreTypes.Model[] = ['iab'];
 
 const dialogFocusTargetProps = { tabIndex: -1 } as const;
 
-/**
- * Props for the IABConsentDialog component.
- * @public
- */
 export interface IABConsentDialogProps {
-	/**
-	 * Control the open state. If omitted, follows activeUI === 'dialog' from context.
-	 */
 	open?: boolean;
 
-	/**
-	 * When true, removes all default styling.
-	 * @default false
-	 */
 	noStyle?: boolean;
 
-	/**
-	 * When true, disables entrance/exit animations.
-	 * @default false
-	 */
 	disableAnimation?: boolean;
 
-	/**
-	 * When true, locks page scroll when the dialog is visible.
-	 * @default true
-	 */
 	scrollLock?: boolean;
 
-	/**
-	 * When true, traps keyboard focus within the dialog.
-	 * @default true
-	 */
 	trapFocus?: boolean;
 
-	/**
-	 * When true, hides the branding in the footer.
-	 * @default false
-	 */
 	hideBranding?: boolean;
 
-	/**
-	 * Show a floating trigger button to resurface the consent dialog.
-	 * IAB TCF requires the consent dialog to be easily resurfaceable.
-	 *
-	 * - `true` - Show trigger with default settings
-	 * - `false` - Hide trigger (default)
-	 * - `ConsentDialogTriggerProps` - Show trigger with custom props
-	 *
-	 * @default false
-	 */
 	showTrigger?: boolean | ConsentDialogTriggerProps;
 
-	/**
-	 * Which tab the preference centre opens on. Lets a "N partners" link
-	 * land on the vendor list instead of purposes.
-	 * @default 'purposes'
-	 */
 	initialTab?: 'purposes' | 'vendors';
 
-	/**
-	 * Which consent models this dialog responds to.
-	 * @default ['iab']
-	 */
 	models?: C15tCoreTypes.Model[];
 
-	/**
-	 * Override the UI source identifier sent with consent API calls.
-	 * @default 'iab_dialog'
-	 */
 	uiSource?: string;
 }
 
-/**
- * IAB TCF 2.4 compliant consent dialog dialog.
- *
- * @remarks
- * This component implements the required IAB TCF 2.4 UI elements:
- * - Tabbed interface for Purposes and Vendors
- * - Purpose grouping with stacks
- * - Individual purpose and vendor consent toggles
- * - Special purposes and features
- * - Legitimate interest handling
- *
- * @public
- */
 // oxlint-disable-next-line complexity -- Preserve established branch order and control flow.
 export const IABConsentDialog: FC<IABConsentDialogProps> = ({
 	open,
@@ -189,7 +121,6 @@ export const IABConsentDialog: FC<IABConsentDialogProps> = ({
 		models.includes(model) &&
 		(open ?? activeUI === 'dialog');
 
-	// Merge local props with global theme context
 	const config = useComponentConfig({
 		disableAnimation: localDisableAnimation,
 		noStyle: localNoStyle,
@@ -207,9 +138,6 @@ export const IABConsentDialog: FC<IABConsentDialogProps> = ({
 		vendorTabCount,
 		data: { purposes },
 	} = useIABDisplayModel();
-	// The vendor tab reads declarations directly, so give it the ones
-	// publisher restrictions leave: a restricted vendor then shows the
-	// consent or objection control for the basis it actually uses.
 	const gvl = iabState?.gvl ?? null;
 	const publisherRestrictions = iabState?.publisherRestrictions;
 	const vendorData = useMemo(
@@ -218,7 +146,6 @@ export const IABConsentDialog: FC<IABConsentDialogProps> = ({
 		[gvl, publisherRestrictions]
 	);
 
-	// Handlers
 	const handlePurposeToggle = useCallback(
 		(purposeId: number, value: boolean) => {
 			iabState?.setPurposeConsent(purposeId, value);
@@ -265,7 +192,6 @@ export const IABConsentDialog: FC<IABConsentDialogProps> = ({
 		try {
 			await performDialogAction('accept');
 		} catch {
-			// Keep the dialog open so a failed vendor-list request can be retried.
 		}
 	};
 
@@ -273,7 +199,6 @@ export const IABConsentDialog: FC<IABConsentDialogProps> = ({
 		try {
 			await performDialogAction('reject');
 		} catch {
-			// Keep the dialog open so a failed vendor-list request can be retried.
 		}
 	};
 
@@ -281,7 +206,6 @@ export const IABConsentDialog: FC<IABConsentDialogProps> = ({
 		try {
 			await performDialogAction('customize');
 		} catch {
-			// Keep the dialog open so a failed vendor-list request can be retried.
 		}
 	};
 
@@ -295,14 +219,12 @@ export const IABConsentDialog: FC<IABConsentDialogProps> = ({
 		openDialog({ tab: 'vendors' });
 	};
 
-	// Focus trap
 	useFocusTrap(
 		Boolean(isMounted && isOpen && config.trapFocus),
 		cardRef as RefObject<HTMLElement>,
 		{ initialFocus: 'first-tabbable' }
 	);
 
-	// Scroll lock
 	useScrollLock(Boolean(isOpen && config.scrollLock));
 
 	useEffect(() => {
@@ -321,13 +243,11 @@ export const IABConsentDialog: FC<IABConsentDialogProps> = ({
 		return () => document.removeEventListener('keydown', handleKeyDown);
 	}, [handleClose, isOpen]);
 
-	// Mount state for portal
 	useEffect(() => {
 		const frame = requestAnimationFrame(() => setIsMounted(true));
 		return () => cancelAnimationFrame(frame);
 	}, []);
 
-	// Visibility animation
 	useEffect(() => {
 		if (isOpen) {
 			const frame = requestAnimationFrame(() => setIsVisible(true));
@@ -345,10 +265,6 @@ export const IABConsentDialog: FC<IABConsentDialogProps> = ({
 		return () => clearTimeout(timer);
 	}, [isOpen, config.disableAnimation]);
 
-	// A caller-supplied `initialTab` outranks the provider's remembered tab
-	// on the first open — that is what makes a "N partners" deep link land
-	// on the vendor list when nothing has told the provider about it, as
-	// on an Astro island. After that the provider's tab is the one writer.
 	const initialTabPendingRef = useRef(Boolean(initialTab));
 	useEffect(() => {
 		const preferenceCenterTab = iabState?.preferenceCenterTab;
@@ -365,7 +281,6 @@ export const IABConsentDialog: FC<IABConsentDialogProps> = ({
 		return () => cancelAnimationFrame(frame);
 	}, [isOpen, iabState?.preferenceCenterTab]);
 
-	// Smooth height animation when switching tabs
 	useLayoutEffect(() => {
 		if (activeTab !== 'purposes' && activeTab !== 'vendors') {
 			return;
@@ -378,7 +293,6 @@ export const IABConsentDialog: FC<IABConsentDialogProps> = ({
 		const previousHeight = previousHeightRef.current;
 		previousHeightRef.current = null;
 
-		// Check for reduced motion preference
 		const prefersReducedMotion = window.matchMedia(
 			'(prefers-reduced-motion: reduce)'
 		).matches;
@@ -387,12 +301,10 @@ export const IABConsentDialog: FC<IABConsentDialogProps> = ({
 			return;
 		}
 
-		// Lock at previous height immediately
 		content.style.height = `${previousHeight}px`;
 		content.style.overflow = 'hidden';
 		content.style.transition = 'none';
 
-		// Use double-RAF to ensure browser has laid out new content
 		// oxlint-disable-next-line prefer-const -- Preserve declaration order, interface shape, and public compatibility.
 		let rafId1: number;
 		let rafId2: number;
@@ -403,12 +315,10 @@ export const IABConsentDialog: FC<IABConsentDialogProps> = ({
 					return;
 				}
 
-				// Now measure the natural height of the new content
 				content.style.height = 'auto';
 				const newHeight = content.getBoundingClientRect().height;
 				content.style.height = `${previousHeight}px`;
 
-				// Skip animation if heights are the same
 				if (Math.abs(previousHeight - newHeight) < 1) {
 					content.style.height = '';
 					content.style.overflow = '';
@@ -416,10 +326,8 @@ export const IABConsentDialog: FC<IABConsentDialogProps> = ({
 					return;
 				}
 
-				// Force reflow before enabling transition
 				content.getBoundingClientRect();
 
-				// Animate to new height
 				content.style.transition =
 					'height 180ms cubic-bezier(0.33, 1, 0.68, 1)';
 				content.style.height = `${newHeight}px`;
@@ -445,7 +353,6 @@ export const IABConsentDialog: FC<IABConsentDialogProps> = ({
 		};
 	}, [activeTab]);
 
-	// Capture height before tab change
 	const handleTabChange = useCallback(
 		(tab: 'purposes' | 'vendors') => {
 			if (contentRef.current) {
@@ -461,7 +368,6 @@ export const IABConsentDialog: FC<IABConsentDialogProps> = ({
 		[_uiSource]
 	);
 
-	// Don't render if not mounted, no IAB state, or IAB is disabled (e.g., server returned null GVL)
 	if (!isMounted || !iabState?.config.enabled) {
 		return null;
 	}
@@ -592,8 +498,6 @@ export const IABConsentDialog: FC<IABConsentDialogProps> = ({
 					data-testid="iab-consent-dialog-root"
 					dir={textDirection}
 				>
-					{/* A `div`, not a `dialog`: the user agent's dialog padding
-					    is 1em, which the card sets for itself. */}
 					<div
 						aria-describedby="iab-consent-dialog-description"
 						{...cardProps}
@@ -605,7 +509,6 @@ export const IABConsentDialog: FC<IABConsentDialogProps> = ({
 						{...dialogFocusTargetProps}
 						data-testid="iab-consent-dialog-card"
 					>
-						{/* Header */}
 						<div {...headerProps}>
 							<div {...headerContentProps}>
 								<h2 {...titleProps}>
@@ -657,7 +560,6 @@ export const IABConsentDialog: FC<IABConsentDialogProps> = ({
 							}
 							value={activeTab}
 						>
-							{/* Segmented Control Tabs */}
 							<div {...tabsProps}>
 								<Tabs.List
 									{...tabsListProps}
@@ -706,7 +608,6 @@ export const IABConsentDialog: FC<IABConsentDialogProps> = ({
 											noStyle
 											value="purposes"
 										>
-											{/* Standalone purposes, stacks and special features */}
 											{consentRows.map((row) =>
 												row.kind === 'stack' ? (
 													<StackItem
@@ -771,7 +672,6 @@ export const IABConsentDialog: FC<IABConsentDialogProps> = ({
 												)
 											)}
 
-											{/* Essential Functions: Special Purposes (locked) */}
 											{essentialRows.length > 0 && (
 												<div {...specialPurposesProps}>
 													<div className={styles.specialPurposesHeader}>
@@ -876,7 +776,6 @@ export const IABConsentDialog: FC<IABConsentDialogProps> = ({
 																	testId={row.testId}
 																	isEnabled={true}
 																	onToggle={() => {
-																		/* locked: no consent to give */
 																	}}
 																	vendorConsents={iabState.vendorConsents}
 																	onVendorToggle={handleVendorToggle}
@@ -889,7 +788,6 @@ export const IABConsentDialog: FC<IABConsentDialogProps> = ({
 												</div>
 											)}
 
-											{/* Features: informational, no controls (TCF Policies v5.0.b) */}
 											{featureRows.length > 0 && (
 												<section
 													aria-label={
@@ -942,7 +840,6 @@ export const IABConsentDialog: FC<IABConsentDialogProps> = ({
 												</section>
 											)}
 
-											{/* Consent storage notice */}
 											<div {...consentNoticeProps}>
 												<p className={styles.consentNoticeText}>
 													{
@@ -982,7 +879,6 @@ export const IABConsentDialog: FC<IABConsentDialogProps> = ({
 							</div>
 						</Tabs.Root>
 
-						{/* Footer */}
 						<div {...footerProps}>
 							<div {...actionGroupProps}>
 								<Button.Root
@@ -1032,18 +928,15 @@ export const IABConsentDialog: FC<IABConsentDialogProps> = ({
 		</ConsentTrackingContext.Provider>
 	);
 
-	// Resolve trigger props
 	const triggerProps: ConsentDialogTriggerProps | null =
 		// oxlint-disable-next-line no-nested-ternary -- Preserve established branch order and control flow.
 		showTrigger === true
 			? // oxlint-disable-next-line no-inline-comments -- Preserve declaration order, interface shape, and public compatibility.
-				// Use defaults
 				{}
 			: showTrigger === false
 				? null
 				: showTrigger;
 
-	// Render trigger even when dialog is closed
 	const triggerElement = triggerProps ? (
 		<ConsentDialogTrigger {...triggerProps} />
 	) : null;

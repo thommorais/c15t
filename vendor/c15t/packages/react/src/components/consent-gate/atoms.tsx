@@ -19,8 +19,6 @@ const ConsentGateRoot = createForwardRef<
 	HTMLDivElement,
 	Omit<BoxProps, 'slotKey'>
 >(({ children, ...props }, ref) => {
-	// A gate the browser renders first, after a client-side navigation,
-	// waits for a deferred sheet rather than paint unstyled.
 	const sheetsReady = useSurfaceSheetsReady(FIRST_PAINT_SHEETS, props.noStyle);
 	if (!sheetsReady) {
 		return null;
@@ -72,8 +70,6 @@ const ConsentGateButton = createForwardRef<
 >(({ children, category, className, style, ...props }, ref) => {
 	const translations = useTranslations();
 	const { components } = useUIConfig();
-	// The gate's slot goes on top of `button.primary`, which the button
-	// applies itself. The button's own class and style win over both.
 	const slotProps = mergeSlotProps(
 		getSlotProps(components, 'consent-gate.button'),
 		{ className, style }

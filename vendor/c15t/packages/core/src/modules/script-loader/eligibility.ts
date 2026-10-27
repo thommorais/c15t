@@ -1,13 +1,3 @@
-/**
- * Eligibility evaluation.
- *
- * Pure functions: given a snapshot (or a normalized script + a
- * `ReconcilePass`), decide whether the script is allowed to mount.
- *
- * The pass shape is built once per reconcile and shared across every
- * script in that reconcile.
- */
-
 import type { ConsentSnapshot } from '../../types';
 import type {
 	NormalizedScript,
@@ -15,11 +5,6 @@ import type {
 	ScriptLoaderTools,
 } from './types';
 
-/**
- * Build the per-pass eligibility context from a snapshot. The kernel snapshot
- * already contains policy-effective consents, so modules must not re-apply
- * policy scope here.
- */
 export const buildReconcilePass = function buildReconcilePass(
 	snapshot: ConsentSnapshot,
 	tools: ScriptLoaderTools
@@ -34,7 +19,6 @@ export const buildReconcilePass = function buildReconcilePass(
 	};
 };
 
-/** Whether the pass denies this script's vendor. Inert in IAB mode. */
 const vendorAllowed = function vendorAllowed(
 	entry: NormalizedScript,
 	pass: ReconcilePass
@@ -47,11 +31,6 @@ const vendorAllowed = function vendorAllowed(
 	);
 };
 
-/**
- * Evaluate the script's consent condition without applying `alwaysLoad`.
- * Always-loaded scripts still need the real result for their lifecycle
- * callbacks so consent-aware SDKs can switch tracking on and off.
- */
 export const hasScriptConsent = function hasScriptConsent(
 	entry: NormalizedScript,
 	pass: ReconcilePass
@@ -79,21 +58,6 @@ export const hasScriptConsent = function hasScriptConsent(
 	);
 };
 
-/**
- * Decide whether a normalized script should be mounted given the
- * current pass. Pure.
- *
- * Decision order:
- * 1. `alwaysLoad` short-circuits to `true` regardless of consent.
- * 2. In IAB mode, scripts with IAB metadata route through
- *    `hasIABConsent`. If IAB metadata is declared but no IAB slice
- *    exists, the script is denied.
- * 3. Scripts with a single-category string consult the consent record
- *    directly. An unknown category throws — config bug, not user data.
- * 4. Otherwise the category tree is evaluated through `has`.
- * 5. Outside IAB mode, a script whose `vendor` the subject turned off is
- *    denied even when its category passes.
- */
 export const isEligible = function isEligible(
 	entry: NormalizedScript,
 	pass: ReconcilePass

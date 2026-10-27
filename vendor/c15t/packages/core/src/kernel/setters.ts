@@ -1,14 +1,3 @@
-/**
- * Synchronous setters exposed at `kernel.set.*` for the inputs that are
- * neither a choice nor a record: surfaces, categories, overrides, signals,
- * the experiment, IAB and vendor declarations.
- *
- * Each setter computes a `SnapshotPatch` and hands it to the runtime,
- * which re-derives dependent fields, skips no-ops and keeps the deadline
- * timer current. `set.draft` belongs to choice
- * recording (`choice.ts`); `set.subjectId` to the records boundary
- * (`records.ts`).
- */
 import type { AllConsentNames } from '../consent/consent-types';
 import type { ExperimentAssignment, ExperimentGate } from '../libs/experiment';
 import {
@@ -30,10 +19,6 @@ import { normalizeExternalPermissions } from './external-permissions';
 import type { KernelRuntime } from './runtime';
 import { copyIABAuthority, DEFAULT_IAB, DEFAULT_VENDORS } from './snapshot';
 
-/**
- * Merge an IAB patch onto the current IAB slice, returning the next
- * slice plus a `changed` flag.
- */
 const mergeIab = function mergeIab(
 	current: KernelIABState | null,
 	input: Partial<KernelIABState>
@@ -56,7 +41,6 @@ const mergeIab = function mergeIab(
 	return { changed, next };
 };
 
-/** A declaration and its nested conditions, owned by the kernel from here on. */
 const copyDeclaredVendor = function copyDeclaredVendor(
 	vendor: ResolvedVendor
 ): ResolvedVendor {
@@ -76,33 +60,20 @@ const copyDeclaredVendor = function copyDeclaredVendor(
 	return copy;
 };
 
-/**
- * Merge a vendor patch onto the current vendor slice. Declared lists merge
- * by id with the existing entry's presentation winning, so a manifest
- * arriving after config never overwrites a name the publisher set in code.
- */
 const mergeVendors = function mergeVendors(
 	current: KernelVendorsState | null,
 	input: Partial<KernelVendorsState>,
 	options: { replaceSource?: VendorSource } = {}
 ): { next: KernelVendorsState | null; changed: boolean } {
 	const baseline = current ?? DEFAULT_VENDORS;
-	// Replacing a source drops its previous entries first, so a caller that
-	// owns that source (the runtime option, a fresh backend list) can remove a
-	// vendor rather than only add or update one.
 	const base =
 		options.replaceSource === undefined || input.declared === undefined
 			? baseline.declared
 			: withoutSourceVendors(baseline.declared, options.replaceSource);
-	// Copied first: the committed snapshot is frozen, and a caller reusing
-	// or mutating its own declaration object afterwards must not throw.
 	const merged =
 		input.declared === undefined
 			? baseline.declared
 			: mergeDeclaredVendors(base, input.declared.map(copyDeclaredVendor));
-	// Removing a source always allocates, so a replacement that ends where it
-	// started has to fall back to the current reference or every call would
-	// commit.
 	const declared =
 		merged !== baseline.declared &&
 		sameDeclaredVendors(merged, baseline.declared)
@@ -123,9 +94,6 @@ const mergeVendors = function mergeVendors(
 	return { changed, next };
 };
 
-/**
- * Build the `kernel.set.*` object given the kernel runtime.
- */
 export const buildSetters = function buildSetters(
 	runtime: KernelRuntime,
 	config: KernelConfig
@@ -166,8 +134,6 @@ export const buildSetters = function buildSetters(
 				}
 				return;
 			}
-			// The clock travels so a surface impression is stamped at the time
-			// it opened, not at the previous evaluation.
 			commit({ activeUI: ui, now: runtime.now() });
 		},
 		consentCategories(

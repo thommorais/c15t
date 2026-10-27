@@ -18,14 +18,6 @@ interface IABConsentDialogFooterProps extends HTMLAttributes<HTMLDivElement> {
 	children?: ReactNode;
 }
 
-/**
- * Footer component for the IAB Consent Dialog.
- *
- * @remarks
- * Contains action buttons (Reject All, Accept All, Save).
- *
- * @public
- */
 const IABConsentDialogFooter = createForwardRef<
 	HTMLDivElement,
 	IABConsentDialogFooterProps
@@ -40,7 +32,6 @@ const IABConsentDialogFooter = createForwardRef<
 		try {
 			await performDialogAction('accept');
 		} catch {
-			// Keep the dialog open so a failed vendor-list request can be retried.
 		}
 	};
 
@@ -48,7 +39,6 @@ const IABConsentDialogFooter = createForwardRef<
 		try {
 			await performDialogAction('reject');
 		} catch {
-			// Keep the dialog open so a failed vendor-list request can be retried.
 		}
 	};
 
@@ -56,7 +46,6 @@ const IABConsentDialogFooter = createForwardRef<
 		try {
 			await performDialogAction('customize');
 		} catch {
-			// Keep the dialog open so a failed vendor-list request can be retried.
 		}
 	};
 

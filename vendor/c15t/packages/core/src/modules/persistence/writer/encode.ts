@@ -1,15 +1,3 @@
-/**
- * Encoders for every stored record: the JSON written to localStorage and
- * the compact forms written to cookies. Their decoders live in
- * `../record-codec.ts`, which the first load needs to read stored records;
- * these only run on a write, so they load with the write code.
- *
- * The codes below are the wire format the decoders read back. They are
- * repeated here rather than imported so this file stays out of the first
- * load; `codec-tables.test.ts` fails when the two copies disagree.
- *
- * Pure.
- */
 import type {
 	CategoryDecision,
 	ChoiceBasis,
@@ -28,12 +16,6 @@ const KEY_VALUE_SEPARATOR = '=';
 const LIST_SEPARATOR = '|';
 const TUPLE_SEPARATOR = '.';
 
-/**
- * Compact category codes, in the canonical optional-category order every
- * encoding writes categories in.
- *
- * @internal
- */
 export const CATEGORY_CODES = [
 	['functionality', 'fn'],
 	['experience', 'ex'],
@@ -41,14 +23,12 @@ export const CATEGORY_CODES = [
 	['marketing', 'mk'],
 ] as const;
 
-/** Compact subject codes, in the order they are written. @internal */
 export const SUBJECT_CODES = [
 	['subjectId', 'sid'],
 	['externalId', 'eid'],
 	['identityProvider', 'idp'],
 ] as const satisfies readonly (readonly [keyof ConsentSubject, string])[];
 
-/** Compact IAB metadata codes, in the order they are written. @internal */
 export const IAB_CODES = [
 	['customVendorConsents', 'icv'],
 	['customVendorLegitimateInterests', 'icvli'],
@@ -71,10 +51,6 @@ const subjectFields = function subjectFields(
 	return fields;
 };
 
-// ---------------------------------------------------------------------------
-// Consent envelope
-// ---------------------------------------------------------------------------
-
 const orderedBasis = function orderedBasis(basis: ChoiceBasis): ChoiceBasis {
 	if (basis.kind === 'choice-v1') {
 		return { fingerprint: basis.fingerprint, kind: 'choice-v1' };
@@ -95,11 +71,6 @@ const orderedDecision = function orderedDecision(
 	};
 };
 
-/**
- * Serializes an envelope to JSON with a stable field order. Categories are
- * written in the canonical optional-category order; absent categories are
- * not written, explicit `false` is.
- */
 export const encodeStoredConsentEnvelopeJson =
 	function encodeStoredConsentEnvelopeJson(
 		envelope: StoredConsentEnvelope
@@ -146,30 +117,6 @@ const encodeBooleanMap = function encodeBooleanMap(
 		.join(LIST_SEPARATOR);
 };
 
-/**
- * Serializes an envelope to the compact cookie form.
- *
- * Layout, fields joined by `&`:
- *
- * ```text
- * v=3
- * sid=<uri-encoded subjectId>          (optional)
- * eid=<uri-encoded externalId>         (optional)
- * idp=<uri-encoded identityProvider>   (optional)
- * e=<clear epoch>                      (optional, only after a clear)
- * b=<basis>|<basis>                    (when any category is present)
- * fn=<0|1>.<confirmedAt>.<basisIndex>  (per present category: fn ex me mk)
- * icv=<0|1>.<uri-encoded vendorId>|... (optional)
- * icvli=<0|1>.<uri-encoded vendorId>|... (optional)
- * ```
- *
- * A basis is `c<fingerprint>` for `choice-v1`, `l<materialFingerprint>`
- * or bare `l` for `legacy-v2`. Each distinct basis is written once and
- * referenced by index so a full-scope save does not repeat one hash four
- * times. Every free-text component is URI-encoded, so the delimiters
- * `& = | .` never appear inside a value and no `:` or `,` is emitted.
- * The v2 parser therefore leaves this value alone as a plain string.
- */
 export const encodeStoredConsentEnvelopeCompact =
 	function encodeStoredConsentEnvelopeCompact(
 		envelope: StoredConsentEnvelope
@@ -213,11 +160,6 @@ export const encodeStoredConsentEnvelopeCompact =
 		return fields.join(FIELD_SEPARATOR);
 	};
 
-// ---------------------------------------------------------------------------
-// Notice dismissal
-// ---------------------------------------------------------------------------
-
-/** Serializes a notice dismissal for localStorage. */
 export const encodeNoticeDismissal = function encodeNoticeDismissal(
 	record: StoredNoticeDismissal
 ): string {
@@ -232,10 +174,6 @@ export const encodeNoticeDismissal = function encodeNoticeDismissal(
 	return JSON.stringify(encoded);
 };
 
-/**
- * Compact notice dismissal for the `<key>-notice` cookie:
- * `v=1&t=<dismissedAt>&f=<uri-encoded fingerprint>`.
- */
 export const encodeNoticeDismissalCompact =
 	function encodeNoticeDismissalCompact(record: StoredNoticeDismissal): string {
 		return [
@@ -245,7 +183,6 @@ export const encodeNoticeDismissalCompact =
 		].join(FIELD_SEPARATOR);
 	};
 
-/** Identity companion for `<key>-notice-subject`, bound to the acknowledgement. */
 export const encodeNoticeSubjectCompact = function encodeNoticeSubjectCompact(
 	record: StoredNoticeDismissal
 ): string {
@@ -255,11 +192,6 @@ export const encodeNoticeSubjectCompact = function encodeNoticeSubjectCompact(
 	].join(FIELD_SEPARATOR);
 };
 
-// ---------------------------------------------------------------------------
-// Vendor denial list
-// ---------------------------------------------------------------------------
-
-/** Serializes the vendor denial list for localStorage. */
 export const encodeVendorChoice = function encodeVendorChoice(
 	record: StoredVendorChoice
 ): string {
@@ -274,12 +206,6 @@ export const encodeVendorChoice = function encodeVendorChoice(
 	return JSON.stringify(encoded);
 };
 
-/**
- * Compact vendor denials for the `<key>-vendors` cookie:
- * `v=1&t=<confirmedAt>&d=<uri-encoded id>|<uri-encoded id>`, followed by the
- * subject fields the consent envelope also uses (`sid`, `eid`, `idp`).
- * The `d` field is omitted when nothing is denied.
- */
 export const encodeVendorChoiceCompact = function encodeVendorChoiceCompact(
 	record: StoredVendorChoice
 ): string {

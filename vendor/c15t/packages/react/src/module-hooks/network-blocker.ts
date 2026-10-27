@@ -20,29 +20,6 @@ export interface UseNetworkBlockerOptions {
 	onRequestBlocked?: (info: BlockedRequestInfo) => void;
 }
 
-/**
- * Block `fetch` and XHR requests that match `rules` until the visitor's
- * consent allows them.
- *
- * Blocking starts during the first render in the browser: matching requests
- * wait from then on, including ones sent from this component's children's
- * mount effects and from effects that run before this component's. The
- * blocker loads after mount and decides each waiting request. On the
- * server the hook does nothing.
- *
- * Rendering has a side effect: the first render patches `fetch` and
- * `XMLHttpRequest` to hold matching requests. If React discards that
- * render and never commits it, the hold ends after 10 seconds. Nothing
- * checked consent for the requests it held, so they fail as blocked: a 451
- * response for `fetch`, a failed XHR.
- *
- * Prefer the provider's `networkBlocker` option. It starts blocking when
- * the provider renders, so it also covers components rendered before this
- * one.
- *
- * @param options - Rules and logging options.
- * @returns A handle to update rules or toggle blocking.
- */
 export const useNetworkBlocker = function useNetworkBlocker(
 	options: UseNetworkBlockerOptions
 ): NetworkBlockerHandle {

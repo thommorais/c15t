@@ -1,18 +1,3 @@
-/**
- * Legacy v2 browser record reader.
- *
- * Takes the raw parsed record (`{ consents, consentInfo }`) together with
- * its encoding provenance and produces a version 3 explicit choice in
- * memory. It never writes storage, never renews the stored time, and never
- * stamps the current prompt fingerprint on old decisions.
- *
- * Provenance matters: the compact cookie encoding deliberately omits
- * `false`, so a recognized compact record restores `false` for the known
- * legacy category universe. A JSON record keeps absent keys absent.
- *
- * @internal
- */
-
 import { OPTIONAL_CONSENT_CATEGORIES } from './types';
 import type {
 	CategoryDecision,
@@ -30,11 +15,9 @@ import {
 } from './validation';
 import type { RecordIssue } from './validation';
 
-/** How the raw record was encoded before parsing. */
 export type LegacyRecordEncoding = 'json' | 'compact';
 
 export interface NormalizeLegacyOptions {
-	/** Current time in epoch milliseconds. Future record times are invalid. */
 	now: number;
 	encoding: LegacyRecordEncoding;
 }
@@ -94,10 +77,6 @@ const readBasis = function readBasis(
 	return { kind: 'legacy-v2', materialFingerprint: fingerprint };
 };
 
-/**
- * Normalizes a parsed v2 record. The whole record is rejected on any
- * structural issue so a malformed record never contributes a grant.
- */
 // oxlint-disable-next-line complexity -- Whole-record validation reads every field once in a fixed order.
 export const normalizeLegacyConsentRecord =
 	function normalizeLegacyConsentRecord(
@@ -115,7 +94,6 @@ export const normalizeLegacyConsentRecord =
 			};
 		}
 		if (Object.hasOwn(input, 'version')) {
-			// A versioned envelope is not a v2 record; never fall through.
 			return {
 				issues: [{ code: 'unsupported-version', path: 'version' }],
 				ok: false,
@@ -136,7 +114,6 @@ export const normalizeLegacyConsentRecord =
 			typeof ownValue(consentInfo, 'id') === 'string' &&
 			typeof ownValue(consentInfo, 'subjectId') !== 'string'
 		) {
-			// v1.x server-id record. Explicitly unsupported, not anonymous v2.
 			return {
 				issues: [{ code: 'unsupported-version', path: 'consentInfo.id' }],
 				ok: false,
@@ -170,7 +147,6 @@ export const normalizeLegacyConsentRecord =
 				continue;
 			}
 			if (!isOptionalConsentCategory(key)) {
-				// v2 preserved custom keys; they carry no category meaning here.
 				continue;
 			}
 			if (typeof value !== 'boolean') {

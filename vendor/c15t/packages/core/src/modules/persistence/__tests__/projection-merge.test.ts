@@ -173,7 +173,6 @@ describe('vendor copies across a clear', () => {
 				denied: ['vendor-a'],
 				version: 1,
 			}),
-			// After the clear the visitor allowed everything.
 			encodeVendorChoice({ confirmedAt: T - 500, denied: [], version: 1 })
 		);
 		writeStoredClearEpoch(T - 1000, undefined);
@@ -247,25 +246,21 @@ describe('consent envelope ties between the copies', () => {
 		version: 3,
 	});
 
-	/** Run `write` while the browser silently drops every cookie assignment. */
 	const withDroppedCookieWrites = (write: () => void) => {
 		const frozen = document.cookie;
 		Object.defineProperty(document, 'cookie', {
 			configurable: true,
 			get: () => frozen,
 			set: () => {
-				// Accepted and dropped.
 			},
 		});
 		try {
 			write();
 		} finally {
-			// Uncovers the accessor on Document.prototype again.
 			delete (document as { cookie?: string }).cookie;
 		}
 	};
 
-	/** A cookie set by something other than this page: a server or a sibling. */
 	const setCookieElsewhere = (value: StoredConsentEnvelope) => {
 		document.cookie = `${STORAGE_KEY_V2}=${encodeStoredConsentEnvelopeCompact(value)}; path=/`;
 	};
@@ -285,7 +280,6 @@ describe('consent envelope ties between the copies', () => {
 
 	it('keeps a subject a server response set in the cookie alone', () => {
 		writeStoredConsentEnvelope(envelope('sub_local'), { now: T });
-		// Server-side consent restoration rewrites only the cookie.
 		setCookieElsewhere(envelope('sub_restored'));
 
 		const { records } = readStoredRecords(undefined, T);
@@ -297,8 +291,6 @@ describe('consent envelope ties between the copies', () => {
 		withDroppedCookieWrites(() => {
 			writeStoredConsentEnvelope(envelope('sub_here'), { now: T });
 		});
-		// A sibling subdomain writes the shared cookie; this origin's
-		// localStorage never sees it.
 		setCookieElsewhere(envelope('sub_sibling'));
 
 		const { records } = readStoredRecords(undefined, T);
@@ -341,7 +333,6 @@ describe('consent envelope ties between the copies', () => {
 		);
 
 		const { records } = readStoredRecords(undefined, T);
-		// The denial only restricts, so it still applies.
 		expect(records.choice?.categories.measurement?.value).toBe(false);
 		expect(records.subject?.subjectId).toBe('sub_sibling');
 	});
@@ -349,7 +340,6 @@ describe('consent envelope ties between the copies', () => {
 	it('keeps the cookie subject when the localStorage write failed', () => {
 		writeStoredConsentEnvelope(envelope('sub_old'), { now: T });
 
-		// localStorage is full: the next write reaches only the cookie.
 		const setItem = vi
 			.spyOn(window.localStorage, 'setItem')
 			.mockImplementation(() => {

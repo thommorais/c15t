@@ -12,21 +12,6 @@ export {
 	LEGAL_DOCUMENT_TYPE_PREFIXES,
 } from '../shared/legal-document-types';
 
-/**
- * Valibot schema validating a legal-document policy `type`.
- *
- * Accepts any string for which {@link isLegalDocumentType} returns `true` — a
- * base family or a suffixed variant — and reports `Invalid legal document type`
- * for anything else. Output type is `string` (see {@link LegalDocumentPolicyType}).
- *
- * @example
- * ```ts
- * import * as v from 'valibot';
- *
- * v.parse(legalDocumentPolicyTypeSchema, 'terms_and_conditions_b2c'); // 'terms_and_conditions_b2c'
- * v.is(legalDocumentPolicyTypeSchema, 'marketing_communications'); // false
- * ```
- */
 export const legalDocumentPolicyTypeSchema = v.pipe(
 	v.string(),
 	v.check(
@@ -36,7 +21,6 @@ export const legalDocumentPolicyTypeSchema = v.pipe(
 );
 
 export const policyTypeSchema = v.picklist([
-	// Deprecated in 2.0 RC. Runtime banner behavior should use backend policies.
 	'cookie_banner',
 	'privacy_policy',
 	'dpa',
@@ -46,14 +30,6 @@ export const policyTypeSchema = v.picklist([
 	'other',
 ]);
 
-/**
- * Valibot schema validating any consent policy type that can be stored or
- * returned by c15t.
- *
- * This preserves the closed built-in {@link policyTypeSchema} while also
- * accepting suffixed legal-document variants through
- * {@link legalDocumentPolicyTypeSchema}.
- */
 export const consentPolicyTypeSchema = v.union([
 	policyTypeSchema,
 	legalDocumentPolicyTypeSchema,

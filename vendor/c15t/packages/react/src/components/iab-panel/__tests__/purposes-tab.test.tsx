@@ -1,9 +1,3 @@
-/**
- * IAB Consent Dialog Purposes Tab Unit Tests
- *
- * Tests for the purposes tab in IAB Consent Dialog.
- */
-
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { render } from 'vitest-browser-react';
 import { userEvent } from 'vitest/browser';
@@ -25,7 +19,6 @@ const getDefined = <Value,>(
 	return value;
 };
 
-// Mock localStorage
 const localStorageMock = (() => {
 	let store: Record<string, string> = {};
 	return {
@@ -46,7 +39,6 @@ Object.defineProperty(window, 'localStorage', {
 	value: localStorageMock,
 });
 
-// Mock GVL with all purposes
 const mockGVL = {
 	features: {
 		1: {

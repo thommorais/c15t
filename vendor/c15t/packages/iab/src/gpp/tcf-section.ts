@@ -1,21 +1,9 @@
-/**
- * The TCF EU v2 section of a GPP string.
- *
- * The section string is the TC String the TCF CMP confirmed, embedded as
- * is. Its parsed form, for `parsedSections`, follows the field names of the
- * GPP IAB Europe TCF section specification and is decoded with the lazily
- * loaded TCF core library, which a TC String already required.
- *
- * @packageDocumentation
- */
-
 import { getTCFCore } from '../tcf/lazy-load';
 import type { GPPParsedSubsection } from './types';
 
 const BASE64_URL =
 	'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_';
 
-/** Segment types after the core segment. */
 const DISCLOSED_VENDORS = 1;
 const PUBLISHER_PURPOSES = 3;
 
@@ -24,7 +12,6 @@ interface IdVector {
 	has: (id: number) => boolean;
 }
 
-/** IDs set in a vector, in ascending order. */
 const idsOf = function idsOf(vector: IdVector, maxId = vector.maxId): number[] {
 	const ids: number[] = [];
 	for (let id = 1; id <= maxId; id += 1) {
@@ -35,10 +22,6 @@ const idsOf = function idsOf(vector: IdVector, maxId = vector.maxId): number[] {
 	return ids;
 };
 
-/**
- * Segment types after the core segment, in string order. A segment's type
- * is its first three bits.
- */
 const segmentTypes = function segmentTypes(tcString: string): number[] {
 	return tcString
 		.split('.')
@@ -46,16 +29,6 @@ const segmentTypes = function segmentTypes(tcString: string): number[] {
 		.map((segment) => Math.floor(BASE64_URL.indexOf(segment.charAt(0)) / 8));
 };
 
-/**
- * Decodes a TC String into the subsections `parsedSections.tcfeuv2` holds:
- * the core segment, then the disclosed vendors and publisher purposes
- * segments the string contains, in string order. Bitfields and vendor
- * ranges are arrays of the IDs that are set; dates are `Date` objects.
- *
- * @param tcString - A TC String.
- * @returns Parsed subsections.
- * @throws {Error} When the string cannot be decoded.
- */
 export const parseTCFEUSection = async function parseTCFEUSection(
 	tcString: string
 ): Promise<GPPParsedSubsection[]> {

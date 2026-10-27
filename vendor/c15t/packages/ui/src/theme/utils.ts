@@ -1,8 +1,3 @@
-/**
- * Utility functions for processing the v2 theme system.
- * Handles token-to-CSS variable conversion and dark mode overrides.
- */
-
 import type { ColorTokens, Theme, ThemeCSSVariables } from './types';
 
 interface RGBColor {
@@ -14,9 +9,6 @@ interface RGBColor {
 const DEFAULT_LIGHT_CONTRAST_COLOR = '#ffffff';
 const DEFAULT_DARK_CONTRAST_COLOR = '#000000';
 
-/**
- * Default design tokens for the v2 theme system.
- */
 export const defaultDarkColors: Required<ColorTokens> = {
 	border: 'hsl(0, 0%, 20%)',
 	borderHover: 'hsl(0, 0%, 25%)',
@@ -58,13 +50,9 @@ export const defaultTheme: Required<Omit<Theme, 'slots'>> = {
 			slow: '200ms',
 		},
 		easing: 'cubic-bezier(0.4, 0, 0.2, 1)',
-		// ease-in-cubic: slow start, fast end - ideal for exits
 		easingIn: 'cubic-bezier(0.55, 0.055, 0.675, 0.19)',
-		// ease-in-out-cubic: smooth acceleration and deceleration - ideal for movement
 		easingInOut: 'cubic-bezier(0.645, 0.045, 0.355, 1)',
-		// ease-out-cubic: fast start, smooth end - ideal for enter/exit
 		easingOut: 'cubic-bezier(0.215, 0.61, 0.355, 1)',
-		// Spring-like overshoot - ideal for playful animations
 		easingSpring: 'cubic-bezier(0.34, 1.56, 0.64, 1)',
 	},
 	radius: {
@@ -306,12 +294,6 @@ const getContrastRatio = function getContrastRatio(
 	return (lighterColor + 0.05) / (darkerColor + 0.05);
 };
 
-/**
- * Resolves a readable foreground color for a given background color.
- *
- * Supports `#rgb`, `#rrggbb`, `rgb()`, and `hsl()` input formats.
- * Falls back to white when the background color cannot be parsed.
- */
 export const getContrastColor = function getContrastColor(
 	backgroundColor: string,
 	{
@@ -406,9 +388,6 @@ const themeCSSVariableResolvers: Record<
 		(colors?.primary ? getContrastColor(colors.primary) : undefined),
 };
 
-/**
- * Maps theme tokens to CSS variables.
- */
 export const themeToVars = function themeToVars(
 	theme: Theme,
 	isDark = false
@@ -445,20 +424,11 @@ interface ThemeSelectors {
 	dark: string;
 }
 
-// `:host` is the shadow-DOM counterpart of `:root`: custom properties set
-// there inherit into a shadow tree, which `:root` never reaches. Outside a
-// shadow root it matches nothing, so light-DOM hosts are unaffected.
 const DEFAULT_THEME_SELECTORS: ThemeSelectors = {
 	dark: ':root.dark,:host(.dark),.dark .c15t-theme-root,:root.c15t-dark,:host(.c15t-dark),.c15t-dark .c15t-theme-root',
 	root: ':root,:host,.c15t-theme-root',
 };
 
-// The same elements, each light-DOM selector repeated once so it carries
-// one more class-level specificity point than the package defaults. A theme
-// then overrides the defaults wherever it lands in the document: SvelteKit,
-// for one, writes `<svelte:head>` before its stylesheet links. `:host` stays
-// single: a shadow root gets the stylesheet and the theme from the script
-// tag's mount, which writes the theme last, so order already decides there.
 const THEME_OVERRIDE_SELECTORS: ThemeSelectors = {
 	dark: ':root:root.dark,:host(.dark),.dark .c15t-theme-root.c15t-theme-root,:root:root.c15t-dark,:host(.c15t-dark),.c15t-dark .c15t-theme-root.c15t-theme-root',
 	root: ':root:root,:host,.c15t-theme-root.c15t-theme-root',
@@ -474,8 +444,6 @@ const buildThemeCSS = function buildThemeCSS(
 		(colorScheme
 			? serializeThemeVars({ colors: defaultDarkColors }, true)
 			: '') + serializeThemeVars(theme, true);
-	// A CSS escape keeps token values intact without letting one close the
-	// surrounding `<style>` element.
 	return `${root}{${colorScheme === 'dark' ? dark : serializeThemeVars(theme, false)}}
 ${colorScheme === 'system' ? `@media(prefers-color-scheme:dark){${root}{${dark}}}` : ''}
 ${selectors.dark}{${dark}}
@@ -485,24 +453,6 @@ ${selectors.dark}{${dark}}
 	);
 };
 
-/**
- * Generates a CSS string for the theme variables.
- *
- * Call it where your app renders on the server or at build time, and put
- * the result in a `<style>` element or a stylesheet. The browser runtime no
- * longer generates theme CSS. `<` is written as a CSS escape, so the result
- * is safe inside a `<style>` element.
- *
- * The light-DOM selectors (`:root`, `.c15t-theme-root`) are one
- * specificity step above the default tokens in `styles.css`, so in the
- * document the result overrides them whether it lands before or after the
- * package stylesheet. `:host` keeps the defaults' specificity, so inside a
- * shadow root put the result after the package stylesheet.
- * Apply `c15t-no-transitions` while switching themes to suppress animations.
- * @param theme - Theme tokens to serialize.
- * @param colorScheme - Select a scheme before hydration; defaults to root classes.
- * @returns Theme CSS, including system preference rules when requested.
- */
 export const generateThemeCSS = function generateThemeCSS(
 	theme: Theme,
 	colorScheme?: ThemeColorScheme
@@ -510,16 +460,6 @@ export const generateThemeCSS = function generateThemeCSS(
 	return buildThemeCSS(theme, colorScheme, THEME_OVERRIDE_SELECTORS);
 };
 
-/**
- * Generates the package's default token block: the same declarations as
- * {@link generateThemeCSS}, on the base `:root` selectors that the theme's
- * selectors outrank. The build writes `defaultTheme` through it into
- * `styles.css`.
- *
- * @internal
- * @param theme - Theme tokens to serialize.
- * @returns Theme CSS on the base selectors.
- */
 export const generateDefaultThemeCSS = function generateDefaultThemeCSS(
 	theme: Theme
 ): string {

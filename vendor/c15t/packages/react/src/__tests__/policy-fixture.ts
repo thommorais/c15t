@@ -5,7 +5,6 @@ import {
 } from '@c15t/schema/types';
 import type { PolicyRule, PolicyResolution } from '@c15t/schema/types';
 
-/** Prepared public policy and receipts for adapter tests. */
 export const policyFixture = (
 	values: Partial<ConsentState> = {},
 	rule: Partial<PolicyRule> = {}

@@ -13,8 +13,6 @@ import {
 
 describe('init query parameters', () => {
 	it('names the header each parameter replaces', () => {
-		// The hosted gateway and older backends read these header names; a
-		// rename here silently drops the input for them.
 		expect(Object.fromEntries(INIT_PARAM_HEADERS)).toEqual({
 			contract: POLICY_CONTRACT_HEADER,
 			country: 'x-c15t-country',
@@ -48,9 +46,6 @@ describe('init query parameters', () => {
 	});
 
 	it('replaces a parameter the URL already carries, so it appears once', () => {
-		// The names are generic; an app's own init route may already use one.
-		// c15t's value wins, and the app's other parameters keep their order
-		// and encoding.
 		const url = appendInitParams(
 			'/api/consent/init?country=US&site=a%20b&v=1&tag=x#top',
 			{ country: 'GB', version: '3.0.0' }
@@ -143,7 +138,6 @@ describe('init query parameters', () => {
 			new Headers({ 'sec-gpc': '1' })
 		);
 		expect(headers.has('x-c15t-country')).toBe(false);
-		// A malformed override must not hide the browser's own signal.
 		expect(headers.has('x-c15t-gpc')).toBe(false);
 	});
 });

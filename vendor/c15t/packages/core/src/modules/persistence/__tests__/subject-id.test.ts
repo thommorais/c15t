@@ -221,8 +221,6 @@ test('a refused cookie write does not bring the old ID back', () => {
 	const first = boot();
 	const old = subjectIdOf(first.kernel);
 	const cookie = Object.getOwnPropertyDescriptor(Document.prototype, 'cookie');
-	// The browser drops the new `-sid` cookie, as it would one over its size
-	// limit, and still applies deletions.
 	Object.defineProperty(document, 'cookie', {
 		configurable: true,
 		get: () => cookie?.get?.call(document),
@@ -252,8 +250,6 @@ test('a seed from a stale consent cookie keeps the newer stored ID', async () =>
 	const old = subjectIdOf(first.kernel) as string;
 	const choice = first.kernel.getSnapshot().explicitChoice;
 	const cookie = Object.getOwnPropertyDescriptor(Document.prototype, 'cookie');
-	// The browser drops the rewritten consent cookie, so a server render
-	// still reads the old ID from it.
 	Object.defineProperty(document, 'cookie', {
 		configurable: true,
 		get: () => cookie?.get?.call(document),
@@ -283,8 +279,6 @@ test('a seed from a stale consent cookie keeps the newer stored ID', async () =>
 	expect(storedSid()).toEqual({ cookie: 'sub_next', local: 'sub_next' });
 });
 
-// The same stale consent cookie, carried through a server render: the
-// server reads the cookies alone and must not store the old ID again.
 test.each(['consent', 'all'] as const)(
 	'a server render after a dropped %s cookie rewrite does not bring the old ID back',
 	async (dropped) => {
@@ -311,8 +305,6 @@ test.each(['consent', 'all'] as const)(
 			drop.mockRestore();
 		}
 
-		// The records win on the server, so its render still names the old
-		// ID, but it never replaces the subject cookie the request holds.
 		const subject = resolveRequestSubject({
 			now: NOW,
 			request: { cookie: document.cookie, url: 'https://example.com/' },
@@ -403,7 +395,6 @@ test('a runtime that keeps its subject does not take the stored ID', () => {
 	expect(kernel.getSnapshot().subject).toBeNull();
 });
 
-/** Boots a second tab that raced the first: it read no stored ID. */
 const bootRacingTab = function bootRacingTab() {
 	localStorage.removeItem(SID_KEY);
 	expire(SID_KEY);
@@ -454,9 +445,6 @@ test('two tabs whose IDs are both used stop overwriting each other', async () =>
 	setCookie.mockRestore();
 });
 
-// An ID or linked account with no URI encoding has no cookie copy, as
-// `<key>-sid` has none: each record's cookie is skipped like a write the
-// cookie refused, and localStorage keeps the whole record.
 test.each(
 	(
 		['a necessary-only save', 'a choice', 'a vendor-only save'] as const

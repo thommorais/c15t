@@ -46,7 +46,6 @@ const pixel: Script = {
 
 const mode = custom({ init: () => Promise.resolve({}) });
 
-/** A prefetch under an opt-in policy, with the visitor's stored choice. */
 const prefetchFor = function prefetchFor(
 	values?: Parameters<typeof choiceRecords>[0],
 	rule: Partial<PolicyRule> = {},
@@ -66,10 +65,6 @@ const prefetchFor = function prefetchFor(
 	};
 };
 
-/**
- * Runs the generated inline script, as the page would. The page is hidden
- * unless `visible`, so the work runs at once rather than after a frame.
- */
 const run = function run(
 	code: string | undefined,
 	{ visible = false }: { visible?: boolean } = {}
@@ -215,8 +210,6 @@ describe('serverScriptStart', () => {
 		expect(Object.keys(started.__c15tStarted ?? {})).toEqual(['pixel']);
 	});
 
-	// The loader runs only the first script's `onBeforeLoad` on an element
-	// it adopts, so the second would miss its setup.
 	test('leaves a resource two scripts share to the loader', () => {
 		expect(
 			serverScriptStart({
@@ -308,7 +301,6 @@ describe('serverScriptStart', () => {
 	});
 
 	describe('with a localStorage copy', () => {
-		/** The visitor's choice as the client writes it to localStorage. */
 		const storeLocally = function storeLocally(
 			values: Parameters<typeof choiceRecords>[0],
 			confirmedAt: number,
@@ -396,7 +388,6 @@ describe('serverScriptStart', () => {
 			});
 
 			test('does nothing when the configured copy is one the client rejects', () => {
-				// The client then reads the legacy record, and its denial.
 				const rejected = { categories: {}, unknown: true, version: 3 };
 				expect(validateStoredConsentEnvelope(rejected, NOW).ok).toBe(false);
 				localStorage.setItem('c15t', JSON.stringify(rejected));
@@ -494,8 +485,6 @@ describe('serverScriptStart', () => {
 			expect(document.head.querySelector('script')).toBeNull();
 		});
 
-		// The client's decoder rejects the whole record, then falls back to
-		// another copy, which may hold a denial.
 		test.each([
 			['an unknown field', `c15t=v=3&mk=1.${CONFIRMED_AT}.0&x=1`],
 			['a field without a value', `c15t=v=3&mk`],
@@ -663,8 +652,6 @@ describe('serverScriptStart', () => {
 			).toBeUndefined();
 		});
 
-		// The banner is waiting for its first tap then; a script's first run
-		// would hold the main thread and delay it.
 		test('for an alwaysLoad script while the banner asks for a choice', () => {
 			const serverStart = vi.fn(() => ({ code: '' }));
 
@@ -720,8 +707,6 @@ describe('serverScriptStart', () => {
 		});
 
 		test('for a shared render, which carries no request clock', () => {
-			// Prerendered HTML goes to every visitor; an opt-out policy that
-			// needs no prompt still grants nobody in particular.
 			const shared: RuntimePrefetch = {
 				initialPolicyResolution: matchedResolution(
 					optOutRule({ categories: ['marketing'], prompt: 'none' })
@@ -737,8 +722,6 @@ describe('serverScriptStart', () => {
 			).toBeUndefined();
 		});
 
-		// The client then reads storage back over the seed, so an older
-		// stored denial, which the inline check lets through, wins.
 		test('when the client rereads storage over the seed', () => {
 			expect(
 				serverScriptStart({

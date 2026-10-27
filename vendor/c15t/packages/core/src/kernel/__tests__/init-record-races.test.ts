@@ -49,7 +49,6 @@ test.each([false, true])(
 		});
 		await pending;
 		expect(kernel.getSnapshot().resolution).toEqual(resolution);
-		// The clear keeps the subject ID it found; the init records name none.
 		expect(kernel.getSnapshot().subject).toEqual({ subjectId });
 		expect(kernel.getSnapshot().explicitChoice).toBeNull();
 		expect(kernel.getSnapshot().effectivePermissions.marketing).toBe(false);

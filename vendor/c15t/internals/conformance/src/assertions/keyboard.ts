@@ -1,8 +1,5 @@
 import { expect, userEvent, waitFor } from 'storybook/test';
 
-/**
- * Assert that pressing `Escape` dismisses an element matched by `rootTestId`.
- */
 export const assertEscapeDismisses = async function assertEscapeDismisses(
 	root: ParentNode,
 	rootTestId: string
@@ -17,10 +14,6 @@ export const assertEscapeDismisses = async function assertEscapeDismisses(
 	});
 };
 
-/**
- * Assert that pressing `Enter` while a button is focused activates it. Use
- * `onActivate` to verify the expected side effect.
- */
 export const assertEnterActivates = async function assertEnterActivates(
 	buttonTestId: string,
 	onActivate: () => Promise<void> | void,
@@ -35,9 +28,6 @@ export const assertEnterActivates = async function assertEnterActivates(
 	await onActivate();
 };
 
-/**
- * Assert that pressing `Space` while a button is focused activates it.
- */
 export const assertSpaceActivates = async function assertSpaceActivates(
 	buttonTestId: string,
 	onActivate: () => Promise<void> | void,

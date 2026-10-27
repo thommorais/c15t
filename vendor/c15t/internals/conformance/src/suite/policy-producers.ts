@@ -11,7 +11,6 @@ import {
 import { POLICY_NOW, POLICY_RECORDS } from '../fixtures/policy-records';
 import type { SuiteApi } from './helpers';
 
-/** Group A vectors exercise actual public producers and codecs. */
 export const runPolicyProducerConformance =
 	function runPolicyProducerConformance(
 		driver: TestDriver,

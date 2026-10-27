@@ -1,31 +1,16 @@
-/**
- * Hand-built TC string core segments with publisher restrictions.
- *
- * The writer and reader follow the core segment table in the IAB TCF v2
- * "Consent string and vendor list formats" spec field by field. They share
- * no code with `@iabtechlabtcf/core`, so tests can check the encoder's bit
- * layout and feed the decoder strings the encoder did not produce.
- *
- * @packageDocumentation
- */
-
 const BASE64URL =
 	'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_';
 
-/** Header fields before the vendor consent section: 213 bits in total. */
 const HEADER_BITS = 213;
 
-/** One vendor entry: a single ID or an inclusive `[start, end]` range. */
 export type RestrictionEntry = number | readonly [number, number];
 
-/** A publisher restriction group exactly as it appears on the wire. */
 export interface WireRestriction {
 	purposeId: number;
 	restrictionType: number;
 	entries: readonly RestrictionEntry[];
 }
 
-/** Inputs for a spec-shaped core segment. */
 export interface CoreSegmentFixture {
 	cmpId?: number;
 	created?: Date;
@@ -59,7 +44,6 @@ const letters = (code: string): string =>
 
 const vendorSection = (ids: readonly number[]): string => {
 	const maxVendorId = ids.length ? Math.max(...ids) : 0;
-	// IsRangeEncoding = 0: a bitfield follows.
 	return `${int(maxVendorId, 16)}0${bitfield(ids, maxVendorId)}`;
 };
 
@@ -85,10 +69,6 @@ const fromBase64Url = (value: string): string => {
 	return bits;
 };
 
-/**
- * Encodes a version 2 core segment using the spec's field table.
- * Vendor sections use bitfield encoding.
- */
 export const encodeCoreSegment = function encodeCoreSegment(
 	fixture: CoreSegmentFixture
 ): string {
@@ -130,10 +110,6 @@ export const encodeCoreSegment = function encodeCoreSegment(
 	return toBase64Url(bits);
 };
 
-/**
- * Reads the PubRestrictions section of a TC string's core segment.
- * Skips the header and both vendor sections by their declared lengths.
- */
 export const readWireRestrictions = function readWireRestrictions(
 	tcString: string
 ): WireRestriction[] {
@@ -174,7 +150,6 @@ export const readWireRestrictions = function readWireRestrictions(
 	return restrictions;
 };
 
-/** Purpose 2 flatly not allowed for vendor 1 and vendors 10 to 12. */
 export const PURPOSE_PROHIBITED_TC_STRING = encodeCoreSegment({
 	purposeConsents: [1, 2, 7],
 	purposeLegitimateInterests: [7, 9],
@@ -183,7 +158,6 @@ export const PURPOSE_PROHIBITED_TC_STRING = encodeCoreSegment({
 	vendorLegitimateInterests: [1, 10],
 });
 
-/** Purpose 7 requires consent for vendor 1. */
 export const CONSENT_REQUIRED_TC_STRING = encodeCoreSegment({
 	purposeConsents: [1, 7],
 	purposeLegitimateInterests: [7],
@@ -192,7 +166,6 @@ export const CONSENT_REQUIRED_TC_STRING = encodeCoreSegment({
 	vendorLegitimateInterests: [1],
 });
 
-/** Purpose 2 requires legitimate interest for vendor 755. */
 export const LEGITIMATE_INTEREST_REQUIRED_TC_STRING = encodeCoreSegment({
 	purposeConsents: [1, 2],
 	purposeLegitimateInterests: [2],
@@ -201,53 +174,41 @@ export const LEGITIMATE_INTEREST_REQUIRED_TC_STRING = encodeCoreSegment({
 	vendorLegitimateInterests: [755],
 });
 
-/** Restriction type 3 is reserved ("UNDEFINED, not used"). */
 export const UNDEFINED_RESTRICTION_TC_STRING = encodeCoreSegment({
 	restrictions: [{ entries: [1], purposeId: 2, restrictionType: 3 }],
 });
 
-/** Purpose ID 0 does not exist. */
 export const PURPOSE_ZERO_RESTRICTION_TC_STRING = encodeCoreSegment({
 	restrictions: [{ entries: [1], purposeId: 0, restrictionType: 0 }],
 });
 
-/** A range whose end precedes its start. */
 export const INVERTED_RANGE_RESTRICTION_TC_STRING = encodeCoreSegment({
 	restrictions: [{ entries: [[12, 10]], purposeId: 2, restrictionType: 0 }],
 });
 
-/** Vendor ID 0 does not exist. */
 export const VENDOR_ZERO_RESTRICTION_TC_STRING = encodeCoreSegment({
 	restrictions: [{ entries: [0], purposeId: 2, restrictionType: 0 }],
 });
 
-/** Legitimate interest required for purpose 3, which TCF 2.2+ bars from LI. */
 export const LI_ON_CONSENT_ONLY_PURPOSE_TC_STRING = encodeCoreSegment({
 	restrictions: [{ entries: [1], purposeId: 3, restrictionType: 2 }],
 });
 
-/** A global (not service-specific) string with a restriction. */
 export const GLOBAL_SCOPE_RESTRICTION_TC_STRING = encodeCoreSegment({
 	isServiceSpecific: false,
 	restrictions: [{ entries: [1], purposeId: 2, restrictionType: 0 }],
 });
 
-/**
- * Policy version 2 (TCF 2.0) still allowed legitimate interest for purposes
- * 3 to 6, so this restriction was valid when the string was written.
- */
 export const POLICY_2_LI_ON_PURPOSE_3_TC_STRING = encodeCoreSegment({
 	policyVersion: 2,
 	restrictions: [{ entries: [1], purposeId: 3, restrictionType: 2 }],
 });
 
-/** Purpose 1 never allowed legitimate interest, under any policy version. */
 export const POLICY_2_LI_ON_PURPOSE_1_TC_STRING = encodeCoreSegment({
 	policyVersion: 2,
 	restrictions: [{ entries: [1], purposeId: 1, restrictionType: 2 }],
 });
 
-/** Vendor 1 both requires consent and requires LI for purpose 2. */
 export const CONFLICTING_RESTRICTIONS_TC_STRING = encodeCoreSegment({
 	restrictions: [
 		{ entries: [1], purposeId: 2, restrictionType: 1 },

@@ -1,11 +1,3 @@
-/**
- * Valibot mirrors of the v3 policy wire contract.
- *
- * Backends validate and document `/init` with these. Clients use the plain
- * reader in `policy-resolution-wire.ts` so `@c15t/schema/types` stays free of the
- * valibot runtime. A test keeps the two in agreement.
- */
-
 import * as v from 'valibot';
 
 import { POLICY_CONTRACT_VERSION } from './policy-resolution-wire';
@@ -28,10 +20,6 @@ export const policyOptionalCategorySchema = v.picklist(
 	POLICY_OPTIONAL_CATEGORIES
 );
 
-/**
- * Plain object with a plain or null prototype. Applied before every object
- * schema so inherited fields never reach the projection.
- */
 export const plainObjectSchema = v.custom<Record<string, unknown>>(
 	(input) => isPlainPolicyObject(input),
 	'Expected a plain object'
@@ -103,12 +91,6 @@ const resolvedPolicyRuleFieldsSchema = v.pipe(
 	})
 );
 
-/**
- * Normalized v3 rule as carried on the wire.
- *
- * Structure plus the same semantic invariants the authored path and the
- * client reader enforce, so the backend never accepts a weaker rule.
- */
 export const resolvedPolicyRuleSchema = v.pipe(
 	resolvedPolicyRuleFieldsSchema,
 	v.rawCheck(({ dataset, addIssue }) => {
@@ -170,13 +152,6 @@ const policyResolutionVariantSchema = v.variant('status', [
 	}),
 ]);
 
-/**
- * `policyResolution` as emitted by `/init` and manifests.
- *
- * Rejects inherited fields, unknown fields, unknown enum values, semantic
- * invariant violations and a `policyId` that differs from `policy.id`, the
- * same set the client reader rejects.
- */
 export const policyResolutionWireSchema = v.pipe(
 	plainObjectSchema,
 	policyResolutionVariantSchema,

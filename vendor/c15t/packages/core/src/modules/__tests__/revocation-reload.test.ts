@@ -96,7 +96,6 @@ describe('watchRevocationReload', () => {
 		const kernel = createKernel();
 		const { reload } = watch(kernel);
 
-		// First visit under opt-in: rejecting revokes nothing that ran.
 		await kernel.commands.save({ marketing: false });
 		await kernel.commands.save({ marketing: true });
 		await kernel.commands.save({ measurement: true });

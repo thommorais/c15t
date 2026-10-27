@@ -26,7 +26,6 @@ const EVENT_TYPES = [
 	'command:error',
 ] as const satisfies readonly KernelEvent['type'][];
 
-/** A new kernel event must also be added to the capture list. */
 export const KERNEL_EVENT_TYPES: Exclude<
 	KernelEvent['type'],
 	(typeof EVENT_TYPES)[number]
@@ -73,7 +72,6 @@ function errorData(command: string, error: unknown): Record<string, unknown> {
 			message = error;
 		}
 	} catch {
-		// Keep the safe serialized fallback when an error getter throws.
 	}
 	return {
 		command,
@@ -92,14 +90,6 @@ const replayMessage = (ok: boolean, rejected: string | undefined): string =>
 		? `Queued consent save refused by the backend (${rejected}); dropped`
 		: outcomeMessage(ok, 'Queued consent saved', 'Queued consent save failed');
 
-/**
- * Converts a kernel event into the stable log shape shown by DevTools.
- *
- * @param event - Event emitted by a consent kernel.
- * @param id - Instance-local event identifier.
- * @param timestamp - Capture time in milliseconds.
- * @returns A serializable DevTools event.
- */
 // oxlint-disable-next-line func-style, complexity -- Exhaustive public conversion of the kernel event union.
 export function kernelEventToDevToolsEvent(
 	event: KernelEvent,

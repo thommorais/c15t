@@ -7,18 +7,15 @@ import type {
 	ScenarioPrompt,
 } from './policy-scenarios';
 
-/** Raw input only. Never pass a fixture's expected normalization to a driver. */
 export interface PolicyStorageSeed {
 	encoding: 'legacy-json' | 'legacy-compact' | 'v3-choice-json';
 	raw: string;
 }
 
-/** All clocks, including SSR, persistence and action timestamps, use this clock. */
 export interface PolicyClock {
 	now: () => number;
 }
 
-/** Creation seeds storage and installs spies before any provider is mounted. */
 export interface PolicySessionSetup {
 	clock: PolicyClock;
 	policy: ScenarioPolicy;
@@ -29,19 +26,15 @@ export interface PolicySessionSetup {
 	probeGates: boolean;
 }
 
-/** Unescaped cookie values, captured without decoding or rewriting records. */
 export interface PolicyStorageBytes {
 	choice: { cookie: string | null; localStorage: string | null };
 	notice: { cookie: string | null; localStorage: string | null };
 	legacyLocalStorage: string | null;
 }
 
-/** Cumulative logs, copied on observation so later events cannot mutate them. */
 export interface PolicyLogs {
 	events: readonly { name: string; payload: unknown }[];
-	/** Invocations of onChoiceRecorded registered through public provider config. */
 	callbacks: readonly { name: string; payload: unknown }[];
-	/** Consent saves and init requests must remain distinct. */
 	requests: readonly {
 		kind: 'consent' | 'init';
 		payload: unknown;
@@ -49,7 +42,6 @@ export interface PolicyLogs {
 	diagnostics: readonly string[];
 }
 
-/** Confirmed TC authority, separate from editable IAB maps and draft TC strings. */
 export interface PolicyIabAuthority {
 	tcString: string;
 	confirmedAt: number;
@@ -62,7 +54,6 @@ export interface PolicyIabAuthority {
 	specialFeatureOptIns: Record<number, boolean>;
 }
 
-/** Direct public snapshot fields. No expected-result flags or evaluator here. */
 export interface PolicySnapshotEvidence {
 	explicitChoice: PolicyChoiceFixture | null;
 	subject: PolicySubjectFixture | null;
@@ -92,7 +83,6 @@ export interface PolicySnapshotEvidence {
 
 export type PolicyAction = 'accept' | 'reject' | 'customize' | 'dismiss-notice';
 
-/** Measurements from rendered controls, including portal content. */
 export interface PolicyDomEvidence {
 	firstLayer: 'choice' | 'notice' | 'hidden';
 	preferencesOpen: boolean;
@@ -101,41 +91,32 @@ export interface PolicyDomEvidence {
 		action: PolicyAction;
 		visible: boolean;
 		interactionDepth: number;
-		/** Actual common footer group identifier or DOM path. */
 		group: string;
-		/** Computed visual treatment, not the configured primaryButton value. */
 		prominence: string;
 	}[];
 }
 
-/** Probe real registered targets. Never infer these results from permissions. */
 export interface PolicyGateEvidence {
 	scriptLoads: number;
-	/** Actual probe script presence after reconciliation, independent of load history. */
 	scriptAttached: boolean;
-	/** Attempt a fresh probe request after each operation; counters are cumulative. */
 	networkAttempts: number;
 	networkCompletions: number;
 	iframeSrc: string | null;
 	iframePlaceholderVisible: boolean;
-	/** Latest actual Consent Mode update received by the gtag/dataLayer spy. */
 	consentMode: Record<string, string>;
 }
 
 export interface PolicySsrRenderEvidence {
 	prompt: ScenarioPrompt;
-	/** Same normalization on the actual server HTML and hydrated client DOM. */
 	dom: string;
 	firstLayer: PolicyDomEvidence['firstLayer'];
 	now: number;
 }
 
-/** SSR means hydrating this server HTML, never two unrelated fresh renders. */
 export interface PolicySsrEvidence {
 	server: PolicySsrRenderEvidence;
 	client: PolicySsrRenderEvidence;
 	hydrationWarnings: readonly string[];
-	/** Capture server paint and every observed client first-layer transition. */
 	firstLayerHistory: readonly PolicyDomEvidence['firstLayer'][];
 }
 
@@ -149,15 +130,6 @@ export interface PolicyEvidence {
 	iabTargetAllowed?: boolean;
 }
 
-/**
- * The first operation starts the real provider lifecycle. hydrate observes that
- * initial hydration once. ssr-hydrate must instead hydrate actual server HTML.
- * All actions use public commands or user clicks; UI accept/reject, notice and
- * preferences flows must click rendered controls. An empty or partial save uses
- * the public command with exactly the supplied keys. Never write snapshots.
- * A failed creation must release its own resources; the suite always disposes
- * a returned session, including when execution or an assertion fails.
- */
 export interface PolicySession {
 	readonly baseline: { storage: PolicyStorageBytes; logs: PolicyLogs };
 	execute: (operation: PolicyOperation) => Promise<void>;
@@ -165,12 +137,10 @@ export interface PolicySession {
 	dispose: () => void | Promise<void>;
 }
 
-/** Implemented by each supported adapter, never by the shared suite. */
 export type CreatePolicySession = (
 	setup: PolicySessionSetup
 ) => Promise<PolicySession>;
 
-/** Accepted authored fields plus presentation/runtime diagnostic inputs. */
 export interface PolicyFingerprintMutation {
 	layout?: 'row' | 'column';
 	actionOrder?: readonly string[];
@@ -181,7 +151,6 @@ export interface PolicyFingerprintMutation {
 	validity?: { choiceDays?: number; noticeDays?: number };
 }
 
-/** Producer/codec inputs contain no expected validity, hashes or decoded choice. */
 export type PolicyContractInput =
 	| {
 			kind: 'validate';
@@ -201,7 +170,6 @@ export interface PolicyContractEvidence {
 		'policy' | 'choice' | 'notice' | 'presentation',
 		string
 	>;
-	/** Actual outputs of the public choice/notice fingerprint input builders. */
 	fingerprintInputs?: {
 		choice: { domain: string; version: number };
 		notice: { domain: string; version: number };
@@ -213,7 +181,6 @@ export interface PolicyContractEvidence {
 	} | null;
 }
 
-/** Calls public schema producers, signal readers and storage codecs directly. */
 export type ProbePolicyContract = (
 	input: PolicyContractInput
 ) => PolicyContractEvidence | Promise<PolicyContractEvidence>;

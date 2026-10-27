@@ -1,11 +1,3 @@
-/**
- * The quickstart remounted right after a rejection, before persistence's
- * write code has loaded. The new provider starts from the rejection the
- * earlier one queued, not from storage that does not hold it yet.
- *
- * The write code is held back for the whole file, so it holds one test:
- * the page loads the code once.
- */
 import { policyRulePresets } from '@c15t/schema/types';
 import { afterEach, expect, test, vi } from 'vitest';
 import { render } from 'vitest-browser-react';
@@ -21,8 +13,6 @@ import {
 	useExplicitChoice,
 } from '../index';
 
-// Hold back the write code's chunk, as a slow network would, so the
-// remount happens before it loads.
 const loadWriter = pageWriterLoader.load;
 let openWriterGate: () => void = () => undefined;
 const writerGate = new Promise<void>((resolve) => {

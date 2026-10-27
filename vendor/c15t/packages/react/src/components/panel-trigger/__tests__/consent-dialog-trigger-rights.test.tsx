@@ -96,7 +96,6 @@ describe('ConsentDialogTriggerToolbar rights-aware action', () => {
 	});
 
 	test('the built-in action still opens the preference center', async () => {
-		// The notice renders as a bottom bar, so keep the toolbar clear of it.
 		renderWithRule(
 			OPT_OUT_NOTICE,
 			<ConsentDialogTriggerToolbar

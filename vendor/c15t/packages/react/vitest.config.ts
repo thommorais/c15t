@@ -5,7 +5,6 @@ import react from '@vitejs/plugin-react';
 import { playwright } from '@vitest/browser-playwright';
 import { defineConfig, mergeConfig } from 'vitest/config';
 
-/** `vitest run` is run mode; a bare `vitest` or `--watch` is watch mode. */
 const isVitestWatchMode = function isVitestWatchMode(): boolean {
 	const args = process.argv.slice(2);
 	if (args.includes('--watch')) {
@@ -18,11 +17,6 @@ export default mergeConfig(
 	baseConfig,
 	defineConfig({
 		optimizeDeps: {
-			// Build tooling reached through rslib.config.ts / shared rslib-utils
-			// is not a browser dependency. Left to discovery, Vite pre-bundles
-			// it on first sight mid-run and reloads the page ("optimized
-			// dependencies changed"), which vitest-browser-react does not
-			// survive; a cold CI cache hits this on every run.
 			exclude: [
 				'@rsbuild/plugin-react',
 				'@rslib/core',
@@ -36,16 +30,10 @@ export default mergeConfig(
 		resolve: {
 			alias: Object.fromEntries([
 				['~', resolve(__dirname, './src')],
-				// The showcase uses the React hooks re-exported by the Next adapter.
 				['c15t/next', resolve(__dirname, './src/index.ts')],
-				// Astro's source island must share this test suite's React contexts
-				// and coverage, rather than importing a second copy from dist.
 				['@c15t/react/iab', resolve(__dirname, './src/iab.ts')],
 				['@c15t/react/context', resolve(__dirname, './src/context.ts')],
 				['@c15t/react', resolve(__dirname, './src/index.ts')],
-				// Resolve core package to source so Vite can handle its dynamic
-				// imports natively. rslib emits webpack-style chunks that Vite's
-				// browser bundler cannot analyse.
 				[
 					'@c15t/core/modules/clear-on-revocation',
 					resolve(
@@ -153,8 +141,6 @@ export default mergeConfig(
 					'@c15t/ui/styles/primitives/tabs',
 					resolve(__dirname, '../ui/src/styles/primitives/tabs.ts'),
 				],
-				// @c15t/iab depends on @iabtechlabtcf/core which is only
-				// installed in the iab package's node_modules.
 				[
 					'@iabtechlabtcf/core',
 					resolve(__dirname, '../iab/node_modules/@iabtechlabtcf/core'),
@@ -167,12 +153,6 @@ export default mergeConfig(
 			]),
 		},
 		server: {
-			// Sibling packages regenerate `src/version.ts` in their own prebuild
-			// while these browser tests run against core source through the
-			// aliases above. With a file watcher active that rewrite reloads a
-			// test mid-run, which vitest-browser-react does not survive, so the
-			// watcher is off for `vitest run` and left on for watch mode (the
-			// `test:watch` scripts, or an explicit `--watch`).
 			watch: isVitestWatchMode() ? undefined : null,
 		},
 		test: {
@@ -180,15 +160,11 @@ export default mergeConfig(
 				enabled: true,
 				headless: true,
 				instances: [{ browser: 'chromium' }],
-				// Headless Chromium hides scrollbars by default. Showing them keeps
-				// classic scrollbar layout (as on Windows and Linux) testable.
 				provider: playwright({
 					launchOptions: { ignoreDefaultArgs: ['--hide-scrollbars'] },
 				}),
 			},
 			coverage: {
-				// Coverage ratchet: floors below current coverage so regressions
-				// fail CI. Raise as coverage improves; never lower.
 				thresholds: {
 					branches: 50,
 					functions: 60,

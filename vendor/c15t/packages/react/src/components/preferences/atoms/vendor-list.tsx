@@ -15,11 +15,9 @@ export interface ConsentWidgetVendorListProps extends Omit<
 	BoxProps,
 	'children' | 'slotKey'
 > {
-	/** Category whose vendors to list. */
 	category: AllConsentNames;
 }
 
-/** Plus or minus, the same glyphs the category rows use. */
 const ToggleIcon = ({ open }: { open: boolean }) => (
 	<svg
 		aria-hidden="true"
@@ -57,12 +55,6 @@ interface VendorRowProps {
 	vendor: ResolvedVendor;
 }
 
-/**
- * One vendor as a card of its own, shaped like a category row: the name and
- * switch on the header, the description and privacy policy link behind the
- * expand control. Collapsed by default so a long list stays one line per
- * vendor.
- */
 const VendorRow = ({
 	category,
 	categoryOn,
@@ -76,8 +68,6 @@ const VendorRow = ({
 }: VendorRowProps) => {
 	const [open, setOpen] = useState(false);
 	const name = vendor.name ?? vendor.id;
-	// A `disabled` vendor is presented without a toggle: the kernel ignores
-	// grants for it, so a switch would only mislead.
 	const toggleable = vendor.disabled !== true;
 	const hasDetails = Boolean(vendor.description || vendor.privacyPolicyUrl);
 
@@ -180,22 +170,6 @@ const VendorRow = ({
 	);
 };
 
-/**
- * Vendor rows nested inside one category's accordion content, each a
- * collapsed card of its own that opens for its description and privacy
- * policy link. A long list stays one line per vendor.
- *
- * Renders nothing when the category has no presentable vendor or the model
- * is `iab`. Each row's switch stages a per-vendor grant on the same draft
- * the category switches use; nothing is recorded until Save. While the
- * parent category is off in the draft, the vendor switches are disabled: a
- * vendor toggle never grants a category on its own. A `disabled` vendor is
- * listed without a switch.
- *
- * @param props - The category whose vendors to list, plus `Box` attributes.
- * @returns The vendor list, or `null` when there is nothing to list.
- * @public
- */
 export const ConsentWidgetVendorList = ({
 	category,
 	className,
@@ -214,8 +188,6 @@ export const ConsentWidgetVendorList = ({
 	);
 	const { consentManagerDialog } = useTranslations();
 	const { noStyle: contextNoStyle } = useTheme();
-	// Two surfaces can list the same vendor at once, an inline widget and an
-	// open dialog for instance, so the label ids are scoped to this instance.
 	const instanceId = useId();
 	const finalNoStyle = noStyle ?? contextNoStyle ?? false;
 	if (vendors.length === 0) {

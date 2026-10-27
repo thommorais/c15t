@@ -1,11 +1,6 @@
 import { expect, userEvent, waitFor, within } from 'storybook/test';
 import type { PlayFunction } from 'storybook/types';
 
-/**
- * Expands the marketing category, then one vendor card under it, and turns
- * that vendor off in the draft. The category is on in these stories, so the
- * switches are live and no hint shows.
- */
 export const expandedVendors: PlayFunction = async ({ canvasElement }) => {
 	const canvas = within(canvasElement);
 	const categoryTrigger = await canvas.findByTestId(
@@ -44,10 +39,6 @@ export const expandedVendors: PlayFunction = async ({ canvasElement }) => {
 	});
 };
 
-/**
- * Expands accordion categories and verifies single-open behavior:
- * opening one category closes the previously open one.
- */
 export const expandedCategories: PlayFunction = async ({ canvasElement }) => {
 	const canvas = within(canvasElement);
 	const functionalityTrigger = await canvas.findByTestId(

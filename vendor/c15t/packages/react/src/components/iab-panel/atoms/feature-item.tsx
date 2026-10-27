@@ -13,32 +13,11 @@ import { mergeSlotProps } from '~/utils/merge-slot-props';
 import type { ProcessedFeature } from '../types';
 import { useIABTranslations } from '../use-iab-translations';
 
-/** Props for {@link FeatureItem}. */
 export interface FeatureItemProps {
-	/** The feature, as a display-model row or processed GVL feature. */
 	feature: ProcessedFeature;
-	/**
-	 * The row's `data-testid`. Comes from the shared display model, which
-	 * namespaces it by row kind.
-	 */
 	testId?: string;
 }
 
-/**
- * One informational IAB Feature row.
- *
- * TCF Policies v5.0.b forbid showing Features next to a control that
- * cannot be disabled, so this row has no switch, no lock and no per-vendor
- * toggles. It shows the name, the description, the illustrations and the
- * names of the vendors that use the feature.
- *
- * @param props - The feature and its test id.
- * @returns The collapsible feature row.
- * @example
- * ```tsx
- * <FeatureItem feature={row} testId={row.testId} />
- * ```
- */
 export const FeatureItem: FC<FeatureItemProps> = ({ feature, testId }) => {
 	const { components } = useUIConfig();
 	const { noStyle } = useTheme();

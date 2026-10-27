@@ -1,7 +1,3 @@
-/**
- * The Additional Consent string on the save body: it travels only beside a
- * TC string, since Google discards one sent alone.
- */
 import { describe, expect, test } from 'vitest';
 
 import type { SavePayload } from '../../types';

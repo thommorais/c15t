@@ -1,17 +1,3 @@
-/**
- * IAB TCF conformance suite (render + store level).
- *
- * Mounts the prebuilt IAB surfaces with an IAB policy fixture and a minimal
- * GVL (see `fixtures/gvl.ts`) and asserts the canonical contract render:
- * the banner root and customize button test-ids, basic button semantics,
- * and that the store reports the IAB policy model.
- *
- * Deliberately shallow: no vendor/purpose toggling or deep dialog
- * interaction — portal + focus-trap behavior is flaky under jsdom and is
- * covered by the storybook interaction suites instead. Drivers without IAB
- * component support throw `DriverNotImplementedError` and fail.
- */
-
 import { TEST_IDS } from '../contract/test-ids';
 import type { TestDriver } from '../driver';
 import { MINIMAL_GVL } from '../fixtures/gvl';
@@ -25,28 +11,18 @@ import {
 import type { SuiteApi } from './helpers';
 import { runPolicyScenarioConformance } from './policy-scenarios';
 
-/**
- * The rows `MINIMAL_GVL` produces, in render order.
- *
- * Purpose 1 is standalone by the TCF spec and purpose 2 is the only one
- * the fixture's stack covers, so the stack does not qualify and both
- * purposes stand alone. The vendor declares the special feature, so that
- * row renders too.
- */
 const EXPECTED_CONSENT_ROWS = [
 	'purpose-item-1',
 	'purpose-item-2',
 	'special-feature-item-1',
 ];
 
-/** The test-id namespaces a row in the consent list can carry. */
 const CONSENT_ROW_PREFIXES = [
 	'purpose-item-',
 	'stack-item-',
 	'special-feature-item-',
 ];
 
-/** Every `data-testid` on or under an element, in document order. */
 const testIdsWithin = function testIdsWithin(
 	root: ParentNode,
 	prefix: string
@@ -62,11 +38,9 @@ const testIdsWithin = function testIdsWithin(
 		);
 };
 
-/** English `iab.preferenceCenter.features.description`. */
 const FEATURES_FALLBACK_TEXT =
 	'These means of processing can be used solely in pursuit of one or several purposes for which you are given a choice in this notice.';
 
-/** Anything a visitor could toggle. */
 const CONTROL_SELECTOR = '[role="switch"], [role="checkbox"], input, select';
 
 const featuresSection = (): HTMLElement | undefined =>
@@ -75,11 +49,6 @@ const featuresSection = (): HTMLElement | undefined =>
 		`[data-testid="${TEST_IDS.iabConsentDialog.features}"]`
 	)[0];
 
-/**
- * Open every collapsed disclosure inside `root`, repeating so nested ones
- * (a feature, then its examples) open too. Frameworks mount collapsed
- * content on first open, so text inside is only reachable afterwards.
- */
 const expandAll = async function expandAll(
 	root: HTMLElement,
 	rounds = 3
@@ -250,8 +219,6 @@ export const runIabUiConformance = function runIabUiConformance(
 					await waitForCondition(
 						() => testIdsWithin(document.body, 'purpose-item-').length > 0
 					);
-					// Document order, across every kind the consent list can hold,
-					// so the assertion covers the order and not just membership.
 					const rows = testIdsWithin(document.body, '').filter((id) =>
 						CONSENT_ROW_PREFIXES.some((prefix) => id.startsWith(prefix))
 					);
@@ -273,10 +240,6 @@ export const runIabUiConformance = function runIabUiConformance(
 					await waitForCondition(
 						() => testIdsWithin(document.body, 'purpose-item-').length > 0
 					);
-					// The display model namespaces a row's test-id by kind
-					// precisely so counting them means something: a purpose, a
-					// special purpose, a feature and a special feature can all be
-					// numbered `1`.
 					const rows = [
 						...testIdsWithin(document.body, 'purpose-item-'),
 						...testIdsWithin(document.body, 'special-purpose-item-'),
@@ -305,9 +268,6 @@ export const runIabUiConformance = function runIabUiConformance(
 					if (!section) {
 						return;
 					}
-					// TCF Policies v5.0.b: the standard text sits with the
-					// Features, which are informational and never next to a
-					// control that cannot be disabled.
 					api.expect(section.getAttribute('aria-label')).toBe('Features');
 					api
 						.expect(section.textContent)
@@ -367,8 +327,6 @@ export const runIabUiConformance = function runIabUiConformance(
 					await waitForCondition(
 						() => testIdsWithin(document.body, 'purpose-item-').length > 0
 					);
-					// Frameworks may unmount collapsed content or use native details.
-					// Either way, essential disclosures must never offer consent.
 					const controls = queryAllIncludingShadowRoots(
 						document.body,
 						'[data-testid^="special-purpose-item-"] [role="switch"], [data-testid^="feature-item-"] [role="switch"], [data-testid^="special-purpose-item-"] [role="checkbox"], [data-testid^="feature-item-"] [role="checkbox"], [data-testid^="special-purpose-item-"] input, [data-testid^="feature-item-"] input'
@@ -382,7 +340,6 @@ export const runIabUiConformance = function runIabUiConformance(
 	});
 };
 
-/** Category restrictions and confirmed IAB authority remain independent. */
 export const runIabConformance = function runIabConformance(
 	driver: TestDriver,
 	api: SuiteApi

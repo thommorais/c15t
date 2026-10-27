@@ -1,8 +1,3 @@
-/**
- * The React 18 path of a streamed surface: without `use()`, the boundary
- * suspends on the thrown promise and reads the runtime's recorded result
- * on its retry.
- */
 import {
 	createConsentProviderRuntime,
 	defaultRuntimeModules,

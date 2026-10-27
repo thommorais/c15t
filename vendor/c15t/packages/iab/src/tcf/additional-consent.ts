@@ -1,14 +1,3 @@
-/**
- * Google Additional Consent (AC) string, version 2.
- *
- * Carries consent and disclosure for Google ad tech providers (ATPs) that
- * are not on the IAB Global Vendor List. Google reads it beside the TC
- * string and discards it when no TC string comes with it.
- *
- * @see https://support.google.com/admanager/answer/9681920
- * @packageDocumentation
- */
-
 import type { AdTechProvider } from '@c15t/core';
 import {
 	AD_TECH_PROVIDER_PURPOSES,
@@ -19,29 +8,12 @@ import {
 	parseAdTechProviderList,
 } from '@c15t/schema/types';
 
-/**
- * Default provider list endpoint. It serves Google's
- * `additional-consent-providers.csv` as JSON, filtered by `providerIds`.
- *
- * @internal
- */
 export const AD_TECH_PROVIDERS_ENDPOINT = AD_TECH_PROVIDERS_URL;
 
-/**
- * TCF purposes a provider needs before the AC string lists it as consented.
- *
- * @internal
- */
 export { AD_TECH_PROVIDER_PURPOSES };
 
-/** Consented and disclosed provider IDs read from an AC string. */
 export interface AdditionalConsentSignal {
-	/** Providers the visitor consented to. */
 	consented: number[];
-	/**
-	 * Every provider the visitor was shown, consented ones included. The
-	 * string itself lists a consented provider only once.
-	 */
 	disclosed: number[];
 }
 
@@ -51,21 +23,6 @@ const isProviderId = (value: unknown): value is number =>
 const sortedIds = (ids: Iterable<number>): number[] =>
 	[...new Set(ids)].filter(isProviderId).sort((a, b) => a - b);
 
-/**
- * Builds an ACv2 string: `2~<consented>~dv.<disclosed, not consented>`.
- *
- * A consented provider is disclosed by definition, so it is written in the
- * consented part only.
- *
- * @param signal - Consented and disclosed provider IDs.
- * @returns The AC string, such as `2~1.10~dv.2.3.4`.
- *
- * @example
- * ```ts
- * encodeAdditionalConsent({ consented: [1, 10], disclosed: [1, 2, 3, 4, 10] });
- * // '2~1.10~dv.2.3.4'
- * ```
- */
 export const encodeAdditionalConsent = function encodeAdditionalConsent(
 	signal: AdditionalConsentSignal
 ): string {
@@ -85,12 +42,6 @@ const parseIds = (part: string): number[] | null => {
 	return ids.every(isProviderId) ? ids : null;
 };
 
-/**
- * Reads an ACv2 string. Version 1 strings and malformed input return `null`.
- *
- * @param value - An AC string such as `2~1.10~dv.2.3.4`.
- * @returns Consented and disclosed IDs, or `null` when the string is not ACv2.
- */
 export const decodeAdditionalConsent = function decodeAdditionalConsent(
 	value: string
 ): AdditionalConsentSignal | null {
@@ -100,7 +51,6 @@ export const decodeAdditionalConsent = function decodeAdditionalConsent(
 	}
 	const consented = parseIds(parts[1] ?? '');
 	const disclosedPart = parts[2] ?? '';
-	// `dv` without the dot is allowed when nothing follows it.
 	if (disclosedPart !== 'dv' && !disclosedPart.startsWith('dv.')) {
 		return null;
 	}
@@ -114,18 +64,6 @@ export const decodeAdditionalConsent = function decodeAdditionalConsent(
 	};
 };
 
-/**
- * Builds the AC string for a confirmed choice.
- *
- * Every provider in `choices` was shown to the visitor, so it is disclosed.
- * It is consented when its switch is on and the TC string consents to every
- * purpose in {@link AD_TECH_PROVIDER_PURPOSES}.
- *
- * @param choices - Provider switches keyed by provider ID, one per shown provider.
- * @param purposeConsents - Purpose consents encoded in the TC string.
- * @returns The AC string, or `undefined` when no provider was shown.
- * @internal
- */
 export const additionalConsentFor = function additionalConsentFor(
 	choices: Readonly<Record<string, boolean>>,
 	purposeConsents: Readonly<Record<number, boolean>>
@@ -147,17 +85,6 @@ export const additionalConsentFor = function additionalConsentFor(
 
 const inflight = new Map<string, Promise<AdTechProvider[]>>();
 
-/**
- * Fetches names and privacy policy links for Google ad tech providers.
- *
- * Providers Google no longer lists are left out: the AC string may only
- * carry IDs from Google's current file.
- *
- * @param providerIds - Google ATP IDs the publisher works with.
- * @param endpoint - Provider list URL. Defaults to {@link AD_TECH_PROVIDERS_ENDPOINT}.
- * @returns The listed providers, sorted by ID.
- * @throws {Error} When the request fails or the response has no provider map.
- */
 export const fetchAdTechProviders = function fetchAdTechProviders(
 	providerIds: readonly number[],
 	endpoint: string = AD_TECH_PROVIDERS_ENDPOINT
@@ -171,7 +98,6 @@ export const fetchAdTechProviders = function fetchAdTechProviders(
 		typeof window === 'undefined' ? undefined : window.location.href
 	).toString();
 	const requestUrl = adTechProviderListUrl(base, ids);
-	// Keyed on the IDs too: past the query cap the URL alone no longer names them.
 	const key = `${requestUrl}|${ids.join(',')}`;
 	const existing = inflight.get(key);
 	if (existing) {

@@ -105,7 +105,6 @@ describe('ConsentProvider with an external runtime', () => {
 		unmount();
 
 		expect(dispose).not.toHaveBeenCalled();
-		// Still usable afterwards, which a disposed kernel would not be.
 		expect(runtime.kernel.getSnapshot()).toBeTruthy();
 	});
 
@@ -131,8 +130,6 @@ describe('ConsentProvider with an external runtime', () => {
 			</ConsentProvider>
 		);
 
-		// Cleanup follows the script loader's dynamic import. Wait for that
-		// entire chain so an accidental mount has time to delete the target.
 		await vi.dynamicImportSettled();
 
 		expect(init).not.toHaveBeenCalled();

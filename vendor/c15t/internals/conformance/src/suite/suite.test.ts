@@ -8,7 +8,6 @@ import type {
 	PolicyResolution,
 } from '@c15t/core';
 import { readStoredRecordsFromCookieHeader } from '@c15t/core/modules/persistence';
-/** These meta-tests corrupt actual kernel observations, not a policy evaluator. */
 import { GVL, TCModel, TCString } from '@iabtechlabtcf/core';
 
 import type {
@@ -31,10 +30,6 @@ import type { SuiteApi } from './helpers';
 import { runConformanceSuite } from './index';
 import { executePolicyScenario, policySessionSetup } from './policy-scenarios';
 
-/**
- * `hydrate` applies stored records the way persistence does. It is a verb
- * only core's own modules call, so it is not on `ConsentKernel`.
- */
 const hydrateRecords = <KernelType extends object>(
 	kernel: KernelType,
 	records: HydrationRecords
@@ -114,7 +109,6 @@ const evidence = function evidence(
 ): PolicyEvidence {
 	const snapshot = kernel.getSnapshot();
 	return structuredClone({
-		// No UI is mounted in checker unit tests; none assert this placeholder.
 		dom: {
 			actions: [],
 			firstLayer: 'hidden',
@@ -263,7 +257,6 @@ describe('shared policy assertion sensitivity', () => {
 		await withKernel(
 			async (kernel) => {
 				await kernel.commands.init();
-				// A choice made while the notice is owed acknowledges it.
 				await kernel.commands.save({ marketing: false });
 				const actual = evidence(kernel);
 				const expected: PolicyObservation = { prompt: { kind: 'none' } };
@@ -664,8 +657,6 @@ test('broad GPC keeps unmapped grants and original receipts, and ends with the s
 		const corrupt = evidence(kernel);
 		corrupt.snapshot.effectivePermissions.experience = false;
 		await expect(checkObservation(corrupt, expected)).rejects.toThrow();
-		// GPC is read live: once the browser stops sending it, the stored
-		// grants apply again and still no choice is recorded.
 		kernel.set.privacySignals({ gpc: false });
 		expect(kernel.getSnapshot().explicitChoice).toBe(original);
 		await checkObservation(evidence(kernel, { ...emptyLogs(), events }), {

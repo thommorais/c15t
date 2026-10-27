@@ -1,25 +1,3 @@
-/**
- * `@c15t/iab` — IAB TCF 2.4 module for the c15t consent kernel.
- *
- * Consumes the `@c15t/core` kernel and provides CMP-compliant IAB TCF
- * functionality:
- * - Installs `window.__tcfapi` global (synchronous stub + async real
- *   implementation) so third-party vendors can discover the CMP.
- * - Fetches the Global Vendor List (GVL) with HTTP cache + in-flight
- *   deduplication. Respects `gvl: null` on the `/init` response
- *   (server-side non-IAB region opt-out).
- * - Encodes TCF 2.4 strings via lazy-loaded `@iabtechlabtcf/core` so
- *   the 50KB encoder only loads when `save()` is actually called.
- * - Persists vendor/purpose/LI/special-feature consent through
- *   `kernel.set.iab()`, preserving the framework-neutral kernel
- *   contract.
- *
- * Same public shape as v2's `@c15t/iab` but adapted to consume the
- * kernel rather than the Zustand store. Re-uses every pure utility
- * from v2: GVL fetcher, TC string encoder, purpose mapper, CMP API
- * (`createCMPApi`), stub installer (`initializeIABStub`).
- */
-
 import { c15tProtocolParams, registerIABControls } from '@c15t/core';
 import type {
 	AdditionalConsentConfig,
@@ -76,118 +54,32 @@ import {
 import { destroyIABStub as destroyStub, initializeIABStub } from './tcf/stub';
 import { generateTCString, resolveIsServiceSpecific } from './tcf/tc-string';
 
-/**
- * Public option surface for `createIAB`. Mirrors v2's `IABUserConfig`
- * but threads the kernel through.
- */
 export interface CreateIABOptions {
-	/** The consent kernel to bind to. */
 	kernel: ConsentKernel;
-	/**
-	 * CMP ID assigned by IAB Europe at CMP registration. An integer from 2 to
-	 * 4095. Required: a TC String encodes it in a 12-bit field, and strings for
-	 * unregistered providers are not valid TCF signals.
-	 */
 	cmpId: number;
-	/**
-	 * CMP version reported in the TC String and `__tcfapi`. Defaults to the
-	 * major of the `@c15t/iab` package version.
-	 */
 	cmpVersion?: number;
-	/** Filter GVL to a specific vendor allowlist (optional). */
 	vendors?: number[];
-	/** Non-IAB vendors declared by the publisher. */
 	customVendors?: NonIABVendor[];
-	/**
-	 * Google ad tech providers that are not on the GVL. The preference center
-	 * lists each one with its privacy policy, and `__tcfapi` returns an
-	 * Additional Consent string (`addtlConsent`) beside every TC string.
-	 * Providers count as consented only with consent to TCF purposes 1, 3
-	 * and 4.
-	 */
 	additionalConsent?: AdditionalConsentConfig;
-	/** Publisher country code (ISO 3166-1 alpha-2). Default: 'US'. */
 	publisherCountryCode?: string;
-	/**
-	 * Ignored: c15t always encodes IsServiceSpecific=1.
-	 *
-	 * @deprecated TCF requires IsServiceSpecific=1. Group-specific scope is
-	 * also encoded as 1. Passing `false` logs a warning once and has no
-	 * other effect.
-	 */
 	isServiceSpecific?: boolean;
-	/**
-	 * Publisher restrictions encoded into every TC string this CMP saves and
-	 * applied when c15t gates IAB scripts. Checked against the vendor list
-	 * once it loads: an unsupported restriction rejects `whenReady()`,
-	 * `generateTCString()` and `save()` with a `PublisherRestrictionError`.
-	 * `whenReady()` does not retry it. With an explicit `gvl` it lasts for the
-	 * handle; otherwise a replacement vendor list is checked again.
-	 * The array is copied when the handle is created.
-	 */
 	publisherRestrictions?: PublisherRestriction[];
-	/** Store saved TC strings in cookies and localStorage. Default: true.
-	 * Set false for an in-memory playground; the kernel save transport still runs.
-	 */
 	persistence?: boolean;
-	/**
-	 * Pre-loaded GVL. When supplied, skips the network fetch. Accepts
-	 * `null` to explicitly disable IAB mode (non-IAB region).
-	 */
 	gvl?: GlobalVendorList | null;
-	/**
-	 * Override the GVL endpoint. Default: `gvl.inth.app`.
-	 */
 	gvlURL?: string;
 }
 
-/**
- * Provider-facing IAB configuration accepted by {@link iab}.
- *
- * The framework provider supplies the consent kernel when it mounts the
- * runtime module.
- */
 export type IABUserConfig = Omit<CreateIABOptions, 'cmpId' | 'kernel'> & {
-	/**
-	 * CMP ID assigned by IAB Europe at CMP registration. Hosted providers can
-	 * omit this when the backend returns the ID during initialization.
-	 * Supplying a value that is not a registered ID is rejected here rather
-	 * than at save time.
-	 */
 	cmpId?: number;
 };
 
-/** Configuration returned by {@link iab} for framework providers. */
 export interface IABProviderConfig extends IABUserConfig {
-	/** Enables the IAB addon in the framework provider. */
 	enabled: true;
 }
 
-/**
- * Enables IAB TCF support for a framework consent provider.
- *
- * @param config - CMP and vendor configuration for the IAB runtime.
- * @returns Provider configuration with the IAB addon enabled.
- * @throws {Error} When `cmpId` is present but is not a registered CMP ID. An
- * absent `cmpId` is allowed: a hosted backend can supply it from `/init`.
- *
- * @example
- * ```tsx
- * import { iab } from '@c15t/iab';
- *
- * <ConsentProvider options={{
- *   mode: hosted({ backendURL: '/api/c15t' }),
- *   iab: iab({ cmpId: 28, vendors: [1, 2, 755] }),
- * }}>
- *   {children}
- * </ConsentProvider>
- * ```
- */
 const createIABProviderConfig = function createIABProviderConfig(
 	config: IABUserConfig
 ): IABProviderConfig {
-	// An absent cmpId is legitimate: a hosted backend returns it from /init.
-	// A present-but-unusable one is never legitimate.
 	if (config.cmpId !== undefined && !isValidCmpId(config.cmpId)) {
 		throw createCmpIdError(config.cmpId);
 	}
@@ -208,64 +100,25 @@ export {
 } from './tcf/publisher-restrictions';
 export type { PublisherRestrictionContext } from './tcf/publisher-restrictions';
 
-/**
- * Handle returned by `createIAB`. Provides imperative control over the
- * CMP state and a `dispose` method for teardown.
- */
 export interface IABHandle {
-	/** Wait for GVL loading and CMP setup. Rejects if setup could not complete. */
 	whenReady: () => Promise<void>;
-	/** Tear down the CMP API + stub and disconnect kernel subscriptions. */
 	dispose: () => void;
-	/** The underlying CMP API instance (for advanced consumers). */
 	readonly cmpApi: CMPApi | null;
-	/** Set consent for a specific IAB vendor by ID. */
 	setVendorConsent: (vendorId: string | number, value: boolean) => void;
-	/** Set legitimate interest for a specific IAB vendor. */
 	setVendorLegitimateInterest: (
 		vendorId: string | number,
 		value: boolean
 	) => void;
-	/** Set consent for a specific IAB purpose (1–11). */
 	setPurposeConsent: (purposeId: number, value: boolean) => void;
-	/** Set legitimate interest for a specific IAB purpose. */
 	setPurposeLegitimateInterest: (purposeId: number, value: boolean) => void;
-	/** Opt in/out of a special feature (1 = geo, 2 = device ID). */
 	setSpecialFeatureOptIn: (featureId: number, value: boolean) => void;
-	/**
-	 * Set consent for a Google ad tech provider listed for Additional
-	 * Consent. Call `save()` to publish it in the AC string.
-	 */
 	setAdTechProviderConsent: (providerId: number, value: boolean) => void;
-	/**
-	 * Grant vendor and purpose consent for declared consent purposes,
-	 * legitimate-interest signals for declared legitimate-interest purposes,
-	 * and opt-ins for declared special features. Includes custom vendors and
-	 * respects publisher restrictions. Undeclared purposes and special features
-	 * remain denied. Call `save()` to encode and persist the choice.
-	 */
 	acceptAll: () => void;
-	/** Flip every vendor + purpose consent to false. */
 	rejectAll: () => void;
-	/**
-	 * Encode the current state as a TCF 2.4 string and commit to the
-	 * kernel (via `set.iab({ tcString })`). Does NOT call
-	 * `kernel.commands.save()` — the caller decides whether to persist
-	 * or just emit the string.
-	 */
 	generateTCString: () => Promise<string>;
-	/**
-	 * Generate the TC string, commit it to the kernel, and call
-	 * `kernel.commands.save()` — the full save flow including backend
-	 * round-trip (if a transport is configured).
-	 */
 	save: () => Promise<void>;
 }
 
-/**
- * Internal helper — synchronously seed the IAB snapshot with baseline
- * state so selectors have something to read immediately on mount.
- */
 const seedInitialIAB = function seedInitialIAB(
 	kernel: ConsentKernel,
 	options: CreateIABOptions,
@@ -293,10 +146,6 @@ const seedInitialIAB = function seedInitialIAB(
 	});
 };
 
-/**
- * Pull the current IAB slice from the kernel snapshot, returning a
- * default-populated object when the slice hasn't been initialized yet.
- */
 const readIAB = function readIAB(kernel: ConsentKernel) {
 	return (
 		kernel.getSnapshot().iab ?? {
@@ -315,29 +164,16 @@ const readIAB = function readIAB(kernel: ConsentKernel) {
 	);
 };
 
-/**
- * Consent purposes Google ad tech providers process. The AC string lists a
- * provider as consented only with all of them, so listed providers declare
- * them the way a registered vendor declares its purposes.
- */
 const adTechProviderPurposes = (
 	providers: readonly AdTechProvider[] | null | undefined
 ): readonly number[] => (providers?.length ? AD_TECH_PROVIDER_PURPOSES : []);
 
-/**
- * Accept All grants only declared processing on each legal basis after
- * publisher restrictions, including custom vendors and the purposes listed
- * ad tech providers need. Reject All clears vendor,
- * purpose, legitimate-interest and special-feature signals.
- */
 const applyBlanket = function applyBlanket(
 	kernel: ConsentKernel,
 	gvl: GlobalVendorList,
 	value: boolean,
 	restrictions: readonly PublisherRestriction[] = []
 ): void {
-	// A restriction can move a vendor's flexible purpose to the other legal
-	// basis, so that basis needs the vendor signal instead.
 	const vendors = [
 		...Object.values(
 			applyPublisherRestrictionsToGVL(gvl, restrictions).vendors ?? {}
@@ -346,10 +182,6 @@ const applyBlanket = function applyBlanket(
 	];
 	const purposeIds = Object.keys(gvl.purposes ?? {}).map(Number);
 	const specialFeatureIds = Object.keys(gvl.specialFeatures ?? {}).map(Number);
-	// TCF Policies 5(3), 5(6) and 5(8): a signal is positive only for what
-	// the visitor was shown, on the legal basis a vendor declares for it.
-	// The preference centre lists only purposes and special features some
-	// vendor declares, so Accept All grants only those.
 	const declared = (
 		pick: (vendor: (typeof vendors)[number]) => number[] | undefined
 	) => new Set(vendors.flatMap((vendor) => pick(vendor) ?? []));
@@ -398,10 +230,6 @@ const applyBlanket = function applyBlanket(
 	});
 };
 
-/**
- * Restrictions preference UIs read from the kernel before the vendor list
- * is known. Invalid input shows none: the CMP rejects it before saving.
- */
 const restrictionsForDisplay = function restrictionsForDisplay(
 	input: unknown
 ): PublisherRestriction[] {
@@ -412,11 +240,6 @@ const restrictionsForDisplay = function restrictionsForDisplay(
 	}
 };
 
-/**
- * Purposes some vendor processes on consent once restrictions apply. A
- * purpose outside this set has no consent switch, so it must not decide a
- * category.
- */
 const consentBasisPurposes = function consentBasisPurposes(
 	gvl: GlobalVendorList,
 	restrictions: readonly PublisherRestriction[],
@@ -434,10 +257,6 @@ const consentBasisPurposes = function consentBasisPurposes(
 	]);
 };
 
-/**
- * Identifies a stored receipt by everything a restore reads from it: the TC
- * string, the confirmation time and the custom vendor choices.
- */
 const receiptIdentity = function receiptIdentity(value: unknown): string {
 	if (!value || typeof value !== 'object') {
 		return '';
@@ -481,31 +300,11 @@ const changedIABDraft = function changedIABDraft(
 		current.iab?.gvl === previous.iab?.gvl &&
 		current.iab?.enabled === previous.iab?.enabled &&
 		current.iab?.gvlReference === previous.iab?.gvlReference &&
-		// A provider list arriving is list data, not a visitor's edit.
 		current.iab?.adTechProviders === previous.iab?.adTechProviders &&
 		!current.iab?.authority
 	);
 };
 
-/**
- * Whether a TC authority grants something the explicit choice denies.
- *
- * A denial recorded after the authority was confirmed denies every purpose
- * of its category: any one of them granted is a conflict. A denial from the
- * same IAB save (or an older one) is how that save summarised a partial
- * selection, since a category counts as granted only when all its purposes
- * are; there only a TC string granting every purpose of the category
- * conflicts, so the visitor's own partial selection stands.
- *
- * Only purpose consent counts. A category refusal withholds consent; the
- * TCF control for legitimate interest is the objection, which the
- * legitimate interest bits record, so a refused category does not revoke
- * them. Counting them would also make the usual save that refuses consent
- * without objecting conflict with itself. A later denial still withdraws
- * an authority granting only legitimate interest once its receipt is
- * reloaded, since the authority then predates the choice (see
- * {@link predatesChoice}).
- */
 const grantsDeniedCategory = function grantsDeniedCategory(
 	authority: KernelIABAuthority,
 	choice: ExplicitChoice | null
@@ -527,7 +326,6 @@ const grantsDeniedCategory = function grantsDeniedCategory(
 	});
 };
 
-/** The editable selections a confirmed authority records. */
 const selectionsOf = function selectionsOf(authority: KernelIABAuthority) {
 	return {
 		adTechProviderConsents: { ...authority.adTechProviderConsents },
@@ -539,7 +337,6 @@ const selectionsOf = function selectionsOf(authority: KernelIABAuthority) {
 	};
 };
 
-/** Purpose consents with every purpose of a denied category turned off. */
 const withoutDeniedPurposes = function withoutDeniedPurposes(
 	purposeConsents: Record<number, boolean>,
 	choice: ExplicitChoice
@@ -558,13 +355,6 @@ const withoutDeniedPurposes = function withoutDeniedPurposes(
 	return next;
 };
 
-/**
- * Whether a TC authority no longer describes the choice: the choice holds a
- * category decision confirmed after the authority was. An IAB save stamps
- * its category decisions with the authority's confirmation time, so a
- * later decision came from another action, such as an IAB save on a sibling
- * subdomain whose receipt this origin's localStorage cannot read.
- */
 const predatesChoice = function predatesChoice(
 	authority: KernelIABAuthority,
 	choice: ExplicitChoice | null
@@ -575,7 +365,6 @@ const predatesChoice = function predatesChoice(
 	);
 };
 
-/** Whether an authority may be published for `choice`. */
 const fitsChoice = function fitsChoice(
 	authority: KernelIABAuthority,
 	choice: ExplicitChoice | null
@@ -586,7 +375,6 @@ const fitsChoice = function fitsChoice(
 	);
 };
 
-/** Canonical text of a vendor selection map, independent of key order. */
 const selectionText = function selectionText(
 	map: Record<string, boolean>
 ): string {
@@ -597,10 +385,6 @@ const selectionText = function selectionText(
 	);
 };
 
-/**
- * Whether two authorities record the same vendor selections. The TC string
- * holds the registered vendors; custom vendors live only in these maps.
- */
 const sameVendorSelections = function sameVendorSelections(
 	left: KernelIABAuthority,
 	right: KernelIABAuthority
@@ -615,16 +399,6 @@ const sameVendorSelections = function sameVendorSelections(
 	);
 };
 
-/**
- * Whether a stored receipt should replace the held authority: it fits the
- * choice (see {@link fitsChoice}) and is strictly newer, or replaces a held
- * authority that no longer fits. The TC string alone is no identity: its
- * timestamps round to the UTC day and custom-vendor selections live only
- * in the receipt, so a later save can produce the same string. A newer
- * receipt with the same string is still installed, carrying its own
- * confirmation and expiry times and custom-vendor selections. An equal
- * time is settled by {@link settleTie}.
- */
 const shouldInstallReceipt = function shouldInstallReceipt(
 	receipt: KernelIABAuthority | null,
 	held: KernelIABAuthority | null,
@@ -649,7 +423,6 @@ const SELECTION_MAPS = [
 	'vendorLegitimateInterests',
 ] as const;
 
-/** Whether `authority` grants anything `other` does not. */
 const grantsBeyond = function grantsBeyond(
 	authority: KernelIABAuthority,
 	other: KernelIABAuthority
@@ -662,14 +435,6 @@ const grantsBeyond = function grantsBeyond(
 	});
 };
 
-/**
- * How to settle a stored receipt confirmed in the same millisecond as the
- * held authority but recording different selections: two saves that cannot
- * be ordered. The more restrictive one wins, so a same-millisecond write
- * never lifts a revocation. `store` keeps the held authority and writes it
- * back, so every tab converges on it; `withdraw` covers two receipts that
- * each grant something the other denies, where neither is safe to publish.
- */
 const settleTie = function settleTie(
 	receipt: KernelIABAuthority,
 	held: KernelIABAuthority
@@ -680,7 +445,6 @@ const settleTie = function settleTie(
 	return grantsBeyond(held, receipt) ? 'withdraw' : 'store';
 };
 
-/** Whether a stored receipt ties with the held authority. */
 const isTie = function isTie(
 	receipt: KernelIABAuthority | null,
 	held: KernelIABAuthority | null,
@@ -732,11 +496,6 @@ const referenceHeaders = (
 ): Record<string, string> | undefined =>
 	requested ? { 'accept-language': requested.language } : undefined;
 
-/**
- * Where to fetch a referenced list. An init envelope's resolution context
- * goes in the query string, as the hosted transport sends it, so a
- * cross-origin `/init` stays a CORS simple request with no preflight.
- */
 const referenceEndpoint = (
 	requested: NonNullable<ConsentSnapshot['iab']>['gvlReference']
 ): string | undefined => {
@@ -751,10 +510,6 @@ const referenceEndpoint = (
 	});
 };
 
-/**
- * Whether the visitor's resolved policy uses IAB TCF. `__tcfapi` reports TCF
- * as applying only then, whatever the visitor's jurisdiction.
- */
 const policyUsesIAB = (snapshot: ConsentSnapshot): boolean =>
 	snapshot.policyRule.model === 'iab';
 
@@ -764,21 +519,6 @@ const cmpDisplayStatus = (snapshot: ConsentSnapshot): 'visible' | 'hidden' =>
 		? 'visible'
 		: 'hidden';
 
-/**
- * The vendor list `createIAB` starts from, before any network fetch.
- *
- * - An explicit `gvl` option wins, `null` included.
- * - A list already in the kernel (server-resolved state from
- *   `resolveConsent()` or a framework init route) is reused, narrowed to
- *   the `vendors` allowlist the GVL endpoint would otherwise have applied.
- *   Reseeding from an absent option would wipe it, flip `enabled` to
- *   false, and pay for a second fetch.
- * - A server that resolved this request without a vendor list for a
- *   policy that is not IAB said "no IAB here"; keep that `null` instead of
- *   fetching a list nothing will render. For an IAB policy the missing
- *   list is a server-side failure, so fall through and fetch.
- * - Otherwise `undefined`: fetch.
- */
 const resolvePreloadedGvl = function resolvePreloadedGvl(
 	kernel: ConsentKernel,
 	options: CreateIABOptions
@@ -804,24 +544,13 @@ const resolvePreloadedGvl = function resolvePreloadedGvl(
 	return undefined;
 };
 
-/**
- * Mounts the IAB TCF runtime against a consent kernel: installs `__tcfapi`,
- * loads the vendor list, and encodes TC Strings from kernel state.
- *
- * @param options - Kernel plus CMP identity and vendor configuration.
- * @returns An imperative handle over CMP state, with `whenReady` and `dispose`.
- * @throws {Error} When `cmpId` is not a registered CMP ID. Fails at mount so a
- * page never advertises an unusable CMP to vendors over `__tcfapi`.
- */
 export const createIAB = function createIAB(
 	options: CreateIABOptions
 ): IABHandle {
 	const { kernel, cmpVersion = CMP_VERSION_NUMBER, vendors, gvlURL } = options;
 	const cmpId = assertValidCmpId(options.cmpId);
 	const isServiceSpecific = resolveIsServiceSpecific(options.isServiceSpecific);
-	/** Restrictions checked against the most recently published list. */
 	let publisherRestrictions: PublisherRestriction[] = [];
-	// Later changes to the caller's array must not change what is encoded.
 	const configuredRestrictions = copyPublisherRestrictionInput(
 		options.publisherRestrictions
 	);
@@ -829,7 +558,6 @@ export const createIAB = function createIAB(
 		try {
 			return validatePublisherRestrictions(configuredRestrictions, { gvl });
 		} catch {
-			// whenReady(), generateTCString() and save() report this error.
 			return [];
 		}
 	};
@@ -840,9 +568,6 @@ export const createIAB = function createIAB(
 			? kernel.getSnapshot().iab?.gvlReference
 			: undefined;
 
-	// Seed the iab slice immediately so downstream consumers see the
-	// cmpId and any preloaded GVL. A reference keeps the server-rendered
-	// banner enabled while its list loads.
 	seedInitialIAB(
 		kernel,
 		options,
@@ -855,29 +580,16 @@ export const createIAB = function createIAB(
 	let authorityTimer: ReturnType<typeof setTimeout> | undefined;
 	let confirmationGeneration = 0;
 	let selectionRevision = 0;
-	// Selection revision when the held authority was installed. A later
-	// revision means the visitor changed selections without saving.
 	let revisionAtAuthority = 0;
-	// Selection revisions this module made itself, not the visitor: a
-	// stored choice restored or withdrawn.
 	let ownSelectionRevisions = 0;
-	/** Writes `update` as this module, not as a visitor edit. */
 	const setOwnSelections = (update: Partial<KernelIABState>): void => {
 		const revisionBefore = selectionRevision;
 		kernel.set.iab(update);
 		ownSelectionRevisions += selectionRevision - revisionBefore;
 	};
-	// Set while this module withdraws an authority another runtime's
-	// receipt still backs, so the shared receipt is not deleted.
 	let keepReceipt = false;
-	// Set while a save of this kernel commits, which happens synchronously
-	// after `command:save:started`.
 	let ownSaveCommitting = false;
-	// The TC string this handle's save is committing. The save publishes it
-	// once the commit returns.
 	let committingTcString: string | null = null;
-	// A held authority not published because the choice changed after it
-	// was confirmed. The receipt reload decides whether it goes or stays.
 	let suppressedAuthority: KernelIABAuthority | null = null;
 	const armAuthorityTimer = function armAuthorityTimer(): void {
 		clearTimeout(authorityTimer);
@@ -896,14 +608,10 @@ export const createIAB = function createIAB(
 		);
 	};
 
-	// Install the __tcfapi stub synchronously so vendor scripts that
-	// load before our async initialization can queue calls.
 	if (typeof window !== 'undefined' && typeof document !== 'undefined') {
 		initializeIABStub();
 	}
 
-	// Fetch outside the page payload. Start on mount so CMP readiness and
-	// returning-visitor validation do not depend on a banner interaction.
 	const loadList = async (
 		preloaded: GlobalVendorList | null | undefined,
 		requested: typeof reference
@@ -912,12 +620,6 @@ export const createIAB = function createIAB(
 			return preloaded;
 		}
 
-		// Ask for the scope the publisher declared on both paths. The reference
-		// path used to fetch unfiltered and narrow afterwards, which meant every
-		// publisher with a server-resolved reference pulled the whole list: the
-		// live GVL is 857KB uncompressed, against 41KB for a three-vendor scope.
-		// An endpoint that ignores the filter still ends up narrowed below, so the
-		// filter is an optimisation and never a behaviour change.
 		const list = await fetchGVL(vendors?.length ? vendors : undefined, {
 			endpoint: referenceEndpoint(requested) ?? gvlURL,
 			format: requested?.format,
@@ -936,24 +638,8 @@ export const createIAB = function createIAB(
 
 	const adTechProviderIds = options.additionalConsent?.providers ?? [];
 	let adTechProviderRequest: Promise<AdTechProvider[] | null> | null = null;
-	/** Whether a provider request finished, so saves stop waiting for it. */
 	let adTechProvidersSettled = false;
-	/**
-	 * The provider list this handle published from its own configuration.
-	 * It replaces the backend's, including after a later `/init` sends the
-	 * backend's again. `null` while none is published, or when the request
-	 * failed and the backend's list stands.
-	 */
 	let clientAdTechProviders: AdTechProvider[] | null = null;
-	/**
-	 * Loads names and privacy links for the ad tech providers this handle was
-	 * configured with, once per handle. A client list replaces the backend's,
-	 * so an empty one resolves to `[]` and clears it. `null` keeps what the
-	 * kernel holds: no list configured here (a backend's `/init` may already
-	 * have put providers in the kernel), no TC string coming, or a failed
-	 * request. A failure leaves the TC string working, since the AC string
-	 * only supplements it.
-	 */
 	const loadAdTechProviders = (
 		preloaded: GlobalVendorList | null | undefined
 	): Promise<AdTechProvider[] | null> => {
@@ -966,8 +652,6 @@ export const createIAB = function createIAB(
 		if (adTechProviderRequest) {
 			return adTechProviderRequest;
 		}
-		// A retry after a failed request: saves and blanket choices wait for
-		// it again.
 		adTechProvidersSettled = false;
 		adTechProviderRequest = (async () => {
 			try {
@@ -988,14 +672,8 @@ export const createIAB = function createIAB(
 	};
 
 	let restoredFingerprint: string | null = null;
-	/**
-	 * This handle opened the banner for changed restrictions. The prompt
-	 * requirement stays `none`, so the kernel never closes it; close it once
-	 * the visitor's new authority lands.
-	 */
 	let openedForRestrictions = false;
 	let hydrationCancelled = false;
-	/** Whether nothing changed while a stored receipt was being validated. */
 	const unchangedSince = function unchangedSince(
 		before: ConsentSnapshot,
 		recordsGeneration: number,
@@ -1014,11 +692,6 @@ export const createIAB = function createIAB(
 				before.evaluationPolicy.choice.fingerprint
 		);
 	};
-	/**
-	 * Ask again with the surface a changed policy shows, unless the visitor
-	 * has no choice yet (the kernel prompts) or already has a surface open.
-	 * Gates wait for the new save; the banner closes once it lands.
-	 */
 	const promptForChangedRestrictions = (...conditions: boolean[]): void => {
 		const current = kernel.getSnapshot();
 		if (
@@ -1059,8 +732,6 @@ export const createIAB = function createIAB(
 			Date.now(),
 			publisherRestrictions
 		);
-		// Another tab can save while the receipt is checked. Its new receipt
-		// is not the one this result describes: check that one instead.
 		if (receiptIdentity(readAuthorityReceipt()) !== receiptIdentity(checked)) {
 			restoredFingerprint = null;
 			void restoreAuthority();
@@ -1070,23 +741,14 @@ export const createIAB = function createIAB(
 			restrictionsChanged &&
 			unchangedSince(hydrationSnapshot, recordsGeneration, generation)
 		) {
-			// A material change to what the visitor agreed to. Vendors reading
-			// storage must not find the old string, whatever is on screen.
 			clearStoredTCString(String((checked as { tcString: unknown }).tcString));
 			promptForChangedRestrictions();
 		}
 		if (
 			authority &&
 			unchangedSince(hydrationSnapshot, recordsGeneration, generation) &&
-			// A receipt that grants what the stored choice denies, or predates
-			// it, is not restored.
 			fitsChoice(authority, hydrationSnapshot.explicitChoice)
 		) {
-			// The preference UI edits these selections and Save encodes them,
-			// so they start from the stored choice. Left empty, every switch
-			// reads off and an untouched Save revokes everything. An Accept or
-			// Reject All queued behind the list load is the visitor's newer
-			// action and keeps its selections.
 			const keepSelections = selectionRevision !== revisionAtAuthority;
 			setOwnSelections({
 				...(!keepSelections && selectionsOf(authority)),
@@ -1099,12 +761,6 @@ export const createIAB = function createIAB(
 			armAuthorityTimer();
 		}
 	};
-	/**
-	 * Withdraw the held authority because it no longer fits `choice`, without
-	 * deleting the shared receipt, which may be another tab's. Unless the
-	 * visitor changed selections here without saving, the purposes of every
-	 * denied category are switched off too.
-	 */
 	const withdrawAuthority = function withdrawAuthority(
 		choice: ExplicitChoice | null
 	): void {
@@ -1130,22 +786,12 @@ export const createIAB = function createIAB(
 		}
 		armAuthorityTimer();
 	};
-	/**
-	 * Bring the held authority in line with the reconciled `choice`: install
-	 * `receipt` when it is compatible and at least as new, or when the held
-	 * one conflicts; otherwise withdraw a conflicting held authority without
-	 * deleting the shared receipt. Selections follow unless the visitor
-	 * changed them here without saving. A tie neither side may win also
-	 * removes the stored receipt (`receiptText`), so no page restores it.
-	 */
 	const applyReconciledAuthority = function applyReconciledAuthority(
 		receipt: KernelIABAuthority | null,
 		choice: ExplicitChoice,
 		receiptText: string | null
 	): void {
 		const held = readIAB(kernel).authority;
-		// A held authority that grants what the choice denies, or that
-		// predates it, is withdrawn unless a fitting receipt replaces it.
 		const heldConflicts = held !== null && !fitsChoice(held, choice);
 		const keepSelections = selectionRevision !== revisionAtAuthority;
 		const tie =
@@ -1190,16 +836,8 @@ export const createIAB = function createIAB(
 		armAuthorityTimer();
 	};
 	let listGeneration = 0;
-	/** The list generation last published, and a reload waiting for it. */
 	let publishedListGeneration = 0;
 	let reloadAfterList = false;
-	/**
-	 * Records replaced at a hydration boundary, such as a choice another tab
-	 * stored, can come with a newer authority receipt that tab wrote. Read
-	 * the shared receipt and reconcile the held authority with the choice
-	 * now in force (see {@link applyReconciledAuthority}), so `__tcfapi`
-	 * never publishes a grant the choice denies.
-	 */
 	const reloadAuthority = async function reloadAuthority(): Promise<void> {
 		const snapshot = kernel.getSnapshot();
 		if (
@@ -1213,9 +851,6 @@ export const createIAB = function createIAB(
 		const recordsGeneration = kernel.getRecordsGeneration();
 		const generation = confirmationGeneration;
 		const receiptText = readAuthorityReceiptText();
-		// While a list loads, the restrictions and the snapshot's list still
-		// describe the previous one. Check the receipt once it is published;
-		// until then only withdraw a held authority the choice denies.
 		const listLoading = publishedListGeneration !== listGeneration;
 		if (listLoading) {
 			reloadAfterList = true;
@@ -1233,9 +868,6 @@ export const createIAB = function createIAB(
 			reloadAfterList = true;
 			return;
 		}
-		// A receipt replaced or removed while it was decoded is stale: the
-		// storage event for that change starts its own reload, and a removal
-		// has already withdrawn the held authority.
 		if (
 			disposed ||
 			generation !== confirmationGeneration ||
@@ -1248,8 +880,6 @@ export const createIAB = function createIAB(
 			return;
 		}
 		applyReconciledAuthority(receipt, current.explicitChoice, receiptText);
-		// The reload kept the held authority: it still describes the choice,
-		// so a TC string held back for this reload is published again.
 		const kept = readIAB(kernel).authority;
 		if (kept && kept === suppressedAuthority) {
 			suppressedAuthority = null;
@@ -1266,11 +896,6 @@ export const createIAB = function createIAB(
 			ownSaveCommitting = false;
 		});
 	});
-	/**
-	 * Hold back the held TC string until a receipt reload decides whether
-	 * another tab's newer receipt replaces it, it is withdrawn, or it stands
-	 * and is published again.
-	 */
 	const holdBackUntilReload = function holdBackUntilReload(
 		held: KernelIABAuthority
 	): void {
@@ -1279,13 +904,6 @@ export const createIAB = function createIAB(
 			void reloadAuthority();
 		});
 	};
-	/**
-	 * A category or vendor record that changed without a save of this kernel
-	 * came from storage, such as another tab's save. When the held authority
-	 * was confirmed before that change, its TC string may grant what the
-	 * other save revoked, so it is held back. This tab's own saves never
-	 * hold it back.
-	 */
 	const noteChoiceChange = function noteChoiceChange(
 		previous: ConsentSnapshot,
 		snapshot: ConsentSnapshot
@@ -1304,14 +922,6 @@ export const createIAB = function createIAB(
 			holdBackUntilReload(held);
 		}
 	};
-	/**
-	 * Another tab stored a receipt. The category record can be unchanged
-	 * (a save in the same millisecond, or one that only changed vendors), so
-	 * the receipt is the only sign: stop publishing the held TC string at
-	 * once, and reload the receipt. A removed receipt (another tab cleared
-	 * storage or withdrew its TC string) withdraws the held one, since a
-	 * page opened now would publish nothing either.
-	 */
 	const onReceiptStored = function onReceiptStored(event: StorageEvent): void {
 		const held = readIAB(kernel).authority;
 		if (
@@ -1327,20 +937,17 @@ export const createIAB = function createIAB(
 			return;
 		}
 		holdBackUntilReload(held);
-		// No kernel notification follows, so publish the hold here.
 		cmpApi?.updateConsent('', undefined, policyUsesIAB(snapshot));
 	};
 	if (typeof window !== 'undefined') {
 		window.addEventListener('storage', onReceiptStored);
 	}
-	/** The TC string to publish: the held one unless suppressed. */
 	const publishedTcString = function publishedTcString(): string {
 		const authority = kernel.getSnapshot().iab?.authority;
 		return authority && authority !== suppressedAuthority
 			? authority.tcString
 			: '';
 	};
-	/** Record a published list and run a reload that waited for it. */
 	const markListPublished = (generation: number): void => {
 		publishedListGeneration = generation;
 		if (reloadAfterList) {
@@ -1393,12 +1000,6 @@ export const createIAB = function createIAB(
 			valid: Boolean(authority),
 		};
 	};
-	/**
-	 * The retained authority with the AC string the check rebuilt for the new
-	 * list, when they differ: a provider Google dropped, or this handle no
-	 * longer lists, must leave the published string, not linger until the
-	 * visitor saves again.
-	 */
 	const refreshedProviderAuthority = (
 		retained: KernelIABAuthority | null | undefined,
 		checked: KernelIABAuthority | null
@@ -1420,10 +1021,6 @@ export const createIAB = function createIAB(
 		}
 		return refreshed;
 	};
-	/**
-	 * The kernel update that withdraws the retained authority, or installs
-	 * `refreshed` in its place. Empty when neither applies.
-	 */
 	const retainedAuthorityPatch = (
 		withdrawn: boolean,
 		refreshed: KernelIABAuthority | null
@@ -1433,10 +1030,6 @@ export const createIAB = function createIAB(
 		}
 		return refreshed ? { authority: refreshed } : {};
 	};
-	/**
-	 * The kernel update that publishes a list, withdrawing authority if
-	 * needed, or installing `refreshed` in place of the retained one.
-	 */
 	const publishListPatch = (
 		gvl: GlobalVendorList,
 		adTechProviders: AdTechProvider[] | null,
@@ -1449,23 +1042,18 @@ export const createIAB = function createIAB(
 			gvlReference: undefined,
 			...retainedAuthorityPatch(withdrawn, refreshed),
 		};
-		// Configured on the client: its list replaces the backend's, now and
-		// after any later `/init`.
 		if (adTechProviders) {
 			update.adTechProviders = adTechProviders;
 			clientAdTechProviders = adTechProviders;
 		}
 		return update;
 	};
-	/** Whether the retained authority is withdrawn for the new list. */
 	const retainedWithdrawn = (
 		retained: KernelIABAuthority | null | undefined,
 		valid: boolean
 	): boolean => !valid && readIAB(kernel).authority === retained;
-	/** The authority and provider list last checked against each other. */
 	let checkedAuthority: KernelIABAuthority | null | undefined;
 	let checkedProviders: AdTechProvider[] | null | undefined;
-	/** Record what `update` leaves held after checking `snapshot`'s authority. */
 	const noteChecked = (
 		snapshot: ConsentSnapshot,
 		update: Partial<KernelIABState>
@@ -1476,12 +1064,6 @@ export const createIAB = function createIAB(
 				? snapshot.iab?.authority
 				: update.authority;
 	};
-	/**
-	 * Checks the held authority again when the provider list changes while
-	 * the vendor list stays, as a re-init can return. A provider that left
-	 * the list must leave the published and stored AC string too, as it
-	 * does when a new vendor list is published.
-	 */
 	const recheckProviders = async (): Promise<void> => {
 		const snapshot = kernel.getSnapshot();
 		const { iab } = snapshot;
@@ -1491,7 +1073,6 @@ export const createIAB = function createIAB(
 			disposed ||
 			!retained ||
 			!iab.gvl ||
-			// A list being published checks the authority itself.
 			publishedListGeneration !== listGeneration ||
 			(retained === checkedAuthority && providers === checkedProviders)
 		) {
@@ -1508,12 +1089,9 @@ export const createIAB = function createIAB(
 			current?.gvl !== iab.gvl ||
 			current.adTechProviders !== providers
 		) {
-			// A new list checks the authority on publish, and a new provider
-			// list started its own check.
 			return;
 		}
 		if (current.authority !== retained) {
-			// Installed while this check ran, possibly from an older snapshot.
 			void recheckProviders();
 			return;
 		}
@@ -1524,7 +1102,6 @@ export const createIAB = function createIAB(
 		);
 		noteChecked(snapshot, update);
 		if (update.authority && retained === suppressedAuthority) {
-			// Same TC string: it stays held back until the receipt reload.
 			suppressedAuthority = update.authority;
 		}
 		if (update.authority !== undefined) {
@@ -1536,13 +1113,9 @@ export const createIAB = function createIAB(
 		try {
 			return validatePublisherRestrictions(configuredRestrictions, { gvl });
 		} catch (error) {
-			// Authority confirmed against an earlier list must not keep gating
-			// scripts once this CMP can no longer publish a string.
 			if (readIAB(kernel).authority) {
 				kernel.set.iab({ authority: null, tcString: '' });
 			}
-			// Nor may vendors keep reading the string a stored receipt names,
-			// which no authority in memory stands for yet at startup.
 			const stored = readAuthorityReceipt() as { tcString?: unknown } | null;
 			if (
 				options.persistence !== false &&
@@ -1574,8 +1147,6 @@ export const createIAB = function createIAB(
 				kernel.set.iab({ enabled: false, gvl: null });
 				return;
 			}
-			// An unsupported restriction stops the CMP here, before any TC
-			// string could be written or published without it.
 			publisherRestrictions = restrictionsForList(gvl);
 			const beforePublish = kernel.getSnapshot();
 			const retained = beforePublish.iab?.authority;
@@ -1604,11 +1175,7 @@ export const createIAB = function createIAB(
 			kernel.set.iab(update);
 			adTechProvidersSettled = true;
 			markListPublished(generation);
-			// Providers the kernel received while the list loaded.
 			void recheckProviders();
-			// Authority held under other restrictions, for example by a CMP
-			// mounted earlier with another configuration: ask again, as for a
-			// returning visitor. Withdrawing it removed its TC string.
 			promptForChangedRestrictions(
 				withdrawn,
 				retainedCheck.restrictionsChanged
@@ -1618,7 +1185,6 @@ export const createIAB = function createIAB(
 					cmpId,
 					cmpVersion,
 					gdprApplies: policyUsesIAB(kernel.getSnapshot()),
-					// The AC string confirmed with the published TC string.
 					getAddtlConsent: (tcString) => {
 						const authority = kernel.getSnapshot().iab?.authority;
 						return authority?.tcString === tcString
@@ -1629,16 +1195,12 @@ export const createIAB = function createIAB(
 				});
 				const current = kernel.getSnapshot();
 				if (existingApi && current === beforeUpdate) {
-					// Changed snapshots already publish through the kernel subscription.
 					existingApi.updateConsent(
 						readIAB(kernel).authority?.tcString ?? '',
 						undefined,
 						policyUsesIAB(current)
 					);
 				} else if (!existingApi && publishedTcString()) {
-					// A handle mounted on a kernel that already holds authority, such
-					// as a remount: the list's notification ran before this API
-					// existed, so it would otherwise report no consent at all.
 					cmpApi.updateConsent(
 						publishedTcString(),
 						undefined,
@@ -1650,7 +1212,6 @@ export const createIAB = function createIAB(
 					void restoreAuthority();
 				}
 			} catch {
-				// Kernel metadata remains available if installing the CMP API fails.
 			}
 		} catch (error) {
 			if (generation === listGeneration) {
@@ -1665,9 +1226,6 @@ export const createIAB = function createIAB(
 	});
 
 	const whenReady = async (): Promise<void> => {
-		// A later user action retries a failed request; concurrent callers share it.
-		// Invalid restrictions stay invalid, so retrying would only replace a
-		// supplied list with a fetched one.
 		if (
 			initializationError &&
 			!disposed &&
@@ -1678,7 +1236,6 @@ export const createIAB = function createIAB(
 		let pending: Promise<void>;
 		do {
 			pending = initialization;
-			// A replacement can finish before an obsolete request ever responds.
 			// oxlint-disable-next-line no-await-in-loop -- Each iteration follows a new initialization generation.
 			await Promise.race([pending, replaced]);
 		} while (pending !== initialization);
@@ -1691,8 +1248,6 @@ export const createIAB = function createIAB(
 				{ cause: initializationError }
 			);
 		}
-		// An explicit null, from the option or the server state, is a
-		// decision, not a failed load.
 		if (!disposed && preloadedGvl !== null && !cmpApi) {
 			throw new Error('Unable to load IAB privacy settings.');
 		}
@@ -1724,7 +1279,6 @@ export const createIAB = function createIAB(
 				}
 			}
 		} catch {
-			// save()/whenReady() reports a failed load; no selection is applied.
 		}
 	};
 
@@ -1772,9 +1326,6 @@ export const createIAB = function createIAB(
 		notify();
 	};
 
-	// Keep the CMP API state in sync with snapshot changes. v2 calls
-	// `cmpApi.updateConsent(tcString)` on save — we mirror that here.
-	/** Close the banner opened for changed restrictions, after this notification. */
 	const closeRestrictionPrompt = (): void => {
 		openedForRestrictions = false;
 		queueMicrotask(() => {
@@ -1784,16 +1335,10 @@ export const createIAB = function createIAB(
 		});
 	};
 	let previousDisplay = cmpDisplayStatus(kernel.getSnapshot());
-	/** Publish the TC string and UI state of `snapshot` through `__tcfapi`. */
 	const publishToVendors = (snapshot: ConsentSnapshot): void => {
 		if (!cmpApi) {
 			return;
 		}
-		// Expiry can synchronously publish a newer snapshot while arming the
-		// timer. Never restore the expired receipt from this notification.
-		// This handle's save publishes its string right after the commit, as
-		// useractioncomplete. Publishing it here first would announce the
-		// visitor's action to vendors as `tcloaded`.
 		const published = publishedTcString();
 		if (published === '' || published !== committingTcString) {
 			cmpApi.updateConsent(published, undefined, policyUsesIAB(snapshot));
@@ -1804,11 +1349,6 @@ export const createIAB = function createIAB(
 			cmpApi.setDisplayStatus(nextDisplay);
 		}
 	};
-	/**
-	 * Keeps the stored AC string in step with the held authority. A restored
-	 * or remounted authority is re-checked against today's provider list, so
-	 * its AC string can drop a provider the stored copy still names.
-	 */
 	const syncStoredAuthority = (
 		previous: KernelIABAuthority | null | undefined,
 		held: KernelIABAuthority | null | undefined
@@ -1825,8 +1365,6 @@ export const createIAB = function createIAB(
 		if (held === previous.iab?.adTechProviders) {
 			return;
 		}
-		// A later `/init` put the backend's list back. The client's replaces
-		// it; the update notifies again, and that notification rechecks.
 		if (
 			clientAdTechProviders &&
 			JSON.stringify(held ?? null) !== JSON.stringify(clientAdTechProviders)
@@ -1840,10 +1378,6 @@ export const createIAB = function createIAB(
 	let previousSnapshot = kernel.getSnapshot();
 	let previousRecordsGeneration = kernel.getRecordsGeneration();
 	const unsubscribe = kernel.subscribe((snapshot: ConsentSnapshot) => {
-		// A held authority that grants what the choice now denies (after a
-		// reconciled denial, say) is withdrawn before anything is published,
-		// so no vendor sees the stale grant. The withdrawal notifies again,
-		// and that notification publishes.
 		const held = snapshot.iab?.authority;
 		if (
 			held &&
@@ -1857,8 +1391,6 @@ export const createIAB = function createIAB(
 		const previous = previousSnapshot;
 		previousSnapshot = snapshot;
 		noteChoiceChange(previous, snapshot);
-		// Hydration advances the records generation after it notifies, so
-		// compare once the commit has finished.
 		queueMicrotask(() => {
 			const recordsGeneration = kernel.getRecordsGeneration();
 			if (recordsGeneration !== previousRecordsGeneration) {
@@ -1882,8 +1414,6 @@ export const createIAB = function createIAB(
 			});
 		}
 		if (previousAuthority && !snapshot.iab?.authority && !keepReceipt) {
-			// This tab withdrew its authority: the standard TC string it wrote
-			// goes with the receipt, or vendors reading storage would reuse it.
 			clearAuthorityReceipt();
 			if (options.persistence !== false) {
 				clearStoredTCString(previousAuthority.tcString);
@@ -1910,22 +1440,16 @@ export const createIAB = function createIAB(
 						Object.hasOwn(iab.gvl?.vendors ?? {}, id) && !customIds.has(id)
 				)
 			);
-		// Legitimate interest a restriction introduces applies until the
-		// visitor objects, as the preference controls show. Draft values win.
 		const introduced = iab.gvl
 			? introducedLegitimateInterest(iab.gvl, publisherRestrictions)
 			: { purposes: [], vendors: [] };
 		const allowed = (ids: number[]) =>
 			Object.fromEntries(ids.map((id) => [id, true]));
-		// Custom choices stay in kernel state, never in registered TCF vectors.
 		const vendorConsents = registeredChoices(iab.vendorConsents);
 		const vendorLegitimateInterests = registeredChoices({
 			...allowed(introduced.vendors),
 			...iab.vendorLegitimateInterests,
 		});
-		// `vendorsDisclosed` should reflect every vendor the CMP made
-		// available to the user, per the TCF. For MVP we mirror the set
-		// of vendors whose consent has been considered.
 		const disclosed: Record<string, boolean> = {};
 		for (const id of Object.keys(vendorConsents)) {
 			disclosed[id] = true;
@@ -1934,7 +1458,6 @@ export const createIAB = function createIAB(
 			disclosed[id] = true;
 		}
 		return {
-			// Validated again by the encoder, which rejects unsupported input.
 			publisherRestrictions: configuredRestrictions as
 				| PublisherRestriction[]
 				| undefined,
@@ -1950,40 +1473,22 @@ export const createIAB = function createIAB(
 		};
 	};
 
-	/**
-	 * Rethrows a configuration error from list setup. Encoding reads the
-	 * kernel's list, which can hold a list this CMP never validated, so it
-	 * must not run once the restrictions were rejected. Synchronous, so the
-	 * action clock and cancellation checks keep their current timing.
-	 */
 	const rejectInvalidRestrictions = (): void => {
 		if (initializationError instanceof PublisherRestrictionError) {
 			throw initializationError;
 		}
 	};
 
-	/**
-	 * The load a save waits for before it captures its snapshot, or `null`.
-	 * The receipt records the ad tech providers the visitor was shown, and a
-	 * provider list landing during encoding would otherwise cancel the save.
-	 * Without one pending, the save keeps its synchronous start.
-	 */
 	const pendingAdTechProviders = (): Promise<void> | null =>
 		adTechProviderIds.length > 0 &&
 		!adTechProvidersSettled &&
 		readIAB(kernel).gvl
 			? initialization
 			: null;
-	/** IDs of the providers the preference center lists right now. */
 	const shownAdTechProviderIds = (): Set<string> =>
 		new Set(
 			(readIAB(kernel).adTechProviders ?? []).map(({ id }) => String(id))
 		);
-	/**
-	 * Applies a blanket choice to the providers listed now. Providers still
-	 * loading were never shown, so the visitor chooses for them on a later
-	 * save.
-	 */
 	const blanket = (gvl: GlobalVendorList, value: boolean): void => {
 		applyBlanket(kernel, gvl, value, restrictionsForBlanket(gvl));
 	};
@@ -2002,7 +1507,6 @@ export const createIAB = function createIAB(
 				'createIAB: cannot generate TC string — GVL not loaded yet.'
 			);
 		}
-		// Lazy-load @iabtechlabtcf/core only when we actually encode.
 		const consentData = buildTCFConsentData();
 		await getTCFCore();
 		const tcString = await generateTCString(consentData, iab.gvl, {
@@ -2022,7 +1526,6 @@ export const createIAB = function createIAB(
 		return tcString;
 	};
 
-	// Registration needs the completed handle; dispose runs after registration.
 	// oxlint-disable-next-line prefer-const -- Assigned after the handle closes over this teardown.
 	let unregisterControls: (() => void) | undefined;
 	const handle: IABHandle = {
@@ -2054,7 +1557,6 @@ export const createIAB = function createIAB(
 				try {
 					cmpApi.destroy();
 				} catch {
-					// swallow teardown errors
 				}
 				cmpApi = null;
 			}
@@ -2062,7 +1564,6 @@ export const createIAB = function createIAB(
 				try {
 					destroyStub();
 				} catch {
-					// swallow
 				}
 			}
 		},
@@ -2088,12 +1589,8 @@ export const createIAB = function createIAB(
 				throw new Error('IAB action cancelled while loading vendor data.');
 			}
 			rejectInvalidRestrictions();
-			// The visitor confirmed now, not when the provider list arrives.
 			const actionAt = Date.now();
 			const providersLoading = pendingAdTechProviders();
-			// Providers landing while the save waits were never shown, so the
-			// visitor discloses them on a later save, after Accept All or
-			// Reject All as after Save Settings.
 			const shown = providersLoading ? shownAdTechProviderIds() : null;
 			const visitorRevision = () => selectionRevision - ownSelectionRevisions;
 			const revisionAtClick = visitorRevision();
@@ -2103,8 +1600,6 @@ export const createIAB = function createIAB(
 			if (disposed) {
 				return;
 			}
-			// A selection changed during the wait was not confirmed by this
-			// save, so it is not committed in its name.
 			if (visitorRevision() !== revisionAtClick) {
 				throw new Error(
 					'IAB action cancelled: selections changed while loading ad tech providers.'
@@ -2158,7 +1653,6 @@ export const createIAB = function createIAB(
 				)
 			);
 			const scope = new Set<string>(snapshot.policyRule.scope);
-			// Refusals must replace old grants even after a category leaves scope.
 			const consentPatch = Object.fromEntries(
 				Object.entries(consents).filter(
 					([category, granted]) => !granted || scope.has(category)
@@ -2174,8 +1668,6 @@ export const createIAB = function createIAB(
 			} finally {
 				committingTcString = null;
 			}
-			// Save commits locally before its first yield. Transport acknowledgement
-			// cannot revoke that action or assign authority to a later action.
 			if (
 				kernel.getSnapshot().iab?.authority?.tcString === tcString &&
 				!disposed &&
@@ -2191,12 +1683,9 @@ export const createIAB = function createIAB(
 					consentData,
 					policyUsesIAB(kernel.getSnapshot())
 				);
-				// The saved selections are the authority's; nothing is unsaved.
 				revisionAtAuthority = selectionRevision;
 				armAuthorityTimer();
 			} else if (cmpApi && !disposed) {
-				// The commit held this string back from vendors; publish what the
-				// kernel holds instead.
 				cmpApi.updateConsent(
 					publishedTcString(),
 					undefined,
@@ -2294,10 +1783,6 @@ export {
 	processGVLForDialog,
 	resolveIABBannerSummary,
 } from './headless';
-/**
- * Convenience re-exports so consumers writing custom IAB flows don't
- * need to thread through `@c15t/iab`'s internal subpaths.
- */
 export {
 	c15tConsentsToIabPurposes,
 	clearGVLCache,

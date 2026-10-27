@@ -10,7 +10,6 @@ export const DEFAULT_BANNER_POSITION =
 export const DEFAULT_MANAGER_MODE =
 	'dialog' as const satisfies ConsentManagerMode;
 
-/** Default values aligned with `@c15t/ui` `defaultTheme` / `themeToVars()`. */
 export const defaultConsentConfig = {
 	bannerPosition: DEFAULT_BANNER_POSITION,
 	bannerUiSource: 'banner',

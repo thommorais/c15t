@@ -78,7 +78,6 @@ const clearCookie = (
 	const paths = path === undefined ? cookiePaths() : [path];
 	const secure =
 		partitioned || window.location.protocol === 'https:' ? '; Secure' : '';
-	// Cross-site frames reject even expired cookie writes without SameSite=None.
 	const partition = partitioned ? '; SameSite=None; Partitioned' : '';
 	for (const candidate of new Set(names)) {
 		if (
@@ -96,7 +95,6 @@ const clearCookie = (
 						: '';
 					document.cookie = `${candidate}=; Max-Age=0; Expires=Thu, 01 Jan 1970 00:00:00 GMT; Path=${candidatePath}${domainAttribute}${secure}${partition}`;
 				} catch {
-					// A browser may reject one scope while permitting another.
 				}
 			}
 		}
@@ -121,7 +119,6 @@ const clearStorage = (
 		const keys: string[] = [];
 		if (pattern.endsWith('*')) {
 			try {
-				// Snapshot names before removal so shifting indexes cannot skip keys.
 				for (let index = 0; index < storage.length; index += 1) {
 					try {
 						const key = storage.key(index);
@@ -129,11 +126,9 @@ const clearStorage = (
 							keys.push(key);
 						}
 					} catch {
-						// Continue with the remaining readable keys.
 					}
 				}
 			} catch {
-				// Exact targets remain usable when enumeration is unavailable.
 			}
 		} else {
 			keys.push(pattern);
@@ -143,17 +138,12 @@ const clearStorage = (
 				try {
 					storage.removeItem(key);
 				} catch {
-					// One blocked entry must not prevent other cleanup.
 				}
 			}
 		}
 	}
 };
 
-/**
- * Remove only the configured browser data, preserving consent records.
- * @internal
- */
 export const clearTargets = (
 	targets: ClearOnRevocationTargets,
 	protectedKeys: ReadonlySet<string>
@@ -165,7 +155,6 @@ export const clearTargets = (
 		clearStorage('localStorage', targets.localStorage, protectedKeys);
 	}
 	if (targets.sessionStorage?.length) {
-		// c15t does not persist consent records in sessionStorage.
 		clearStorage('sessionStorage', targets.sessionStorage);
 	}
 };

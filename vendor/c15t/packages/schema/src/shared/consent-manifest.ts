@@ -31,15 +31,11 @@ export interface ConsentManifestGVLReference {
 }
 
 export interface ConsentManifestPolicyPack {
-	/** The authored geographic matcher. */
 	match: PolicyMatch;
-	/** Normalized behavior, without presentation or author metadata. */
 	rule: ResolvedPolicyRule;
-	/** Fingerprints precomputed by the producer. */
 	fingerprints: PolicyFingerprints;
 }
 
-/** Recorded when the configured rules failed validation at build time. */
 export interface ConsentManifestPolicyFailure {
 	reason: 'invalid-configuration';
 	errors: string[];
@@ -50,15 +46,8 @@ export interface ConsentManifestTranslationInputs {
 	i18n?: I18nOptions;
 }
 
-/**
- * Google Additional Consent providers a manifest discloses. Whoever resolves
- * `/init` from the manifest fetches their names and privacy policies from
- * `url`, as it fetches the vendor list from `gvl.url`.
- */
 export interface ConsentManifestAdditionalConsent {
-	/** Google ATP IDs, deduplicated and sorted. */
 	providers: number[];
-	/** Provider list endpoint, filtered with `?providerIds=`. */
 	url: string;
 }
 
@@ -72,32 +61,16 @@ export interface ConsentManifestIAB {
 export interface ConsentManifest {
 	schemaVersion: 2;
 	revision: string;
-	/**
-	 * The tenant, when the manifest's producer names one. Host session
-	 * reports copy it. `@c15t/backend` leaves it unset: a self-hosted
-	 * instance's `tenantId` option scopes everything it serves.
-	 */
 	tenantId?: string;
 	appName?: string;
 	branding: ConsentManifestBranding;
-	/**
-	 * Who runs the backend that produced this manifest. Copied onto every
-	 * `/init` resolved from it. Absent from producers that do not say.
-	 */
 	hosting?: ConsentManifestHosting;
 	policyPacks?: ConsentManifestPolicyPack[];
-	/**
-	 * Present when the configured rules were invalid. Every request then
-	 * resolves to `failed` with `invalid-configuration` and the client applies
-	 * the safe fallback.
-	 */
 	policyFailure?: ConsentManifestPolicyFailure;
 	translations?: ConsentManifestTranslationInputs;
 	cmpId?: number;
 	iab?: ConsentManifestIAB;
-	/** Vendors declared for vendor-level consent outside IAB. */
 	vendors?: Vendor[];
-	/** Version label of `vendors`, surfaced for display and audit only. */
 	vendorListVersion?: string;
 }
 
@@ -109,10 +82,8 @@ export interface ResolveInitFromManifestInputs {
 }
 
 export interface ResolveInitFromManifestOptions {
-	/** Base translations available to the manifest resolver. */
 	baseTranslations?: BaseTranslations;
 
-	/** Logger used for one-time translation fallback warnings. */
 	logger?: LoggerLike;
 }
 
@@ -130,7 +101,6 @@ const stripIabTranslations = function stripIabTranslations(
 	return rest;
 };
 
-/** Resolves precomputed canonical packs without hashing in the client. */
 export const resolvePolicyResolutionFromManifest =
 	function resolvePolicyResolutionFromManifest(
 		manifest: ConsentManifest,
@@ -175,7 +145,6 @@ export const resolvePolicyResolutionFromManifest =
 				}
 				return { id: parsed.policy.id, match: pack.match };
 			});
-			// Validate all matchers and IAB configuration, including unmatched entries.
 			const authored = packs.map((pack) => ({
 				id: pack.rule.id,
 				match: pack.match,
@@ -223,7 +192,6 @@ export const resolvePolicyResolutionFromManifest =
 		}
 	};
 
-/** Prepares one manifest entry outside render and hydration. */
 export const createConsentManifestPolicyPack =
 	function createConsentManifestPolicyPack(
 		rule: PolicyRule
@@ -335,9 +303,6 @@ export const resolveInitFromManifest = function resolveInitFromManifest(
 			manifest.cmpId !== undefined && {
 				cmpId: manifest.cmpId,
 			}),
-		// Always present: the client reads an omitted list as "keep what you
-		// have", so a backend that removed its last vendor has to say so with
-		// an empty list or a reinit would keep the old declarations.
 		vendors: manifest.vendors ?? [],
 		...(manifest.vendorListVersion !== undefined && {
 			vendorListVersion: manifest.vendorListVersion,
@@ -345,20 +310,9 @@ export const resolveInitFromManifest = function resolveInitFromManifest(
 	};
 };
 
-/**
- * The configuration a consent manifest is built from.
- *
- * Declared structurally rather than as the backend's options type, so this can
- * live here without the schema package depending on the backend. Any config
- * object carrying these fields will do.
- */
 export interface ConsentManifestConfig {
 	readonly appName?: string;
 	readonly branding?: ConsentManifest['branding'];
-	/**
-	 * Who runs the backend. `@c15t/backend` sets this from its own `hosting`
-	 * option rather than reading it from tenant configuration.
-	 */
 	readonly hosting?: ConsentManifest['hosting'];
 	readonly policyRules?: readonly PolicyRule[];
 	readonly customTranslations?: ConsentManifest['translations'] extends
@@ -378,21 +332,12 @@ export interface ConsentManifestConfig {
 			ConsentManifest['iab']
 		>['customVendors'];
 		readonly endpoint?: string;
-		/**
-		 * Google ad tech providers outside the GVL. A matched IAB policy
-		 * discloses them in the preference centre, and the browser CMP
-		 * publishes an Additional Consent string beside the TC String.
-		 */
 		readonly additionalConsent?: {
-			/** Google ATP IDs from Google's Additional Consent provider list. */
 			readonly providers: readonly number[];
-			/** Provider list endpoint. Defaults to `https://gvl.inth.app/additional-consent`. */
 			readonly endpoint?: string;
 		};
 	};
-	/** Vendors declared for vendor-level consent outside IAB. */
 	readonly vendors?: readonly Vendor[];
-	/** Version label of `vendors`, for display and audit only. */
 	readonly vendorListVersion?: string;
 }
 
@@ -409,7 +354,6 @@ const buildGvlReference = function buildGvlReference(
 		config.iab.additionalConsent?.providers ?? []
 	);
 	return {
-		// Left out when unconfigured, so existing manifests keep their revision.
 		...(providers.length > 0 && {
 			additionalConsent: {
 				providers,
@@ -453,7 +397,6 @@ const buildManifestPolicy = function buildManifestPolicy(
 	};
 };
 
-/** Builds a versioned manifest and precomputes fingerprints once per configuration. */
 export const buildConsentManifestFromConfig =
 	async function buildConsentManifestFromConfig(
 		config: ConsentManifestConfig
@@ -478,8 +421,6 @@ export const buildConsentManifestFromConfig =
 			vendors: config.vendors ? [...config.vendors] : undefined,
 		};
 
-		// The revision is a fingerprint of the manifest itself, so a client can
-		// tell two manifests apart without diffing them.
 		return {
 			...manifest,
 			revision: createDeterministicFingerprintSync(manifest),

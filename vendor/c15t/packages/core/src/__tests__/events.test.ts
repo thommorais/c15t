@@ -102,7 +102,6 @@ test('a runtime dispatcher follows the provider: its scripts, live consent, and 
 		mixpanel: { track: vi.fn() },
 		posthog: { capture: vi.fn() },
 	};
-	// A host recreates the dispatcher on every render.
 	const render = () =>
 		getEventDispatcher(runtime, { globals, pageviews: ['posthog'] });
 
@@ -111,20 +110,17 @@ test('a runtime dispatcher follows the provider: its scripts, live consent, and 
 	render().pageview('/pricing');
 	expect(globals.posthog.capture).toHaveBeenCalledWith('$pageview');
 
-	// A handler that revokes, then tracks, before the host re-renders.
 	const events = render();
 	await runtime.kernel.commands.save({ measurement: false });
 	events.track('add_to_cart');
 	expect(globals.posthog.capture).toHaveBeenCalledTimes(1);
 
-	// Turning c15t off swaps the kernel; the same dispatcher follows it.
 	await runtime.update({ ...options, enabled: false });
 	events.track('add_to_cart');
 	expect(globals.posthog.capture).toHaveBeenLastCalledWith('add_to_cart', {});
 	render().pageview('/pricing');
 	expect(globals.posthog.capture).toHaveBeenCalledTimes(2);
 
-	// Scripts from a later update, and scripts the caller adds.
 	const mixpanel: Script = { ...posthog, id: 'mixpanel', vendor: 'mixpanel' };
 	await runtime.update({ ...options, enabled: false, scripts: [mixpanel] });
 	const segment: Script = { ...posthog, id: 'segment', vendor: 'segment' };
@@ -171,7 +167,6 @@ test('dispatchers on one runtime with different pageviews each get every navigat
 		product.pageview(path);
 		marketing.pageview(path);
 	}
-	// The second dispatcher repeats the path, so neither vendor gets it twice.
 	marketing.pageview('/docs');
 	expect(globals.posthog.capture).toHaveBeenCalledTimes(2);
 	expect(globals.analytics.page).toHaveBeenCalledTimes(2);

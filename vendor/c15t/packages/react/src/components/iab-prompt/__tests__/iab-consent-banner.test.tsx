@@ -1,9 +1,3 @@
-/**
- * IAB Consent Banner Unit Tests
- *
- * Tests for IAB Consent Banner component display and behavior.
- */
-
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { render } from 'vitest-browser-react';
 
@@ -14,7 +8,6 @@ import { offline } from '~/transports/offline';
 
 import { IABConsentBanner } from '../iab-prompt';
 
-// Mock localStorage
 const localStorageMock = (() => {
 	let store: Record<string, string> = {};
 	return {
@@ -35,7 +28,6 @@ Object.defineProperty(window, 'localStorage', {
 	value: localStorageMock,
 });
 
-// Mock fetch for GVL
 const mockGVL = {
 	features: {
 		1: {
@@ -130,7 +122,6 @@ const defaultIABOptions: ConsentProviderOptions = {
 describe('IAB Consent Banner Unit Tests', () => {
 	beforeEach(() => {
 		window.localStorage.clear();
-		// Clear cookies
 		const cookies = document.cookie.split(';');
 		for (const cookie of cookies) {
 			const name = cookie.split('=')[0]?.trim();
@@ -369,8 +360,6 @@ describe('IAB Consent Banner Unit Tests', () => {
 	describe('Server rendering', () => {
 		test('renders into the first HTML when the server state carries the GVL', async () => {
 			const { renderToString } = await import('react-dom/server');
-			// A server-resolved state: the kernel already holds the vendor list,
-			// but no `IABProvider` effect has run, so there is no handle yet.
 			const options: ConsentProviderOptions = {
 				iab: { cmpId: 160, cmpVersion: 1 },
 				mode: offline({ acknowledgeNoRecords: true }),

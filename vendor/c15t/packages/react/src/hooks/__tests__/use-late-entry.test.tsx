@@ -1,9 +1,3 @@
-/**
- * Tests for the useLateEntry hook.
- *
- * @packageDocumentation
- */
-
 import { act } from 'react';
 import { hydrateRoot } from 'react-dom/client';
 import { renderToString } from 'react-dom/server';
@@ -12,7 +6,6 @@ import { render } from 'vitest-browser-react';
 
 import { useLateEntry } from '../use-late-entry';
 
-/** The page first painted at 0; the clock reads `now`. */
 const setClock = function setClock(now: number) {
 	vi.spyOn(performance, 'getEntriesByType').mockImplementation((type) =>
 		type === 'paint'
@@ -94,8 +87,6 @@ describe('useLateEntry', () => {
 			await act(() => {
 				root = hydrateRoot(container, <Probe shown />);
 			});
-			// A re-render would write the attribute if hydration had decided
-			// late; React leaves mismatched attributes alone while hydrating.
 			await act(() => {
 				root?.render(
 					<Probe

@@ -19,7 +19,6 @@ const EMPTY_VENDOR_INTERESTS: Record<string, boolean> = {};
 const EMPTY_PURPOSE_INTERESTS: Record<number, boolean> = {};
 
 interface StackItemProps {
-	/** A stack, or a display-model stack row whose purposes carry `hasConsentBasis`. */
 	stack: Omit<ProcessedStack, 'purposes'> & {
 		purposes: (ProcessedStack['purposes'][number] & {
 			hasConsentBasis?: boolean;
@@ -30,16 +29,12 @@ interface StackItemProps {
 	vendorConsents: Record<string, boolean>;
 	onVendorToggle: (vendorId: VendorId, value: boolean) => void;
 	onVendorClick: (vendorId: VendorId) => void;
-	/** Legitimate interest objections - true means user has NOT objected (allowed) */
 	vendorLegitimateInterests?: Record<string, boolean>;
-	/** Handler for legitimate interest objection toggle */
 	onVendorLegitimateInterestToggle?: (
 		vendorId: VendorId,
 		value: boolean
 	) => void;
-	/** Purpose-level legitimate interest state - true means NOT objected (allowed) */
 	purposeLegitimateInterests?: Record<number, boolean>;
-	/** Handler for purpose-level legitimate interest objection toggle */
 	onPurposeLegitimateInterestToggle?: (
 		purposeId: number,
 		value: boolean
@@ -63,9 +58,6 @@ export const StackItem: FC<StackItemProps> = ({
 	const iab = useIABTranslations();
 	const [isExpanded, setIsExpanded] = useState(false);
 
-	// The stack switch covers the purposes some vendor processes on consent.
-	// The others offer only their own objection control; without one, the
-	// rows keep their consent switch and the stack covers them too.
 	const consentPurposes = stack.purposes.filter(
 		(p) =>
 			p.hasConsentBasis !== false ||
@@ -76,12 +68,9 @@ export const StackItem: FC<StackItemProps> = ({
 		consentPurposes.some((p) => consents[p.id] ?? false) && !allEnabled;
 
 	const handleStackToggle = (value: boolean) => {
-		// Toggle all consent purposes in the stack
 		for (const purpose of consentPurposes) {
 			onToggle(purpose.id, value);
-			// Also toggle all vendors associated with this purpose
 			for (const vendor of purpose.vendors) {
-				// Only toggle consent-based vendors (not legitimate interest ones)
 				if (!vendor.usesLegitimateInterest) {
 					onVendorToggle(vendor.id, value);
 				}

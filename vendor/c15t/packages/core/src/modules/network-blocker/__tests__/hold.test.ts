@@ -107,7 +107,6 @@ describe('holdNetworkRequests', () => {
 
 		blocker = createNetworkBlocker({ kernel: pending.kernel, rules });
 		await flush();
-		// Consent is still unknown: the request waits instead of failing.
 		expect(original).not.toHaveBeenCalled();
 
 		await pending.resolve(optOutRule());
@@ -230,8 +229,6 @@ describe('several callers holding at once', () => {
 
 		expect((await tracker).status).toBe(451);
 		await flush();
-		// The ads request matches only the second caller's rules, which have
-		// no blocker yet: it keeps waiting instead of leaving unchecked.
 		expect(original).not.toHaveBeenCalled();
 		expect(second.held).toBe(true);
 
@@ -266,7 +263,6 @@ describe('several callers holding at once', () => {
 
 		first.block();
 
-		// Nothing checked consent for these: the blocker's answers, not a send.
 		const response = await tracker;
 		expect(response.status).toBe(451);
 		expect(response.statusText).toBe('Request blocked by consent');
@@ -281,7 +277,6 @@ describe('several callers holding at once', () => {
 		second.block();
 		expect((await ads).status).toBe(451);
 		expect(original).not.toHaveBeenCalled();
-		// No caller holds any more, so nothing waits from here on.
 		expect(window.fetch).toBe(original);
 		expect(XMLHttpRequest.prototype.send).toBe(originalSend);
 	});
@@ -295,13 +290,11 @@ describe('several callers holding at once', () => {
 			adsSettled = true;
 		});
 
-		// The first caller's blocker could not load.
 		first.fail();
 
 		const response = await tracker;
 		expect(response.status).toBe(451);
 		expect(response.statusText).toBe('Request blocked by consent');
-		// Later requests are answered at once, not held.
 		expect((await window.fetch('https://tracker.example/later')).status).toBe(
 			451
 		);
@@ -314,7 +307,6 @@ describe('several callers holding at once', () => {
 		const sync = new XMLHttpRequest();
 		sync.open('GET', 'https://tracker.example/collect', false);
 		expect(() => sync.send()).toThrow('Request blocked by consent');
-		// The other caller still holds; unmatched requests still go out.
 		await flush();
 		expect(adsSettled).toBe(false);
 		expect(first.held).toBe(true);
@@ -373,14 +365,12 @@ describe('blockHeldRequests', () => {
 
 		blockHeldRequests(rules);
 
-		// The same answers the blocker gives a blocked request.
 		const response = await held;
 		expect(response.status).toBe(451);
 		expect(response.statusText).toBe('Request blocked by consent');
 		expect(onError).toHaveBeenCalledOnce();
 		expect(original).not.toHaveBeenCalled();
 		expect(originalSend).not.toHaveBeenCalled();
-		// The hold is gone, so nothing waits from here on.
 		expect(window.fetch).toBe(original);
 		expect(XMLHttpRequest.prototype.send).toBe(originalSend);
 	});

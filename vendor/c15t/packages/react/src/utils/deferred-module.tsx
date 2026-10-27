@@ -8,14 +8,6 @@ import {
 } from 'react';
 import type { ComponentType } from 'react';
 
-/**
- * Share an on-demand module across exports and preloading. Ready client
- * retries run synchronously; Suspense retains server rendering and hydration.
- * A failed import is cached for rendered exports only, so a failed preload
- * does not stop a later open from retrying.
- *
- * @internal
- */
 export const createDeferredModule = <ModuleType,>(
 	importModule: () => Promise<ModuleType>
 ) => {
@@ -26,9 +18,6 @@ export const createDeferredModule = <ModuleType,>(
 	const pending: Snapshot = { status: 'pending' };
 	let snapshot: Snapshot = pending;
 	let promise: Promise<ModuleType> | undefined;
-	// Whether a rendered export is waiting on the current import. A preload
-	// nobody rendered from yet (hover, focus or idle warming) must not leave a
-	// cached failure behind: the real open retries the import instead.
 	let rendered = false;
 	const listeners = new Set<() => void>();
 	const getSnapshot = () => snapshot;
@@ -57,8 +46,6 @@ export const createDeferredModule = <ModuleType,>(
 			return;
 		}
 		notificationQueued = true;
-		// React.lazy must mark its own promise resolved before the synchronous
-		// subscription update. Preserve the same lazy element during hydration.
 		queueMicrotask(() => {
 			notificationQueued = false;
 			snapshot = { ...snapshot };
@@ -86,8 +73,6 @@ export const createDeferredModule = <ModuleType,>(
 				void selected.then(publish, publish);
 				return selected;
 			});
-			// React 18 drops a `ref` passed to a function component; forward it
-			// to the loaded part, many of which take one.
 			const DeferredComponent = createForwardRef<unknown, Props>(
 				(props, ref) => {
 					const current = useSyncExternalStore(
@@ -98,8 +83,6 @@ export const createDeferredModule = <ModuleType,>(
 					if (current.status === 'error') {
 						throw current.error;
 					}
-					// The subscription retries this stable boundary synchronously instead
-					// of waiting for React's throttled default retry.
 					return (
 						<Suspense fallback={null}>
 							<LazyComponent
@@ -117,8 +100,6 @@ export const createDeferredModule = <ModuleType,>(
 			try {
 				await load(false);
 			} catch {
-				// Not cached: the next preload or rendered export retries the import,
-				// and a rendered export reports its own failure to its error boundary.
 			}
 		},
 	};

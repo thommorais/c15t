@@ -171,7 +171,6 @@ describe('forwardConsentRequest', () => {
 		expect(headers?.get('cookie')).toBeNull();
 		expect(headers?.get('x-unknown')).toBeNull();
 		expect(headers?.get('x-forwarded-for')).toBeNull();
-		// Nothing identity-bearing went up, so the upstream cache policy stands.
 		expect(answer.headers.get('cache-control')).toBeNull();
 	});
 

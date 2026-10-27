@@ -48,7 +48,6 @@ const readTCData = (): Promise<TCData> =>
 describe('publisher restrictions: decoding spec fixtures', () => {
 	test('purpose prohibited (type 0) expands single IDs and ranges', async () => {
 		const decoded = await decodeTCString(PURPOSE_PROHIBITED_TC_STRING);
-		// The rest of the hand-built segment decodes too.
 		expect(decoded.vendorConsents).toEqual({ 1: true, 10: true, 2: true });
 		expect(decoded.vendorLegitimateInterests).toEqual({ 1: true, 10: true });
 		expect(decoded.purposeConsents).toEqual({ 1: true, 2: true, 7: true });
@@ -90,7 +89,6 @@ describe('publisher restrictions: decoding spec fixtures', () => {
 		]);
 	});
 
-	// The codec itself refuses these while reading the string.
 	test.each([
 		['reserved restriction type 3', UNDEFINED_RESTRICTION_TC_STRING],
 		['purpose ID 0', PURPOSE_ZERO_RESTRICTION_TC_STRING],
@@ -121,13 +119,6 @@ describe('publisher restrictions: decoding spec fixtures', () => {
 	});
 });
 
-/**
- * Vendor declarations the restriction rules depend on:
- * - 1: consent for 2 and 3, flexible on 2.
- * - 2: legitimate interest for 2 and 7, flexible on 2.
- * - 10: consent for 2, LI for 7, not flexible.
- * - 755: consent for 2 and 7, flexible on both.
- */
 export const createRestrictionGVL = () =>
 	createMockGVL({
 		vendors: {
@@ -170,7 +161,6 @@ describe('publisher restrictions: encoding', () => {
 			{ cmpId: 28 }
 		);
 
-		// Groups are written in purpose order.
 		expect(readWireRestrictions(tcString)).toEqual([
 			{ entries: [2], purposeId: 2, restrictionType: 1 },
 			{ entries: [1], purposeId: 3, restrictionType: 0 },
@@ -193,9 +183,6 @@ describe('publisher restrictions: encoding', () => {
 			gvl,
 			{ cmpId: 28 }
 		);
-		// The encoder only writes a range across IDs missing from the vendor
-		// list. Vendors 2 and 10 sit between 1 and 755 here, so each vendor
-		// gets its own entry and the round trip is exact.
 		expect(
 			readWireRestrictions(tcString).find(
 				(entry) => entry.restrictionType === 2
@@ -221,7 +208,6 @@ describe('publisher restrictions: encoding', () => {
 			sparseGVL,
 			{ cmpId: 28 }
 		);
-		// No listed vendor sits between 1 and 5, so one range covers both.
 		expect(readWireRestrictions(tcString)).toEqual([
 			{ entries: [[1, 5]], purposeId: 2, restrictionType: 0 },
 		]);
@@ -343,8 +329,6 @@ describe('publisher restrictions: unsupported input fails explicitly', () => {
 	});
 
 	test('encodes restrictions as service-specific when isServiceSpecific is false', async () => {
-		// TCF requires IsServiceSpecific=1, so the deprecated option cannot
-		// produce a global string that would make restrictions invalid.
 		const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
 		try {
 			const decoded = await decodeTCString(
@@ -404,13 +388,11 @@ describe('publisher restrictions: CMP API', () => {
 			});
 			api.updateConsent(LEGITIMATE_INTEREST_REQUIRED_TC_STRING, consentData);
 			const pending = readTCData();
-			// The caller reuses its object while the string decodes.
 			consentData.purposeConsents[2] = false;
 			consentData.vendorConsents[2] = false;
 			const tcData = await pending;
 			expect(tcData.purpose.consents).toEqual({ 1: true, 2: true });
 			expect(tcData.vendor.consents).toEqual({ 1: true, 2: true });
-			// Nor can it rewrite data already published.
 			expect((await readTCData()).purpose.consents).toEqual({
 				1: true,
 				2: true,
@@ -456,8 +438,6 @@ describe('publisher restrictions: CMP API', () => {
 		const api = createCMPApi({ cmpId: 28, gvl: createMockGVL() });
 		try {
 			api.updateConsent(PURPOSE_PROHIBITED_TC_STRING);
-			// Starts decoding the first string, then replaces it before the
-			// decode settles.
 			const pending = readTCData();
 			api.updateConsent(LEGITIMATE_INTEREST_REQUIRED_TC_STRING);
 			const tcData = await pending;

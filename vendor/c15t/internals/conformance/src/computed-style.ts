@@ -1,19 +1,4 @@
-/**
- * Computed-style snapshot utilities.
- *
- * Pixel equality can pass while the underlying class contract drifts; this
- * module captures the *computed* style and CSS custom properties for each
- * element so we can assert visual-parity at the property level and diff
- * across frameworks.
- */
-
-/**
- * Properties we care about for parity. Kept intentionally small: layout,
- * box, typography, visual. Adding more properties increases noise without
- * catching more real drift.
- */
 const DEFAULT_PROPS = [
-	// layout
 	'display',
 	'position',
 	'flex-direction',
@@ -22,7 +7,6 @@ const DEFAULT_PROPS = [
 	'gap',
 	'grid-template-columns',
 	'grid-template-rows',
-	// box
 	'width',
 	'height',
 	'padding-top',
@@ -38,7 +22,6 @@ const DEFAULT_PROPS = [
 	'border-bottom-width',
 	'border-left-width',
 	'border-radius',
-	// typography
 	'font-family',
 	'font-size',
 	'font-weight',
@@ -46,13 +29,11 @@ const DEFAULT_PROPS = [
 	'letter-spacing',
 	'text-align',
 	'color',
-	// visual
 	'background-color',
 	'opacity',
 	'visibility',
 	'z-index',
 	'box-shadow',
-	// accessibility-visible direction
 	'direction',
 ] as const;
 
@@ -70,23 +51,9 @@ export interface ComputedStyleDiff {
 }
 
 export interface CaptureOptions {
-	/** CSS property names to capture. Defaults to DEFAULT_PROPS. */
 	properties?: readonly string[];
-	/** Whether to capture CSS custom properties (`--*`). Default: true. */
 	captureCustomProperties?: boolean;
 }
-
-// ---------------------------------------------------------------------------
-// Value canonicalizers
-//
-// Two cosmetic differences show up across frameworks for identical visual
-// output: color notation (React ships CSS modules that keep hex literals;
-// Svelte's build emits `hsl(...)`) and animation-name hashes (bundler-scoped
-// keyframe names). Both round-trip through `getComputedStyle` verbatim for
-// CSS custom properties, so we normalize here before comparing. Raw values
-// are preserved in the snapshot for debuggability — only the diff engine
-// consults canonical form.
-// ---------------------------------------------------------------------------
 
 const parseColorComponent = function parseColorComponent(
 	s: string,
@@ -255,12 +222,6 @@ const parseHslColor = function parseHslColor(
 	return [r, g, b, a];
 };
 
-/**
- * Canonicalize any CSS color value to `rgb(r, g, b)` / `rgba(r, g, b, a)`.
- * Returns the input untouched if it doesn't parse as a color (transparent,
- * currentColor, named colors, calc(), etc. — we'd have to carry a named-color
- * table to handle those, and they rarely differ across frameworks).
- */
 const canonicalizeColor = function canonicalizeColor(value: string): string {
 	const trimmed = value.trim();
 	let parsed: [number, number, number, number] | null = null;
@@ -285,12 +246,6 @@ const canonicalizeColor = function canonicalizeColor(value: string): string {
 	return `rgba(${ri}, ${gi}, ${bi}, ${alpha})`;
 };
 
-/**
- * Replace the first identifier token of an animation value with `<anim>`.
- * Used for `animation`, `animation-name`, and any custom property whose name
- * ends in `-animation`. Keyword values (`none`, `initial`, `inherit`) pass
- * through.
- */
 const canonicalizeAnimation = function canonicalizeAnimation(
 	value: string
 ): string {
@@ -320,15 +275,11 @@ const isColorPropertyName = function isColorPropertyName(
 		n === 'outline' ||
 		n === 'fill' ||
 		n === 'stroke' ||
-		// CSS custom properties don't follow naming conventions universally,
-		// but we can detect color-like values by prefix.
 		n.startsWith('--')
 	);
 };
 
 const canonicalizeColors = function canonicalizeColors(value: string): string {
-	// Consume each function through its closing delimiter once. A failed suffix
-	// search must not restart at every nested or repeated color prefix.
 	const starts = /#[0-9a-f]+|(?:rgba?|hsla?)\s*\(/giu;
 	const chunks: string[] = [];
 	let cursor = 0;
@@ -374,10 +325,6 @@ const isAnimationPropertyName = function isAnimationPropertyName(
 	);
 };
 
-/**
- * Canonicalize a single property value for diff comparison. Applied
- * symmetrically to both sides of every diff.
- */
 export const canonicalizeStyleValue = function canonicalizeStyleValue(
 	name: string,
 	value: string
@@ -404,9 +351,6 @@ const getCustomProperties = function getCustomProperties(
 	return out;
 };
 
-/**
- * Capture the computed style + CSS custom properties for a single element.
- */
 export const captureComputedStyle = function captureComputedStyle(
 	el: Element,
 	options: CaptureOptions = {}
@@ -426,11 +370,6 @@ export const captureComputedStyle = function captureComputedStyle(
 	};
 };
 
-/**
- * Capture computed styles for a map of elements keyed by `data-testid`.
- * Missing test-ids are silently skipped — consumers can assert presence
- * separately via the DOM contract.
- */
 export const captureComputedStyleFor = function captureComputedStyleFor(
 	root: ParentNode,
 	testIds: readonly string[],
@@ -446,9 +385,6 @@ export const captureComputedStyleFor = function captureComputedStyleFor(
 	return out;
 };
 
-/**
- * Diff two snapshots. Returns an array of divergences (empty if equal).
- */
 export const diffComputedStyle = function diffComputedStyle(
 	a: ComputedStyleSnapshot,
 	b: ComputedStyleSnapshot,
@@ -487,11 +423,6 @@ export const diffComputedStyle = function diffComputedStyle(
 	return diffs;
 };
 
-/**
- * Diff two keyed snapshot maps (as produced by `captureComputedStyleFor`).
- * Each divergence carries the test-id in its `path`. Missing keys on either
- * side are reported as property diffs with `undefined` on the missing side.
- */
 export const diffComputedStyleMap = function diffComputedStyleMap(
 	a: Record<string, ComputedStyleSnapshot>,
 	b: Record<string, ComputedStyleSnapshot>

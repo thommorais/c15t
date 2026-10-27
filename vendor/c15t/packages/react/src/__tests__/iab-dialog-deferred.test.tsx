@@ -12,7 +12,6 @@ import type { ComponentFixtureOptions } from './component-fixture-provider';
 import { moduleRequested } from './module-requests';
 import { policyFixture } from './policy-fixture';
 
-// Imported once request recording is running.
 const { IABConsentBanner, IABConsentDialog } = await import('~/iab');
 
 const IAB_DIALOG_MODULE = '/src/components/iab-panel/iab-panel.tsx';
@@ -35,8 +34,6 @@ const byTestId = <ElementType extends HTMLElement = HTMLElement>(
 const nextFrame = () => new Promise(requestAnimationFrame);
 
 beforeEach(() => {
-	// Idle-time warming would load the dialog on its own; these tests are
-	// about what rendering and opening it load. Warming has its own file.
 	vi.stubGlobal('requestIdleCallback', () => 0);
 });
 
@@ -44,16 +41,12 @@ afterEach(() => {
 	vi.unstubAllGlobals();
 });
 
-// These run first: once a test loads the dialog module, this document
-// keeps it.
 test('a controlled open={false} loads nothing while activeUI is dialog', async () => {
 	const screen = await render(
 		<ComponentFixtureProvider options={iabOptions({ initialUI: 'dialog' })}>
 			<IABConsentDialog open={false} />
 		</ComponentFixtureProvider>
 	);
-	// Long enough for the module request to finish if one started: a
-	// resource-timing entry appears only once the response ends.
 	await new Promise((resolve) => {
 		setTimeout(resolve, 1500);
 	});
@@ -73,7 +66,6 @@ test('showTrigger under another model renders the trigger without the dialog', a
 	await vi.waitFor(() =>
 		expect(byTestId('consent-dialog-trigger')).not.toBeNull()
 	);
-	// Long enough for a dialog request to finish if one started.
 	await new Promise((resolve) => {
 		setTimeout(resolve, 1500);
 	});
@@ -98,10 +90,7 @@ test('the IAB banner loads none of the dialog until Customize opens it', async (
 	expect(dialogModuleLoaded()).toBe(false);
 	expect(byTestId('iab-consent-dialog-root')).toBeNull();
 
-	// A DOM click runs the action without hover or focus warming first.
 	customize.click();
-	// A cold module request can exceed Vitest's one-second default when the
-	// full browser suite is compiling modules with coverage.
 	await vi.waitFor(
 		() => expect(byTestId('iab-consent-dialog-card')).not.toBeNull(),
 		{ timeout: 5000 }
@@ -152,7 +141,6 @@ test('closing the dialog plays its exit animation instead of removing it at once
 		</ComponentFixtureProvider>
 	);
 	await nextFrame();
-	// The eager dialog kept its markup for the exit transition.
 	expect(byTestId('iab-consent-dialog-root')).not.toBeNull();
 	await vi.waitFor(() =>
 		expect(byTestId('iab-consent-dialog-root')).toBeNull()
@@ -211,7 +199,6 @@ test.each([
 		const stream = await renderToReadableStream(page);
 		await stream.allReady;
 		const html = await new Response(stream).text();
-		// The eager dialog rendered nothing before it mounted, either.
 		expect(html).toContain('Page');
 		expect(html).not.toContain('iab-consent-dialog');
 		expect(html).not.toContain('consent-dialog-trigger');

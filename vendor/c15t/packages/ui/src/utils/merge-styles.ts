@@ -1,14 +1,6 @@
 import type { ClassNameStyle, ThemeValue } from '../theme/types';
 import { cn } from './cn';
 
-/**
- * Merges two styles objects, handling theme values and style properties.
- *
- * @param style1 - The first style object to merge (lower precedence)
- * @param style2 - The second style object to merge (Takes precedence over style1)
- *
- * @returns The merged styles object
- */
 export const mergeStyles = function mergeStyles(
 	style1: ThemeValue,
 	style2?: ThemeValue
@@ -28,9 +20,7 @@ export const mergeStyles = function mergeStyles(
 	const s1 = normalize(style1);
 	const s2 = normalize(style2);
 
-	// If either style has noStyle, we should respect it.
 	if (s1?.noStyle || s2?.noStyle) {
-		// If s2 has noStyle, it completely overrides s1
 		if (s2?.noStyle) {
 			return {
 				className: s2.className,
@@ -40,7 +30,6 @@ export const mergeStyles = function mergeStyles(
 		}
 	}
 
-	// Correct order: baseClassName -> s1 classes -> s2 classes
 	const className = cn(
 		s1?.baseClassName,
 		s1?.className,

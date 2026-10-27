@@ -15,10 +15,6 @@ import type { PolicyRule } from './policy-rule';
 type SupportedBaseLanguage = Extract<keyof BaseTranslations, string>;
 
 export interface I18nMessageProfile {
-	/**
-	 * Fallback language used when the requested language is not configured in
-	 * this profile.
-	 */
 	fallbackLanguage?: string;
 	translations: Record<string, Partial<Translations>>;
 }
@@ -26,13 +22,7 @@ export interface I18nMessageProfile {
 export type I18nMessageProfiles = Record<string, I18nMessageProfile>;
 
 export interface I18nOptions {
-	/**
-	 * Default profile used when a policy does not request a profile.
-	 */
 	defaultProfile?: string;
-	/**
-	 * Profile-indexed translation inputs.
-	 */
 	messages?: I18nMessageProfiles;
 }
 

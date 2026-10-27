@@ -1,10 +1,3 @@
-/**
- * Policy derivations the kernel runs on the effective policy rule.
- *
- * Pure. No DOM, no window, no network, no hashing: the rule and its
- * fingerprints arrive resolved, and every non-matched resolution uses the
- * schema's safe opt-in fallback with pinned fingerprints.
- */
 import type {
 	PolicyFingerprints,
 	PolicyResolution,
@@ -23,20 +16,11 @@ import type { AllConsentNames } from './consent/consent-types';
 import { deepFreeze } from './libs/freeze-data';
 import type { KernelModel } from './types';
 
-/** Rule plus fingerprints the evaluator runs on. */
 export interface EffectivePolicy {
 	rule: ResolvedPolicyRule;
 	fingerprints: PolicyFingerprints;
 }
 
-/**
- * Categories the visitor is asked about. Declared categories narrow the
- * policy scope. With nothing declared, a permissive rule asks about none of
- * them, since categories outside the choice scope stay allowed there, and a
- * strict rule asks about its whole scope, since nothing outside it may run.
- * An IAB rule also asks about its whole scope: TCF consent is given per
- * purpose and recorded in the TC string, whatever the site declares.
- */
 const projectChoiceScope = function projectChoiceScope(
 	rule: ResolvedPolicyRule,
 	consentCategories?: readonly AllConsentNames[] | null
@@ -75,8 +59,6 @@ const projectEvaluationPolicy = (
 	});
 };
 
-// These are owned immutable defaults, never caller-owned policy objects.
-// Every non-matched resolution uses the same rule and validated projection.
 const fallback = safeFallbackPolicyInput();
 const FALLBACK_EFFECTIVE_POLICY: EffectivePolicy = {
 	fingerprints: fallback.fingerprints,
@@ -88,20 +70,6 @@ const FALLBACK_EVALUATION_POLICY = projectEvaluationPolicy(
 );
 deepFreeze(FALLBACK_EVALUATION_POLICY);
 
-/**
- * The resolution a disabled provider or runtime runs on: a permissive
- * opt-out rule with no prompt, matched as the fallback.
- *
- * @remarks
- * A literal, not a `resolvePolicyRules` call. Resolving at module load would
- * validate and hash a rule on every page load, and would ship the authoring
- * validator and the SHA-256 fingerprinting to every client bundle that
- * renders a provider. A test pins this value to what `resolvePolicyRules`
- * returns for the same rule.
- *
- * @returns A fresh copy.
- * @internal
- */
 export const disabledPolicyResolution =
 	function disabledPolicyResolution(): PolicyResolutionMatched {
 		return {
@@ -133,12 +101,6 @@ export const disabledPolicyResolution =
 		};
 	};
 
-/**
- * The rule a resolution puts in force: the matched rule, or the safe
- * opt-in choice fallback for `unconfigured`, `no-match` and `failed`.
- * The status stays observable on the snapshot; the fallback is never
- * reported as a matched policy.
- */
 export const resolveEffectivePolicy = function resolveEffectivePolicy(
 	resolution: PolicyResolution
 ): EffectivePolicy {
@@ -148,12 +110,6 @@ export const resolveEffectivePolicy = function resolveEffectivePolicy(
 	return FALLBACK_EFFECTIVE_POLICY;
 };
 
-/**
- * Validated evaluator projection of an effective policy. Validity is
- * rounded to whole milliseconds: a day count multiplied out by the schema
- * can carry floating-point noise, and an expiry a fraction of a millisecond
- * past a timer tick would otherwise never be reached.
- */
 export const buildEvaluationPolicy = function buildEvaluationPolicy(
 	effective: EffectivePolicy,
 	consentCategories?: readonly AllConsentNames[] | null
@@ -164,11 +120,6 @@ export const buildEvaluationPolicy = function buildEvaluationPolicy(
 	return projectEvaluationPolicy(effective, consentCategories);
 };
 
-/**
- * Runtime model. An IAB rule only runs as `iab` when the IAB module is
- * enabled; otherwise its categories behave as opt-in, which is what the
- * evaluator already does for the `iab` model.
- */
 export const deriveModel = function deriveModel(
 	rule: ResolvedPolicyRule,
 	iabEnabled: boolean
@@ -179,18 +130,10 @@ export const deriveModel = function deriveModel(
 	return rule.model;
 };
 
-/** Values a form would present before any restriction is applied. */
 export type PresentedSelection = Partial<
 	Record<OptionalConsentCategory, boolean>
 >;
 
-/**
- * The selection a no-input `save()` confirms for the active scope: the
- * staged draft value, else the explicit value, else the model's displayed
- * default (allowed under opt-out, preselected under opt-in and IAB). It is
- * deliberately not the effective permission, which may be masked by GPC or
- * an expired grant.
- */
 export const presentedSelection = function presentedSelection(
 	rule: ResolvedPolicyRule,
 	draft: PresentedSelection | null,
@@ -216,7 +159,6 @@ export const presentedSelection = function presentedSelection(
 	return selection;
 };
 
-/** Every category in the active scope set to one value. */
 export const scopeSelection = function scopeSelection(
 	rule: ResolvedPolicyRule,
 	value: boolean

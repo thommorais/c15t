@@ -1,38 +1,3 @@
-/**
- * `@c15t/react` — React adapter for the c15t consent kernel.
- *
- * Pattern:
- *   import {
- *     ConsentProvider,
- *     hosted,
- *     useConsent,
- *     useSaveConsents,
- *   } from '@c15t/react';
- *
- *   function App({ children }) {
- *     return (
- *       <ConsentProvider options={{ mode: hosted({ backendURL: '/api/c15t' }) }}>
- *         {children}
- *       </ConsentProvider>
- *     );
- *   }
- *
- *   function MarketingScripts() {
- *     const allowed = useConsent('marketing');
- *     return allowed ? <GoogleTagManager /> : null;
- *   }
- *
- * Design notes:
- * - Selector hooks subscribe via `useSyncExternalStore` so re-renders
- *   stay scoped to the exact slice each hook reads.
- * - Action hooks return stable kernel methods — no `useCallback` dance
- *   required at the consumer site.
- * - No provider-level useEffect syncing state into React state. No
- *   cache patching. No method rewriting. Provider boot work is explicit
- *   module wiring around a single per-mount kernel.
- */
-
-// Re-export kernel types so consumers need only one import.
 export type {
 	AllConsentNames,
 	ClearOnRevocationConfig,
@@ -68,7 +33,6 @@ export type {
 	ConsentBannerRightsProps,
 	ConsentBannerSurface,
 } from './components/prompt';
-// -- UI components ----------------------------------------------------------
 export type {
 	ConsentDialogCompoundComponent,
 	ConsentDialogProps,
@@ -126,7 +90,6 @@ export type {
 	ResolvedConsentPresentation,
 } from '@c15t/core';
 
-// Values, one group per file; see `index-parts/core.ts` for why.
 // oxlint-disable oxc/no-barrel-file -- The package entry; star exports keep unused groups out of esbuild's first chunk.
 export * from './index-parts/core';
 export * from './index-parts/hosted';

@@ -17,7 +17,6 @@ function createInstance(
 	return instance;
 }
 
-/** The focused element in the panel's tree, which is a shadow root by default. */
 const activeElementOf = (instance: DevToolsInstance): Element | null =>
 	(instance.element?.getRootNode() as Document | ShadowRoot | undefined)
 		?.activeElement ?? null;
@@ -214,8 +213,6 @@ describe('createDevTools', () => {
 		).toContain('.c15t-dev-tools');
 	});
 
-	// Shadow content is not a child, so the host matches `:empty`, and
-	// themes such as Shopify's Dawn hide `div:empty`.
 	it('keeps its shadow host displayed under page `div:empty` rules', () => {
 		const style = document.createElement('style');
 		style.textContent = 'div:empty { display: none !important; }';
@@ -362,7 +359,6 @@ describe('vendors on the consents tab', () => {
 			...(tools.element?.querySelectorAll('.c15t-dev-tools__check') ?? []),
 		].map((row) => row.textContent);
 		expect(rows.find((row) => row?.includes('Meta Pixel'))).toContain('Denied');
-		// Not denied, but its category is off: the gate still blocks it.
 		expect(rows.find((row) => row?.includes('Google Analytics'))).toContain(
 			'Blocked by category'
 		);
@@ -374,8 +370,6 @@ describe('vendors on the consents tab', () => {
 			initialRecords: { vendorChoice: denied },
 			initialVendors: { declared: [meta], listVersion: null },
 		});
-		// The kernel derives `model: 'iab'` from an enabled IAB module, not from
-		// the policy rule alone.
 		kernel.set.iab({ enabled: true });
 		const tools = createInstance(kernel);
 		tools.open();

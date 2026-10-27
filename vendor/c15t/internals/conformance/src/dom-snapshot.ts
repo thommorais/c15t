@@ -1,17 +1,3 @@
-/**
- * Framework-agnostic DOM snapshot.
- *
- * Normalizes an Element's outerHTML by stripping:
- * - Svelte scoped class hashes (`svelte-[a-z0-9]+`, `s-[a-z0-9]+`)
- * - React-internal attributes (`data-reactroot`, legacy `reactid`)
- * - Auto-generated IDs from portalized UI libs (Radix/Ark `:r…:`, `radix-…`)
- * - Extra whitespace between tags
- * - Attribute ordering (alphabetized)
- *
- * The result is a canonical string suitable for equality checks between
- * frameworks.
- */
-
 const SVELTE_SCOPED_CLASS = /\bsvelte-[a-z0-9]+\b/gu;
 const S_SCOPED_CLASS = /\bs-[a-z0-9]{6,}\b/gu;
 // oxlint-disable-next-line prefer-named-capture-group -- This package supports pre-ES2018 declaration targets.
@@ -63,10 +49,6 @@ const normalizeAttrValue = function normalizeAttrValue(
 	return value;
 };
 
-/**
- * Recursively serialize an element to a canonical HTML-like string.
- * Sorts attributes alphabetically, normalizes class and auto-ids.
- */
 const canonicalize = function canonicalize(el: Element): string {
 	const tag = el.tagName.toLowerCase();
 	const attrs: string[] = [];
@@ -99,7 +81,6 @@ const canonicalize = function canonicalize(el: Element): string {
 			}
 			continue;
 		}
-		// other node types (comments, etc.) are ignored
 	}
 
 	const close = `</${tag}>`;
@@ -110,11 +91,6 @@ export const domSnapshot = function domSnapshot(el: Element): string {
 	return canonicalize(el);
 };
 
-/**
- * Snapshot only the elements matching any of `testIds`, preserving nesting.
- * Used when we want to compare just the "stable" parts of a component
- * ignoring portal positioning or unrelated sibling noise.
- */
 export const domSnapshotFor = function domSnapshotFor(
 	root: ParentNode,
 	testIds: readonly string[]

@@ -35,8 +35,6 @@ const createWrapper = function createWrapper({
 	rule,
 	initialTranslations,
 }: FixtureOptions = {}) {
-	// Built once, outside render: the fixture reads the clock, and the server
-	// and client renders must share one snapshot.
 	const prefetch = { ...policyFixture(values, rule), initialTranslations };
 	return function Wrapper({ children }: { children: ReactNode }) {
 		return (
@@ -86,8 +84,6 @@ describe('useConsentGate state', () => {
 		expect(result.current.state).toBe('policy-blocked');
 	});
 
-	// A permissive scope allows categories outside it by default, so this
-	// one needs an explicit denial to stay ungranted.
 	test('is denied, not policy-blocked, when a permissive scope excludes a denied category', async () => {
 		const { result } = await renderGate('marketing', {
 			rule: { categories: ['measurement'], scopeMode: 'permissive' },
@@ -136,8 +132,6 @@ describe('useConsentGate server rendering', () => {
 		);
 	};
 
-	// Next.js `cacheComponents` fails a prerender that reads the clock in a
-	// Client Component.
 	test.each([false, true])(
 		'reads no clock while rendering on the server (granted: %s)',
 		(marketing) => {

@@ -1,18 +1,3 @@
-/**
- * Tests for @c15t/core/modules/script-loader.
- *
- * Verifies the public script-loader contract:
- * - load/unload based on consent
- * - alwaysLoad bypasses consent checks
- * - callbackOnly skips DOM mount
- * - persistAfterConsentRevoked leaves DOM element in place
- * - onBeforeLoad / onLoad / onError / onConsentChange fire correctly
- * - anonymizeId generates stable random IDs
- * - nested AND/OR/NOT category conditions
- * - IAB evaluation when model === 'iab'
- * - updateScripts swaps config and unloads removed scripts
- * - dispose removes elements and disconnects subscription
- */
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
 import {
@@ -26,12 +11,6 @@ import { createScriptLoader } from '../index';
 import type { Script } from '../index';
 
 const IAB_RESOLUTION = matchedResolution(iabRule());
-
-// ---------------------------------------------------------------
-// Minimal DOM stubs. The kernel has zero browser-globals usage;
-// the script-loader needs `document.createElement` + `document.head`.
-// We install a fresh stub per test so assertions don't leak.
-// ---------------------------------------------------------------
 
 interface StubScriptElement {
 	id: string;
@@ -138,8 +117,6 @@ beforeEach(() => {
 		},
 		head,
 	});
-	// Fake timers so inline-script setTimeout(...,0) → onLoad fires
-	// deterministically.
 	vi.useFakeTimers();
 });
 
@@ -147,8 +124,6 @@ afterEach(() => {
 	vi.unstubAllGlobals();
 	vi.useRealTimers();
 });
-
-// ---------------------------------------------------------------
 
 describe('script-loader: basic load/unload on consent change', () => {
 	test('mounts a script when category consent is granted', () => {
@@ -215,9 +190,6 @@ describe('script-loader: basic load/unload on consent change', () => {
 			],
 		});
 
-		// Permissive scope means the controller declared categories outside
-		// the scope unrestricted; strict scope denies them (see the strict
-		// test above). Neither creates a choice.
 		expect(kernel.getSnapshot().explicitChoice).toBeNull();
 		expect(kernel.getSnapshot().effectivePermissions.marketing).toBe(true);
 		expect(head.children).toHaveLength(1);
@@ -371,7 +343,6 @@ describe('script-loader: alwaysLoad bypasses consent', () => {
 			],
 		});
 
-		// marketing is false, but alwaysLoad = mounted anyway
 		expect(head.children).toHaveLength(1);
 	});
 
@@ -512,7 +483,6 @@ describe('script-loader: persistAfterConsentRevoked', () => {
 
 		expect(head.children).toHaveLength(1);
 		void kernel.commands.save({ marketing: false });
-		// DOM element persists...
 		expect(head.children).toHaveLength(1);
 	});
 });
@@ -560,7 +530,6 @@ describe('script-loader: callbacks fire in sequence', () => {
 		});
 
 		expect(order).toEqual(['before']);
-		// Simulate the browser firing the load event.
 		head.children[0]?.triggerEvent('load');
 		expect(order).toEqual(['before', 'load']);
 	});
@@ -648,7 +617,6 @@ describe('script-loader: anonymizeId', () => {
 		expect(firstId).toMatch(/^c15t-/u);
 		expect(firstId).not.toBe('c15t-script-gtm');
 
-		// Revoke + regrant should keep the same anonymized ID.
 		void kernel.commands.save({ marketing: false });
 		void kernel.commands.save({ marketing: true });
 		expect(head.children[0]?.id).toBe(firstId);
@@ -726,7 +694,6 @@ describe('script-loader: nested AND/OR/NOT conditions', () => {
 				},
 			],
 		});
-		// NOT marketing (marketing=false) → should load
 		expect(head.children).toHaveLength(1);
 
 		void kernel.commands.save({ marketing: true });
@@ -757,7 +724,6 @@ describe('script-loader: IAB evaluation when model="iab"', () => {
 			],
 		});
 
-		// No vendor consent → blocked even though category is true.
 		expect(head.children).toHaveLength(0);
 
 		kernel.set.iab({ vendorConsents: { '755': true } });
@@ -802,7 +768,6 @@ describe('script-loader: updateScripts swaps config', () => {
 				src: 'https://example.com/ga.js',
 			},
 		]);
-		// gtm unmounted, ga mounted
 		expect(head.children).toHaveLength(1);
 		expect(head.children[0]?.src).toBe('https://example.com/ga.js');
 	});
@@ -812,7 +777,6 @@ describe('script-loader: callback updates', () => {
 	test('does not repeat consent callbacks for an identical choice saved inside a callback', () => {
 		const kernel = createConsentKernel();
 		const onConsentChange = vi.fn(() => {
-			// Bound a broken implementation so this regression cannot loop forever.
 			if (onConsentChange.mock.calls.length < 3) {
 				void kernel.commands.save({ measurement: true });
 			}
@@ -1127,7 +1091,6 @@ describe('script-loader: dispose', () => {
 		loader.dispose();
 		expect(head.children).toHaveLength(0);
 
-		// Post-dispose snapshot changes should not re-mount.
 		void kernel.commands.save({ marketing: false });
 		void kernel.commands.save({ marketing: true });
 		expect(head.children).toHaveLength(0);

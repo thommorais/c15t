@@ -112,8 +112,6 @@ describe('resolveSessionReportBackendURL', () => {
 				backendURL: 'https://consent.example.com/',
 			})
 		).toBe('https://consent.example.com');
-		// A relative URL cannot be fetched from a server, and the app's own
-		// proxy route would count the visitor twice on the way through.
 		expect(resolveSessionReportBackendURL({ backendURL: '/api/c15t' })).toBe(
 			undefined
 		);
@@ -123,8 +121,6 @@ describe('resolveSessionReportBackendURL', () => {
 
 describe('forwardSessionReportHeaders', () => {
 	test('ignores a caller-supplied x-c15t-client-ip', () => {
-		// A visitor can send the report header to a public init route, so the
-		// address always comes from the proxy chain.
 		expect(
 			forwardSessionReportHeaders(
 				new Headers({
@@ -338,8 +334,6 @@ describe('reportConsentSession lifetime hook', () => {
 
 describe('reportConsentSession never blocks the resolution', () => {
 	test('the init resolves while the report is still in flight', async () => {
-		// A backend that never answers must not hold the visitor's init: the
-		// report is detached, and the transport returns without it.
 		let settle: (() => void) | undefined;
 		const pending = new Promise<Response>((resolve) => {
 			settle = () => resolve(new Response(null, { status: 204 }));
@@ -392,9 +386,6 @@ describe('reportConsentSession never blocks the resolution', () => {
 			})
 		).resolves.toBeUndefined();
 
-		// The request carries an abort signal so a hanging backend cannot hold
-		// a `waitUntil` slot open; a fetch aborted by it resolves like any
-		// other failure.
 		const timedOut = vi.fn((_url: string, request: RequestInit) => {
 			expect(request.signal).toBeInstanceOf(AbortSignal);
 			return Promise.reject(
@@ -459,9 +450,6 @@ describe('reportConsentSession never blocks the resolution', () => {
 
 describe('createManifestTransport report option', () => {
 	test('never reports to the origin its manifest URL came from', async () => {
-		// The transport derives a backend from its manifest URL for saves; a
-		// report never uses that, since a manifest may live on a CDN that
-		// exists only to hand out public policy data.
 		const fetchSpy = vi
 			.fn()
 			.mockImplementation((url: string) =>
@@ -501,7 +489,6 @@ describe('createManifestTransport report option', () => {
 			overrides: { country: 'DE', gpc: true, language: 'de' },
 			user: null,
 		});
-		// The report is detached; let it land.
 		await new Promise<void>((resolve) => {
 			setTimeout(resolve, 0);
 		});

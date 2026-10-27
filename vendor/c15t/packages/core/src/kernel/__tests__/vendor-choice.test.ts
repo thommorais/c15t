@@ -1,7 +1,3 @@
-/**
- * Vendor-level consent through the kernel's public boundaries: hydration,
- * save, bulk actions, events, the transport payload and in-flight narrowing.
- */
 import { afterEach, describe, expect, test, vi } from 'vitest';
 
 import {
@@ -97,8 +93,6 @@ describe('validateVendorChoice', () => {
 		['unknown version', { confirmedAt: NOW, denied: [], version: 2 }],
 		['unknown key', { confirmedAt: NOW, denied: [], extra: 1, version: 1 }],
 		['empty id', { confirmedAt: NOW, denied: [''], version: 1 }],
-		// The wire accepts only slugs as grant keys; a stored id outside that
-		// shape would fail every later save once a vendor is declared.
 		['non-slug id', { confirmedAt: NOW, denied: ['Bad ID'], version: 1 }],
 		['non-array', { confirmedAt: NOW, denied: 'a', version: 1 }],
 	])('rejects %s', (_label, input) => {
@@ -174,12 +168,10 @@ describe('snapshot vendor state', () => {
 			},
 			{ replaceSource: 'config' }
 		);
-		// The two other config vendors are gone; a manifest one would survive.
 		expect(
 			kernel.getSnapshot().vendors?.declared.map((vendor) => vendor.id)
 		).toEqual(['meta-pixel']);
 		kernel.set.vendors({ declared: [] }, { replaceSource: 'config' });
-		// The list version is presentation data and survives an empty list.
 		expect(kernel.getSnapshot().vendors).toEqual({
 			declared: [],
 			listVersion: '2026-09',
@@ -254,7 +246,6 @@ describe('save with vendors', () => {
 		kernel.events.on('vendors:recorded', recorded);
 		const before = kernel.getSnapshot();
 
-		// An empty category object confirms no category; only the vendor moves.
 		const result = await kernel.commands.save(
 			{},
 			{
@@ -269,7 +260,6 @@ describe('save with vendors', () => {
 			denied: ['meta-pixel'],
 			version: 1,
 		});
-		// Category receipts are untouched: no renewed timestamps.
 		expect(after.explicitChoice).toBe(before.explicitChoice);
 		expect(choice).not.toHaveBeenCalled();
 		expect(recorded).toHaveBeenCalledOnce();
@@ -296,8 +286,6 @@ describe('save with vendors', () => {
 		});
 		const recorded = vi.fn();
 		kernel.events.on('vendors:recorded', recorded);
-		// Same list, but the visitor confirmed it again: a server read taken
-		// between the two times must lose to this act.
 		const result = await kernel.commands.save(
 			{},
 			{
@@ -342,18 +330,14 @@ describe('save with vendors', () => {
 			denied: ['meta-pixel'],
 			version: 1,
 		});
-		// `vendors` is split off before the category validator sees it, so
-		// it is neither refused as an unknown key nor recorded as one.
 		const categories = kernel.getSnapshot().explicitChoice?.categories ?? {};
 		expect(categories.marketing?.value).toBe(true);
 		expect(Object.keys(categories)).not.toContain('vendors');
-		// The context form wins when both are given.
 		await kernel.commands.save(
 			{ vendors: { 'meta-pixel': false } },
 			{ vendors: { 'meta-pixel': true } }
 		);
 		expect(kernel.getSnapshot().vendorChoice?.denied).toEqual([]);
-		// A malformed inline map is refused the same as a malformed context.
 		const bad = await kernel.commands.save({
 			vendors: { 'meta-pixel': 'no' as never },
 		});
@@ -380,8 +364,6 @@ describe('save with vendors', () => {
 			initialRecords: choiceRecords({ marketing: true, measurement: true }),
 		});
 		await kernel.commands.save('all', { vendors: { 'meta-pixel': false } });
-		// Stamped even with nothing denied before, so an older server denial
-		// that lands afterwards loses the newest-wins merge.
 		expect(kernel.getSnapshot().vendorChoice).toEqual({
 			confirmedAt: NOW,
 			denied: [],
@@ -401,8 +383,6 @@ describe('save with vendors', () => {
 				},
 			},
 		});
-		// Rejecting only measurement lifts the analytics denial and leaves the
-		// marketing vendor exactly as the visitor left it.
 		await kernel.commands.save('none', { categories: ['measurement'] });
 		expect(kernel.getSnapshot().vendorChoice).toEqual({
 			confirmedAt: NOW,
@@ -413,7 +393,6 @@ describe('save with vendors', () => {
 	});
 
 	test('a narrowed bulk action keeps the denial of a vendor another granted category still loads', async () => {
-		// Receipts under the kernel's own rule, so marketing is granted for real.
 		const rule = matchedResolution(
 			optInRule({ categories: ['marketing', 'measurement'] })
 		);
@@ -442,8 +421,6 @@ describe('save with vendors', () => {
 				listVersion: null,
 			},
 		});
-		// Rejecting measurement alone leaves marketing granted, and marketing
-		// alone loads the shared vendor, so its denial must survive.
 		await kernel.commands.save('none', { categories: ['measurement'] });
 		expect(kernel.getSnapshot().vendorChoice?.denied).toEqual(['shared']);
 		kernel.dispose();
@@ -478,8 +455,6 @@ describe('save with vendors', () => {
 				listVersion: null,
 			},
 		});
-		// Rejecting marketing is what makes this vendor eligible, so the bulk
-		// action decided it and its denial lifts.
 		await kernel.commands.save('none', { categories: ['marketing'] });
 		expect(kernel.getSnapshot().vendorChoice).toEqual({
 			confirmedAt: NOW,
@@ -490,8 +465,6 @@ describe('save with vendors', () => {
 	});
 
 	test('a narrowed bulk action decides a vendor whose condition the selected categories settle together', async () => {
-		// Experience stays outside the selection, so this is not the
-		// full-scope clear and the vendor has to be decided on its own.
 		const rule = matchedResolution(
 			optInRule({ categories: ['experience', 'marketing', 'measurement'] })
 		);
@@ -512,10 +485,6 @@ describe('save with vendors', () => {
 				declared: [
 					...vendors.declared,
 					{
-						// Rejecting measurement blocks it and rejecting marketing
-						// enables it, so flipping the selection as a whole leaves
-						// the outcome false either way. Rejecting both still
-						// settles it: no value of experience can load it.
 						category: { and: ['measurement', { not: 'marketing' }] },
 						id: 'contextual',
 						presentable: false,
@@ -556,8 +525,6 @@ describe('save with vendors', () => {
 				declared: [
 					...vendors.declared,
 					{
-						// False whether the selected categories are all on or all
-						// off, so a per-vendor decision test cannot settle it.
 						category: { and: ['marketing', { not: 'measurement' }] },
 						id: 'contextual',
 						presentable: false,
@@ -567,9 +534,6 @@ describe('save with vendors', () => {
 				listVersion: null,
 			},
 		});
-		// The preference center sends the displayed scope with every bulk
-		// action. Covering the whole scope is the stock accept all, which
-		// clears the list outright rather than deciding vendor by vendor.
 		await kernel.commands.save('all', {
 			categories: ['marketing', 'measurement'],
 		});
@@ -588,8 +552,6 @@ describe('save with vendors', () => {
 				vendorChoice: { confirmedAt: NOW - 500, denied: [], version: 1 },
 			},
 		});
-		// The list is unchanged, but the visitor just reaffirmed it: a server
-		// denial older than now must lose the merge to this act.
 		await kernel.commands.save({}, { vendors: { 'meta-pixel': true } });
 		expect(kernel.getSnapshot().vendorChoice).toEqual({
 			confirmedAt: NOW,
@@ -608,8 +570,6 @@ describe('save with vendors', () => {
 			transport: { save },
 		});
 		await kernel.commands.save({}, { vendors: { 'meta-pixel': true } });
-		// A decision, even one that denies nothing: an older server denial
-		// arriving afterwards must lose the merge to it.
 		expect(kernel.getSnapshot().vendorChoice).toEqual({
 			confirmedAt: NOW,
 			denied: [],
@@ -639,9 +599,6 @@ describe('save with vendors', () => {
 			},
 			transport: { save },
 		});
-		// An unrelated category save: the backend reads the map as the whole
-		// decision, so the retired vendor's denial has to be in it or another
-		// device will read it as granted.
 		await kernel.commands.save({ marketing: true, measurement: false });
 		const payload = save.mock.calls[0]?.[0] as SavePayload;
 		expect(payload.vendorChoice?.grants).toEqual({
@@ -661,18 +618,11 @@ describe('save with vendors', () => {
 		await kernel.commands.save({ marketing: true, measurement: true });
 		expect(kernel.getSnapshot().vendorChoice).toBeNull();
 		const payload = save.mock.calls[0]?.[0] as SavePayload;
-		// Claiming every vendor was granted now would let an older server
-		// denial still in flight win locally while the backend held the newer
-		// map. No decision, no map.
 		expect(payload.vendorChoice).toBeUndefined();
 		kernel.dispose();
 	});
 
 	test('a bulk action over an empty choice scope is not the full clear', async () => {
-		// The configured categories share nothing with the rule's scope, so
-		// the visitor decides nothing here and `choiceScope` is empty. A
-		// narrowed action then covers it vacuously, and must not clear the
-		// denials of vendors under categories it never named.
 		const kernel = createKernel({
 			consentCategories: ['functionality'],
 			initialRecords: {
@@ -694,9 +644,6 @@ describe('save with vendors', () => {
 	});
 
 	test('a full bulk action clears a denial retained for a vendor no longer declared', async () => {
-		// The backend list dropped the vendor, so nothing is declared, but the
-		// stored denial is still there. Accept all is documented to clear
-		// denials; if it did not, the vendor would return blocked.
 		const kernel = createKernel({
 			initialRecords: {
 				...choiceRecords({ marketing: true, measurement: true }),
@@ -734,10 +681,6 @@ describe('save with vendors', () => {
 			transport: { save },
 		});
 		await kernel.commands.save('all');
-		// The clear is a newer decision, and it names the vendor it lifted:
-		// the backend keeps an earlier decision for a vendor a later map
-		// omits, so an empty map would leave the old denial in place and
-		// another device would restore it when the vendor is redeclared.
 		const payload = save.mock.calls[0]?.[0] as SavePayload;
 		expect(payload.vendorChoice).toEqual({
 			confirmedAt: NOW,
@@ -769,7 +712,6 @@ describe('save with vendors', () => {
 			},
 		});
 		await kernel.commands.save('none');
-		// Cleared, but still a timestamped decision so it wins newest-wins.
 		expect(kernel.getSnapshot().vendorChoice).toEqual({
 			confirmedAt: NOW,
 			denied: [],
@@ -830,11 +772,6 @@ describe('save with vendors', () => {
 	});
 });
 
-/**
- * The snapshot before and after `init()` answered by each response in turn.
- * The policy contract is omitted unless a response carries one, so the
- * fold falls back safely and only vendors and records are under test.
- */
 const initWith = async function initWith(
 	overrides: KernelConfig,
 	...responses: InitResponse[]
@@ -939,11 +876,9 @@ describe('server records and init', () => {
 			{
 				initialRecords: {
 					...choiceRecords({ marketing: true }),
-					// The visitor lifted a denial at NOW - 2 ...
 					vendorChoice: { confirmedAt: NOW - 2, denied: [], version: 1 },
 				},
 			},
-			// ... and a server read taken earlier still carries the denial.
 			{
 				records: {
 					vendorChoice: {
@@ -1014,9 +949,7 @@ describe('server records and init', () => {
 				},
 			],
 		});
-		// The old label described the old list.
 		expect(replaced?.vendors?.listVersion).toBeNull();
-		// A version-only response relabels the current declarations.
 		const {
 			after: [relabelled],
 		} = await initWith(config, { vendorListVersion: '2' });
@@ -1060,11 +993,6 @@ describe('server records and init', () => {
 
 describe('in-flight saves', () => {
 	test('a failed save queues its vendor map when only a category was superseded', async () => {
-		// One combined action: categories plus a vendor denial. While it is
-		// in flight a subject read supersedes one category, and the request
-		// then fails. The queued replay must still carry the vendor map,
-		// since no newer action ever carried one; dropping it would lose
-		// the denial on the backend.
 		let fail: ((error: Error) => void) | undefined;
 		const save = vi
 			.fn<NonNullable<KernelTransport['save']>>()
@@ -1088,8 +1016,6 @@ describe('in-flight saves', () => {
 			setTimeout(resolve, 0);
 		});
 		expect(save).toHaveBeenCalledTimes(1);
-		// A newer action for measurement only, with no vendor decision of its
-		// own, lands while the first request is out.
 		await kernel.commands.save({ measurement: false });
 		fail?.(new Error('offline'));
 		await pending;
@@ -1121,7 +1047,6 @@ describe('in-flight saves', () => {
 			{ marketing: true, measurement: true },
 			{ vendors: { 'meta-pixel': false } }
 		);
-		// Let the first save pass its yield and reach the transport.
 		await new Promise((resolve) => {
 			setTimeout(resolve, 0);
 		});
@@ -1141,7 +1066,6 @@ describe('in-flight saves', () => {
 		});
 		release?.();
 		await second;
-		// The second payload carried the newer map; the first kept its receipts.
 		expect(sent).toHaveLength(2);
 		expect(sent[1]?.vendorChoice?.grants['meta-pixel']).toBe(true);
 		expect(Object.keys(sent[1]?.confirmed.categories ?? {})).toEqual([]);

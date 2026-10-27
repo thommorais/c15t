@@ -1,8 +1,6 @@
 import { CONSENT_COMPONENT_SLOT_KEYS } from '@c15t/schema/config';
 import { describe, expect, test } from 'vitest';
 
-// Raw source text of every v3 component/primitive module, inlined by Vite so
-// the scan also works in browser-mode vitest (no node:fs available there).
 const rawSources: Record<string, string> = {
 	...import.meta.glob(
 		[

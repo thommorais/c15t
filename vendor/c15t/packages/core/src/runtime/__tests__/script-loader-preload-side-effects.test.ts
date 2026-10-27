@@ -41,18 +41,15 @@ const resolution = matchedResolution(optInRule());
 const fingerprint = resolution.fingerprints.choice;
 const SUBJECT_ID = 'sub_2VZxR7YmNpKq3WfLs8TgHd';
 
-/** The server read a marketing choice from the cookie at `confirmedAt`. */
 const seeded = (marketing: boolean, confirmedAt: number): RuntimePrefetch => ({
 	initialPolicyResolution: resolution,
 	initialRecords: choiceRecords({ marketing }, { confirmedAt, fingerprint }),
 	now: NOW,
 });
 
-/** The server read a marketing grant from the cookie at `confirmedAt`. */
 const seededGrant = (confirmedAt: number): RuntimePrefetch =>
 	seeded(true, confirmedAt);
 
-/** The server read no records. */
 const unseeded: RuntimePrefetch = {
 	initialPolicyResolution: resolution,
 	now: NOW,
@@ -77,11 +74,6 @@ const storeEnvelope = (
 	);
 };
 
-/**
- * What the browser has stored, what the server read, and whether the
- * loader loads: from a resolved state, then from a streamed one when that
- * differs.
- */
 const cases: [string, () => RuntimePrefetch, boolean, boolean?][] = [
 	[
 		'a stored denial newer than the server read',
@@ -142,8 +134,6 @@ const cases: [string, () => RuntimePrefetch, boolean, boolean?][] = [
 		true,
 	],
 	[
-		// A streamed state hydrates storage in full and folds the server's
-		// records in newest-wins; a resolved one keeps the seed's denial.
 		'a stored grant newer than the server read denial',
 		() => {
 			storeEnvelope(true, NOW - 1000);
@@ -169,7 +159,6 @@ const cases: [string, () => RuntimePrefetch, boolean, boolean?][] = [
 	],
 ];
 
-/** Records every storage write and listener change while it is installed. */
 const watchSideEffects = function watchSideEffects() {
 	const writes: string[] = [];
 	const listeners = new Map<string, number>();
@@ -206,7 +195,6 @@ const watchSideEffects = function watchSideEffects() {
 			writes.push('clear');
 		});
 	}
-	// Anything that asks for persistence's write code.
 	const writerLoads = vi.spyOn(pageWriterLoader, 'load');
 	for (const target of [window, document]) {
 		const add = target.addEventListener.bind(target);
@@ -225,16 +213,13 @@ const watchSideEffects = function watchSideEffects() {
 		);
 	}
 	return {
-		/** Listeners added and not removed, by event type. */
 		leftListeners: () =>
 			[...listeners].filter(([, count]) => count !== 0).map(([type]) => type),
-		/** Calls for persistence's write code. */
 		writerLoads,
 		writes,
 	};
 };
 
-/** Let a streamed prefetch and the load it starts settle, without timers. */
 const settle = async (): Promise<void> => {
 	for (let turn = 0; turn < 10; turn += 1) {
 		// oxlint-disable-next-line no-await-in-loop -- Sequential turns are the point.
@@ -242,10 +227,6 @@ const settle = async (): Promise<void> => {
 	}
 };
 
-/**
- * Build a provider runtime the way `ConsentRoot` does: persistence on, a
- * lazy script loader and the early decision. It is never started.
- */
 const construct = function construct(
 	prefetch: RuntimePrefetch | Promise<RuntimePrefetch>
 ) {
@@ -313,7 +294,6 @@ const runCase = async (
 		stream ? Promise.resolve(prefetch) : prefetch
 	);
 	await settle();
-	// The decision ran, and judged what start() would apply.
 	expect(load).toHaveBeenCalledTimes(loads ? 1 : 0);
 	expect(watch.writes).toEqual([]);
 	expect(watch.writerLoads).not.toHaveBeenCalled();
@@ -321,7 +301,6 @@ const runCase = async (
 	expect(vi.getTimerCount()).toBe(0);
 	runtime.dispose();
 	await settle();
-	// Nothing was scheduled to fire later either.
 	await vi.runAllTimersAsync();
 	expect(watch.writes).toEqual([]);
 	expect(watch.writerLoads).not.toHaveBeenCalled();

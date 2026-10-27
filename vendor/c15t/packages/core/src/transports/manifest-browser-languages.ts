@@ -1,23 +1,9 @@
-/**
- * Base copy for every language but English, one `import()` each. The
- * browser manifest resolver loads this module only when a visitor resolves
- * to another language, so first-load JavaScript carries a single `import()`
- * instead of one per language.
- *
- * @internal
- */
 import type { Translations } from '@c15t/translations';
 
 import type { OtherLanguage } from './manifest-browser-resolve';
 
 type LanguageModule = Promise<{ translations: Translations }>;
 
-/**
- * One `import()` per language, each with a literal specifier, so a bundler
- * splits every language into a chunk of its own. The record type makes a
- * language added to `@c15t/translations` a type error here until it is
- * listed.
- */
 const languageModules: Record<OtherLanguage, () => LanguageModule> = {
 	ar: () => import('@c15t/translations/ar'),
 	bg: () => import('@c15t/translations/bg'),
@@ -75,14 +61,6 @@ const languageModules: Record<OtherLanguage, () => LanguageModule> = {
 
 const loading = new Map<string, Promise<Translations | undefined>>();
 
-/**
- * Load one language's base copy, once per page.
- *
- * @param language - A language other than English.
- * @returns The language's copy, or `undefined` when its chunk fails to
- * load. A later call tries again.
- * @internal
- */
 export const loadLanguageCopy = function loadLanguageCopy(
 	language: OtherLanguage
 ): Promise<Translations | undefined> {

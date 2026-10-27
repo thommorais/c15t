@@ -1,9 +1,3 @@
-/**
- * Provider-level vendor behaviour outside the widget: a `vendors` option
- * supplied after the first render reaches the kernel, and the allowed-vendor
- * hook follows the kernel's gate semantics for a vendor declared `disabled`
- * and reads an undeclared vendor as not allowed.
- */
 import type { Script, Vendor } from '@c15t/core';
 import { useContext, useEffect, useState } from 'react';
 import { describe, expect, test, vi } from 'vitest';
@@ -167,8 +161,6 @@ describe('provider vendor options', () => {
 			expect(readProbe()?.declared).toEqual(['meta-pixel']);
 		});
 		await page.getByTestId('remove').click();
-		// The script still names the slug, so the vendor stays declared as a
-		// script-sourced entry rather than disappearing with its config copy.
 		await vi.waitFor(() => {
 			expect(readProbe()?.source).toBe('script');
 		});
@@ -258,7 +250,6 @@ describe('provider vendor options', () => {
 			expect(readProbe()?.source).toBe('script');
 		});
 		await page.getByTestId('remove-script').click();
-		// Nothing else declares the slug, so the vendor leaves the list.
 		await vi.waitFor(() => {
 			expect(readProbe()?.declared).toEqual([]);
 		});
@@ -281,7 +272,6 @@ describe('provider vendor options', () => {
 						persistence: false,
 						prefetch: {
 							...fixture,
-							// What a server prefetch resolved from the backend manifest.
 							initialVendors: {
 								declared: [
 									{
@@ -367,7 +357,6 @@ describe('provider vendor options', () => {
 			expect(readProbe()?.source).toBe('manifest');
 		});
 		await page.getByTestId('add-script').click();
-		// The backend entry stays the winner and remembers the new owner.
 		await vi.waitFor(() => {
 			expect(readProbe()?.ownerCategory).toBe('marketing');
 		});
@@ -419,8 +408,6 @@ describe('provider vendor options', () => {
 			expect(readProbe()?.ownerCategory).toBe('marketing');
 		});
 		await page.getByTestId('remove-script').click();
-		// Still declared by the backend, but no script owns it any more, so a
-		// later backend removal leaves nothing behind.
 		await vi.waitFor(() => {
 			expect(readProbe()?.ownerCategory).toBeUndefined();
 		});
@@ -491,8 +478,6 @@ describe('provider vendor options', () => {
 		});
 		await page.getByTestId('remove-script').click();
 		await page.getByTestId('remove-config').click();
-		// The backend copy comes back without the owner the removed script gave
-		// it, so a later backend removal would leave nothing behind.
 		await vi.waitFor(() => {
 			expect(readProbe()?.source).toBe('manifest');
 		});
@@ -504,8 +489,6 @@ describe('provider vendor options', () => {
 			{ marketing: true },
 			{ categories: ['marketing'], id: 'hook-owned-vendor' }
 		);
-		// A loader mounted through the hook, not the provider option, declares
-		// its own slug.
 		const HookLoader = () => {
 			useScriptLoader([
 				{
@@ -546,7 +529,6 @@ describe('provider vendor options', () => {
 			expect(readProbe()?.declared).toEqual(['hook-vendor']);
 		});
 		await page.getByTestId('declare').click();
-		// The provider's own update must not sweep away the hook's slug.
 		await vi.waitFor(() => {
 			expect(readProbe()?.declared).toEqual(['hook-vendor', 'other-vendor']);
 		});
@@ -597,8 +579,6 @@ describe('provider vendor options', () => {
 			expect(readProbe()?.source).toBe('config');
 		});
 		await page.getByTestId('remove').click();
-		// The config entry is gone; the mounted hook still names the slug, so
-		// a script-sourced entry takes its place rather than nothing.
 		await vi.waitFor(() => {
 			expect(readProbe()?.declared).toEqual(['meta-pixel']);
 			expect(readProbe()?.source).toBe('script');
@@ -606,8 +586,6 @@ describe('provider vendor options', () => {
 	});
 
 	test('the provider clear fallback lifts a stored vendor denial', async () => {
-		// With persistence off there is no persistence handle, so DevTools'
-		// clear goes through the provider's own hydrate patch.
 		const fixture = policyFixture(
 			{ marketing: true },
 			{ categories: ['marketing'], id: 'clear-vendors' }
@@ -666,8 +644,6 @@ describe('provider vendor options', () => {
 			expect(readProbe()?.meta).toBe(false);
 		});
 		await page.getByTestId('clear').click();
-		// Clearing records resets the categories too, so the vendor stays
-		// blocked by its category; the denial itself must be gone.
 		await vi.waitFor(() => {
 			expect(denied()).toBe('null');
 		});
@@ -678,7 +654,6 @@ describe('provider vendor options', () => {
 			{ marketing: false, measurement: true },
 			{ categories: ['marketing', 'measurement'], id: 'shared-slug-hook' }
 		);
-		// The hook owns the slug under measurement, which is granted.
 		const HookLoader = () => {
 			useScriptLoader([
 				{
@@ -711,7 +686,6 @@ describe('provider vendor options', () => {
 						mode: offline({ acknowledgeNoRecords: true }),
 						persistence: false,
 						prefetch: fixture,
-						// The provider names the same slug under marketing, denied.
 						scripts: [
 							{
 								callbackOnly: true,
@@ -745,8 +719,6 @@ describe('provider vendor options', () => {
 			expect(read()?.allowed).toBe(true);
 		});
 		await page.getByTestId('declare').click();
-		// The provider's update must not rebuild the slug from its own owner
-		// alone: the hook's measurement branch still allows it.
 		await vi.waitFor(() => {
 			expect(read()?.category).toEqual({ or: ['marketing', 'measurement'] });
 		});
@@ -796,7 +768,6 @@ describe('provider vendor options', () => {
 			expect(readProbe()?.meta).toBe(false);
 		});
 		await page.getByTestId('remove').click();
-		// Nothing declares it any more, so nothing says it may load.
 		await vi.waitFor(() => {
 			expect(readProbe()?.declared).toEqual([]);
 		});

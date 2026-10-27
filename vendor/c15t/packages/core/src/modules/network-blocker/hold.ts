@@ -1,56 +1,11 @@
-/**
- * `@c15t/core/modules/network-hold`
- *
- * Holds requests that match network-blocker rules from the moment an
- * adapter knows the rules until `createNetworkBlocker()` installs. The
- * blocker usually loads after the first render, so without the hold a
- * `fetch` or XHR sent from a child component's mount effect would leave
- * before any consent check.
- *
- * Adapters call {@link holdNetworkRequests} synchronously while they
- * construct: a React provider or `useNetworkBlocker` render, a Svelte
- * component script, a Vue plugin install. `createNetworkBlocker()` ends the
- * hold and replays each held request through its own patches, which send
- * it, block it, or keep it waiting until consent is known.
- *
- * Several callers can hold at once. Each call returns a {@link NetworkHold}
- * for its own rules, so one caller letting go (or its blocker taking over)
- * does not release requests another caller's rules still hold.
- *
- * Only requests matching a rule wait. Everything else goes straight
- * through. A held `fetch` returns a pending promise; a held XHR has not
- * called the native `send()` yet. A synchronous XHR cannot wait, so a
- * matching one throws a `NetworkError`, as a failed synchronous request
- * does.
- *
- * A caller whose blocker failed to load calls {@link NetworkHold.fail}. Its
- * rules then fail closed without hanging: what they held, and every later
- * request they match, is answered at once the way the blocker answers a
- * blocked request, until a blocker that does load takes the hold over.
- *
- * Ships in first-load JavaScript, so it imports nothing at runtime and
- * matches rules with a compact copy of the logic in `url.ts`.
- */
 import type { NetworkBlockerRule } from './types';
 
-/**
- * Key under which a patched `XMLHttpRequest.prototype.open` stores the
- * request for `send` to read back. Shared with the blocker's XHR patch, so
- * an XHR opened during the hold and sent after the blocker took over is
- * still evaluated.
- * @internal
- */
 export const XHR_REQUEST = Symbol('c15t-xhr-request');
 
-/** @internal */
 export interface XhrStash {
 	[XHR_REQUEST]?: { method: string; sync: boolean; url: string };
 }
 
-/**
- * Store an XHR's method, URL and sync flag from `open()` arguments.
- * @internal
- */
 export const stashXhr = function stashXhr(
 	xhr: XMLHttpRequest,
 	method: string,
@@ -64,11 +19,6 @@ export const stashXhr = function stashXhr(
 	};
 };
 
-/**
- * The response the blocker gives a blocked `fetch`: a 451, without calling
- * the network.
- * @internal
- */
 export const blockedResponse = function blockedResponse(): Response {
 	return new Response(null, {
 		status: 451,
@@ -76,16 +26,10 @@ export const blockedResponse = function blockedResponse(): Response {
 	});
 };
 
-/**
- * How the blocker fails a blocked XHR: `abort()` plus a synthetic
- * `ProgressEvent('error')`, as consumers see when the network fails.
- * @internal
- */
 export const failBlockedXhr = function failBlockedXhr(
 	xhr: XMLHttpRequest
 ): void {
 	xhr.abort();
-	// Synthetic error — dispatch via onerror + dispatchEvent (v2 parity).
 	const event =
 		typeof ProgressEvent === 'undefined'
 			? ({ type: 'error' } as Event)
@@ -98,48 +42,18 @@ export const failBlockedXhr = function failBlockedXhr(
 	xhr.dispatchEvent(event);
 };
 
-/**
- * One caller's share of the hold.
- * @internal
- */
 export interface NetworkHold {
-	/**
-	 * Stop holding for this caller's rules when no blocker will take over,
-	 * for example a runtime disposed before it started. Nothing checked
-	 * consent for the requests they held, so none is sent: each one no other
-	 * caller's rules match is answered the way the blocker answers a blocked
-	 * request (a 451 `Response`, or a failed XHR). The rest stay held. A
-	 * no-op once released or blocked.
-	 */
 	block: () => void;
-	/**
-	 * The blocker that was to take over failed to load. Answer every request
-	 * this caller holds, and every later one its rules match, as blocked (a
-	 * 451 `Response`, or a failed XHR) instead of holding it, so nothing
-	 * waits for a blocker that may never come. The hold stays in place, so a
-	 * blocker that loads later can still take it over. A no-op once
-	 * released or blocked.
-	 */
 	fail: () => void;
-	/** Whether this caller's rules still hold requests. */
 	readonly held: boolean;
-	/**
-	 * Stop holding for this caller's rules. Returns a function that sends
-	 * each request held so far again, through whatever `fetch` and
-	 * `XMLHttpRequest.prototype.send` are installed when it runs. A request
-	 * another caller's rules still match is held again. A no-op once
-	 * released or after {@link releaseNetworkRequests}.
-	 */
 	release: () => () => void;
 }
 
 interface Owner {
 	rules: readonly NetworkBlockerRule[];
-	/** Its blocker failed to load: what its rules match is blocked at once. */
 	failed?: boolean;
 }
 
-/** A held request: sent again through the page, or answered as blocked. */
 interface Held {
 	block: () => void;
 	input: RequestInfo | URL;
@@ -157,13 +71,6 @@ let active: Hold | null = null;
 
 const sendNothing = (): void => undefined;
 
-/**
- * A hold for a caller whose rules hold nothing, for example a blocker
- * created with `enabled: false`. Pass it to `createNetworkBlocker({ hold })`
- * so that blocker takes over nothing, rather than omitting `hold`, which
- * ends every caller's hold.
- * @internal
- */
 export const NOT_HELD: NetworkHold = {
 	block: sendNothing,
 	fail: sendNothing,
@@ -177,17 +84,6 @@ const replayAll = (queue: Held[]) => () => {
 	}
 };
 
-/**
- * End the hold for every caller and restore the patched functions. Returns
- * a function that sends every held request again through whatever `fetch`
- * and `XMLHttpRequest.prototype.send` are installed when it runs; call it
- * after the blocker has installed its own patches.
- *
- * Called by `createNetworkBlocker()` when it is not given a `hold`.
- *
- * @returns Replays the held requests. A no-op when nothing was held.
- * @internal
- */
 export const releaseNetworkRequests =
 	function releaseNetworkRequests(): () => void {
 		const hold = active;
@@ -196,15 +92,10 @@ export const releaseNetworkRequests =
 		return replayAll(hold?.queue.splice(0) ?? []);
 	};
 
-/** What a request gets: sent, held, or blocked at once. */
 const SEND = 0;
 const HOLD = 1;
 const BLOCK = 2;
 
-/**
- * {@link BLOCK} when a failed caller's rule matches the request, else
- * {@link HOLD} when any caller's rule does, else {@link SEND}.
- */
 const matches = function matches(
 	hold: Hold,
 	input: RequestInfo | URL,
@@ -243,11 +134,6 @@ const matches = function matches(
 	return found;
 };
 
-/**
- * After owners left or failed without a blocker to take over: end the hold
- * if none remain, and answer as blocked every held request no remaining
- * owner still holds.
- */
 const blockUnmatched = function blockUnmatched(hold: Hold): void {
 	if (hold.owners.size === 0 && active === hold) {
 		active = null;
@@ -290,26 +176,11 @@ const joinHold = function joinHold(
 			if (hold.owners.size === 0) {
 				return releaseNetworkRequests();
 			}
-			// Other callers still hold: resend what only this caller held.
 			return replayAll(hold.queue.splice(0));
 		},
 	};
 };
 
-/**
- * Start holding `fetch` and XHR requests that match `rules`. Safe to call
- * more than once (for example from a React render that runs twice); later
- * calls join the running hold with their own rules. A no-op outside the
- * browser.
- *
- * Adapter plumbing: apps configure `networkBlocker` instead.
- *
- * @param rules - Network-blocker rules whose requests should wait.
- * @returns This caller's share of the hold. Pass it to
- *   `createNetworkBlocker({ hold })` to hand its requests to the blocker, or
- *   release it when no blocker will take over.
- * @internal
- */
 export const holdNetworkRequests = function holdNetworkRequests(
 	rules: readonly NetworkBlockerRule[]
 ): NetworkHold {
@@ -396,8 +267,6 @@ export const holdNetworkRequests = function holdNetworkRequests(
 	const hold: Hold = {
 		owners: new Set(),
 		queue: [],
-		// A wrapper installed on top keeps ours in its chain; the hold is
-		// then a pass-through because `active` is cleared first.
 		restore() {
 			if (window.fetch === heldFetch) {
 				window.fetch = originalFetch;
@@ -414,15 +283,6 @@ export const holdNetworkRequests = function holdNetworkRequests(
 	return joinHold(hold, rules);
 };
 
-/**
- * Stop holding for `rules` when no blocker will take over, as
- * {@link NetworkHold.block} does, for a caller that kept its rules rather
- * than its hold. Every caller that held with only these rules (matched by
- * reference) lets go; requests other callers' rules still match stay held.
- *
- * @param rules - The rules the caller held with.
- * @internal
- */
 export const blockHeldRequests = function blockHeldRequests(
 	rules: readonly NetworkBlockerRule[]
 ): void {

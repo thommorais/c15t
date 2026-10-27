@@ -1,19 +1,4 @@
 #!/usr/bin/env bun
-/**
- * testid-lint — enforces the canonical DOM contract.
- *
- * Scans every framework package's component sources for `data-testid="…"`
- * literals and `data-testid={`…${…}…`}` template literals. Fails if a test-id
- * is not present in `contract/test-ids.ts` (or does not match a canonical
- * pattern).
- *
- * Skipped: `__tests__/`, `*.test.*`, `*.spec.*`, `*.stories.*`, `dist/`,
- * `node_modules/`. Test and story files are allowed to reference arbitrary
- * test-ids (fixtures, regression probes).
- *
- * Dynamic `data-testid={someIdentifier}` is not lintable statically and is
- * ignored; the caller is assumed to pass a canonical value.
- */
 
 import { Glob } from 'bun';
 
@@ -26,8 +11,6 @@ export interface TestIdViolation {
 	kind: 'literal' | 'dynamic';
 }
 
-// Match data-testid as a JSX/Svelte attribute only. Leading `(?:^|\s)` excludes
-// selector contexts like `[data-testid="foo"]` inside querySelector strings.
 // oxlint-disable-next-line prefer-named-capture-group -- Preserve declaration order, interface shape, and public compatibility.
 const LITERAL_RE = /(?:^|\s)data-testid=(?:"([^"]+)"|'(?<capture1>[^']+)')/gu;
 // oxlint-disable-next-line prefer-named-capture-group -- Preserve declaration order, interface shape, and public compatibility.
@@ -72,8 +55,6 @@ export const scanFileForViolations = async function scanFileForViolations(
 			if (!template) {
 				continue;
 			}
-			// Substitute `${...}` with a lowercase sample so the pattern regexes can
-			// match (each dynamic segment is required to be kebab-case by contract).
 			const probed = template.replace(/\$\{[^}]+\}/gu, 'sample');
 			if (!isCanonicalTestId(probed)) {
 				violations.push({

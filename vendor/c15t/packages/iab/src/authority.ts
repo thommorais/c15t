@@ -6,7 +6,6 @@ import { sameListedRestrictions } from './tcf/publisher-restrictions';
 import { decodeTCString } from './tcf/tc-string';
 import type { DecodedTCString } from './tcf/tc-string';
 
-/** localStorage key of the authority receipt. */
 export const AUTHORITY_KEY = 'c15t-iab-authority-v1';
 const RETENTION_MS = 395 * 86_400_000;
 const DISCLOSURE_REQUIRED_AT = Date.UTC(2026, 1, 28);
@@ -18,7 +17,6 @@ interface StoredAuthority {
 	choiceFingerprint: string;
 	customConsents: Record<string, boolean>;
 	customLegitimateInterests: Record<string, boolean>;
-	/** Ad tech provider switches, one per provider shown at confirmation. */
 	adTechProviderConsents: Record<string, boolean>;
 }
 
@@ -33,7 +31,6 @@ const ownBooleanMap = function ownBooleanMap(
 	);
 };
 
-/** The stored receipt text, or `null` when there is none or no storage. */
 export const readAuthorityReceiptText = function readAuthorityReceiptText():
 	| string
 	| null {
@@ -44,7 +41,6 @@ export const readAuthorityReceiptText = function readAuthorityReceiptText():
 	}
 };
 
-/** Reads the addon receipt without writing or extending its lifetime. */
 export const readAuthorityReceipt = function readAuthorityReceipt(
 	text = readAuthorityReceiptText()
 ): unknown {
@@ -55,7 +51,6 @@ export const readAuthorityReceipt = function readAuthorityReceipt(
 	}
 };
 
-/** Stores only confirmed authority, separately from editable IAB maps. */
 export const storeAuthority = function storeAuthority(
 	authority: KernelIABAuthority
 ): void {
@@ -69,11 +64,9 @@ export const storeAuthority = function storeAuthority(
 			})
 		);
 	} catch {
-		// Storage can be unavailable while the in-memory confirmation remains valid.
 	}
 };
 
-/** Builds a receipt at the explicit confirmation clock. */
 export const createAuthorityReceipt = function createAuthorityReceipt(
 	snapshot: ConsentSnapshot,
 	tcString: string,
@@ -81,8 +74,6 @@ export const createAuthorityReceipt = function createAuthorityReceipt(
 ): StoredAuthority {
 	const providerChoices = snapshot.iab?.adTechProviderConsents ?? {};
 	return {
-		// Every provider the preference center lists is disclosed, switched
-		// on or not.
 		adTechProviderConsents: Object.fromEntries(
 			(snapshot.iab?.adTechProviders ?? []).map(({ id }) => [
 				String(id),
@@ -170,12 +161,6 @@ const compatibleTC = function compatibleTC(
 	);
 };
 
-/**
- * Keeps the vendor list's vendors in each restriction. A decoded range can
- * cover IDs the list does not have, and gates must not apply it to a custom
- * vendor that happens to use one of those numbers. The TC string itself
- * still carries the range as encoded.
- */
 const listedRestrictions = function listedRestrictions(
 	restrictions: readonly PublisherRestriction[],
 	vendors: Record<string, unknown> | undefined
@@ -190,13 +175,6 @@ const listedRestrictions = function listedRestrictions(
 		.filter((restriction) => restriction.vendorIds.length > 0);
 };
 
-/**
- * Ad tech provider choices a receipt can still stand for, and the AC string
- * they make with the TC string's purpose consents. Only providers the
- * preference center lists now are kept: one Google dropped from its file,
- * or the publisher stopped configuring, must not appear in the AC string,
- * and one added since the save was never shown to the visitor.
- */
 const adTechProviderAuthority = function adTechProviderAuthority(
 	stored: Record<string, boolean>,
 	snapshot: ConsentSnapshot,
@@ -222,21 +200,11 @@ const adTechProviderAuthority = function adTechProviderAuthority(
 		: { adTechProviderConsents };
 };
 
-/** Result of checking a stored receipt, with the reason it failed. */
 export interface AuthorityCheck {
 	authority: KernelIABAuthority | null;
-	/**
-	 * The receipt is valid for the current policy and list, and only its
-	 * publisher restrictions differ from the configured ones. The visitor
-	 * agreed to different terms, so they should be asked again.
-	 */
 	restrictionsChanged: boolean;
 }
 
-/**
- * `validateAuthority`, also reporting whether the receipt failed only
- * because the configured publisher restrictions changed.
- */
 export const checkAuthority = async function checkAuthority(
 	input: unknown,
 	snapshot: ConsentSnapshot,
@@ -261,8 +229,6 @@ export const checkAuthority = async function checkAuthority(
 	const { tcString, confirmedAt, expiresAt, choiceFingerprint } = receipt;
 	try {
 		const decoded = await decodeTCString(tcString);
-		// Compared on its own: a deployment can change the restrictions and
-		// another compatibility field, such as the policy version, together.
 		const restrictionsChanged = !sameListedRestrictions(
 			decoded.publisherRestrictions,
 			publisherRestrictions,
@@ -277,7 +243,6 @@ export const checkAuthority = async function checkAuthority(
 		const customLI = receipt.customLegitimateInterests;
 		for (const vendor of snapshot.iab.customVendors) {
 			const id = String(vendor.id);
-			// Numeric registered vendors are represented only by the TC string.
 			if (Object.hasOwn(snapshot.iab.gvl?.vendors ?? {}, id)) {
 				continue;
 			}
@@ -316,12 +281,6 @@ export const checkAuthority = async function checkAuthority(
 	}
 };
 
-/**
- * Decode TC authority and check its receipt, current policy and original clock.
- * The string's publisher restrictions must match the configured ones for
- * every listed vendor; a configuration change asks the visitor again. Pass
- * the handle's validated restrictions, or `[]` when none are configured.
- */
 export const validateAuthority = async function validateAuthority(
 	input: unknown,
 	snapshot: ConsentSnapshot,
@@ -332,18 +291,6 @@ export const validateAuthority = async function validateAuthority(
 		.authority;
 };
 
-/**
- * Removes the addon receipt when authority is cleared by a lifecycle change.
- * With `expected`, only while storage still holds that text, so a receipt
- * another tab stored since is kept.
- *
- * The comparison is best effort. localStorage has no conditional removal,
- * and a tab reads its own copy of the shared area, which another tab's
- * write reaches asynchronously. A receipt stored in another tab just before
- * this call can therefore still be removed. That fails toward less
- * permission: the removal withdraws the held TC string in every other tab
- * (see the receipt listener in `index.ts`) until the next save.
- */
 export const clearAuthorityReceipt = function clearAuthorityReceipt(
 	expected?: string
 ): void {
@@ -355,6 +302,5 @@ export const clearAuthorityReceipt = function clearAuthorityReceipt(
 			localStorage.removeItem(AUTHORITY_KEY);
 		}
 	} catch {
-		/* Storage may be unavailable. */
 	}
 };

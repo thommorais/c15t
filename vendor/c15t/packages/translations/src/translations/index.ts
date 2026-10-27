@@ -52,19 +52,6 @@ import { translations as vi } from './vi';
 import { translations as yi } from './yi';
 import { translations as zh } from './zh';
 
-/**
- * Base translations object containing all available language translations.
- *
- * Maps ISO 639-1 language codes to their respective translation objects.
- * Includes all 24 official languages of the European Union as well as additional languages.
- *
- * @example
- * ```typescript
- * import { baseTranslations } from '@c15t/translations/all';
- * const english = baseTranslations.en;
- * const german = baseTranslations.de;
- * ```
- */
 const baseTranslations = {
 	ar,
 	bg,
@@ -121,22 +108,6 @@ const baseTranslations = {
 	zh,
 } as const;
 
-/**
- * Type alias for the base translations object.
- *
- * Represents the readonly type of {@link baseTranslations}, providing type-safe
- * access to all available language translations.
- *
- * @example
- * ```ts
- * import type { BaseTranslations } from '@c15t/translations/all';
- *
- * function processTranslations(translations: BaseTranslations) {
- *   // Type-safe access to translations
- *   const english = translations.en;
- * }
- * ```
- */
 type BaseTranslations = typeof baseTranslations;
 
 export type { BaseTranslations };

@@ -1,9 +1,3 @@
-/**
- * The checked switch takes its track color from `--c15t-switch-track-active`.
- * When a theme or stylesheet changes the primary color and leaves that token
- * alone, the switch follows the primary color instead of staying the default
- * blue.
- */
 import '@c15t/ui/styles.css';
 import { afterEach, expect, test } from 'vitest';
 import { render } from 'vitest-browser-react';
@@ -15,7 +9,6 @@ const GREEN = 'rgb(47, 111, 78)';
 const PURPLE = 'rgb(105, 67, 163)';
 const ORANGE = 'rgb(200, 100, 0)';
 
-/** The computed background of the checked switch's track. */
 const checkedTrackColor = (): string => {
 	const track = document.querySelector('[data-slot="switch-track"]');
 	if (!track) {
@@ -24,7 +17,6 @@ const checkedTrackColor = (): string => {
 	return getComputedStyle(track).backgroundColor;
 };
 
-/** `--c15t-primary` as the browser resolves it in the page, in `rgb()`. */
 const resolvedPrimary = (): string => {
 	const probe = document.createElement('div');
 	probe.style.color = 'var(--c15t-primary)';

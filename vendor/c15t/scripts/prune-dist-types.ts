@@ -8,7 +8,6 @@ import { normalizePackagePath } from './manifest-utils';
 
 const declarationPattern = /\.d\.(?:ts|mts|cts)$/u;
 
-/** Remove declarations unreachable from explicit public type entry points. */
 export const pruneDistTypes = function pruneDistTypes(
 	packageDir: string
 ): string[] {
@@ -20,7 +19,6 @@ export const pruneDistTypes = function pruneDistTypes(
 	const manifest = JSON.parse(
 		readFileSync(join(root, 'package.json'), 'utf8')
 	) as Record<string, unknown>;
-	// These routes need their own resolver before pruning can support them.
 	for (const key of ['typesVersions', 'typings', 'imports']) {
 		if (manifest[key] !== undefined) {
 			throw new Error(`Declaration pruning does not support ${key}.`);
@@ -99,7 +97,6 @@ export const pruneDistTypes = function pruneDistTypes(
 			'Declaration pruning requires explicit public type entries.'
 		);
 	}
-	// Ambient declarations can affect consumers without a direct import edge.
 	for (const file of files) {
 		const source = ts.createSourceFile(
 			file,
@@ -165,7 +162,6 @@ export const pruneDistTypes = function pruneDistTypes(
 			pending.add(target);
 		}
 	}
-	// Resolve the complete graph before deleting anything.
 	const removed = [...files].filter((file) => !reachable.has(file));
 	for (const file of removed) {
 		unlinkSync(file);

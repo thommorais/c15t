@@ -1,25 +1,3 @@
-/**
- * Maps a backend subject record onto the kernel's hydration records.
- *
- * `GET /subjects/:id` from `@c15t/backend` carries three things the kernel
- * can hydrate from: `subjectChoice`, the latest receipt per category with
- * each receipt's original confirmation time and policy basis; the subject's
- * identifiers; and the subject's vendor choice. GPC is a live signal and is
- * never read from a subject record: a `privacyDirectives` field sent by an
- * earlier v3 alpha backend is ignored. A 2.x backend carries none of those, only per-consent
- * `preferences` (granted codes) and `givenAt`; those rows map to legacy-v2
- * grants timed at their `givenAt` for the codes they hold, and to nothing for
- * the rest, exactly as the v3 backend derives them for rows written before
- * receipts existed. An absent code is historical omission, not a refusal.
- *
- * Nothing here stamps, renews or invents. A consent item whose receipts exist
- * but cannot be read as the v3 wire poisons the read: nothing is salvaged
- * from it and no legacy grant is derived in its place. A merged receipt set
- * that fails structural validation drops the whole choice, matching the
- * browser reader. The hosted service outside this repository
- * returns neither shape from `/init`, only a boolean `consents` map without
- * times or bases; that map cannot become a receipt and is not mapped here.
- */
 import type {
 	ConsentItem,
 	GetSubjectOutput,
@@ -41,20 +19,16 @@ import {
 import { isValidVendorId } from '../libs/vendors';
 import type { HydrationRecords, VendorChoice } from '../types';
 
-/** Validated records returned by a subject transport. */
 export type TransportHydrationRecords = HydrationRecords;
 
-/** The subject read as the wire carries it, dates already revived. */
 export type SubjectRecordWire = GetSubjectOutput;
 
 export interface MapSubjectRecordOptions {
-	/** Current time in epoch milliseconds. Future receipts are invalid. */
 	now: number;
 }
 
 const COOKIE_BANNER = 'cookie_banner';
 
-/** Whether a consent item carries receipts this reader can use. */
 type ItemReceipts =
 	| { kind: 'absent' }
 	| { kind: 'unreadable' }
@@ -80,13 +54,6 @@ const itemReceipts = (item: ConsentItem): ItemReceipts => {
 const toTime = (value: Date | string | number): number =>
 	value instanceof Date ? value.getTime() : new Date(value).getTime();
 
-/**
- * Legacy-v2 grants a 2.x consent item holds.
- *
- * The 2.x backend kept only the granted codes, so a present code is a grant
- * at `givenAt` and an absent one is nothing: the refusal the client may have
- * submitted was never stored and is not invented here.
- */
 const legacyReceipts = (
 	item: ConsentItem
 ): ExplicitChoice['categories'] | undefined => {
@@ -107,11 +74,6 @@ const legacyReceipts = (
 	return categories;
 };
 
-/**
- * The latest receipt per category across the consent items, for backends
- * that do not send `subjectChoice`. `null` when any item's receipts are
- * unreadable: the record is then not evidence this reader can use.
- */
 const mergeItems = (
 	items: readonly ConsentItem[]
 ): SubjectChoiceWire | null | undefined => {
@@ -128,9 +90,6 @@ const mergeItems = (
 			return null;
 		}
 		if (stored.kind === 'absent') {
-			// A legacy snapshot supersedes older grants, even when it stores
-			// no granted codes. Omission cannot prove a refusal, but it also
-			// cannot preserve permission from an earlier snapshot.
 			for (const category of OPTIONAL_CONSENT_CATEGORIES) {
 				const current = categories.get(category);
 				if (current?.value && current.confirmedAt <= toTime(item.givenAt)) {
@@ -159,7 +118,6 @@ const mergeItems = (
 		: undefined;
 };
 
-/** Identifiers as stored: literal strings, never decoded or coerced. */
 const mapSubject = (
 	subject: GetSubjectOutput['subject']
 ): ConsentSubject | null => {
@@ -176,13 +134,6 @@ const mapSubject = (
 	return mapped;
 };
 
-/**
- * The vendor denial list a wire grant map describes. A malformed map is
- * ignored rather than invented. An all-granted map becomes an empty record
- * that keeps its confirmation time, so a newer server decision to grant
- * everything can still supersede an older local denial in the newest-wins
- * merge; a `null` would read as "nothing known" and keep the denial.
- */
 const mapVendorChoice = (
 	wire: VendorChoiceWire | null | undefined,
 	now: number
@@ -200,9 +151,6 @@ const mapVendorChoice = (
 	}
 	const denied: string[] = [];
 	for (const [id, granted] of Object.entries(wire.grants)) {
-		// A key outside the slug shape is a malformed map, not a denial to
-		// keep: the kernel revalidates the list on hydration and would drop
-		// the whole response, receipts and subject included, over one key.
 		if (typeof granted !== 'boolean' || !isValidVendorId(id)) {
 			return null;
 		}
@@ -213,7 +161,6 @@ const mapVendorChoice = (
 	return { confirmedAt: wire.confirmedAt, denied: denied.sort(), version: 1 };
 };
 
-/** Newest vendor grant map across the consent items, for older backends. */
 const mergeItemVendors = (
 	items: readonly ConsentItem[]
 ): VendorChoiceWire | null | undefined => {
@@ -229,13 +176,6 @@ const mergeItemVendors = (
 	return newest;
 };
 
-/**
- * Maps a subject read onto hydration records.
- *
- * `choice` is `null` when the backend holds no usable receipt: none at all,
- * or a set that fails validation. The kernel treats both as no explicit
- * choice, which under opt-in means denied until the subject decides.
- */
 export const mapSubjectRecordToHydrationRecords =
 	function mapSubjectRecordToHydrationRecords(
 		record: SubjectRecordWire,
@@ -262,13 +202,6 @@ export const mapSubjectRecordToHydrationRecords =
 		};
 	};
 
-/**
- * Revives the date strings a JSON subject read carries.
- *
- * `GetSubjectOutput` types `givenAt` and friends as `Date`; over the wire
- * they are ISO strings. Applied at the transport boundary so the mapper can
- * take the schema type at its word.
- */
 export const reviveSubjectRecord = function reviveSubjectRecord(
 	raw: unknown
 ): SubjectRecordWire | undefined {

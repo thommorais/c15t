@@ -1,9 +1,3 @@
-/**
- * The browser outbox store: localStorage under a Web Lock, in the format
- * earlier releases wrote, so saves a visitor queued before an upgrade
- * still replay. Storage and locks are injected; the last test runs the
- * default store against the test window's localStorage.
- */
 import { afterEach, describe, expect, test, vi } from 'vitest';
 
 import { ConsentSaveRejectedError, createConsentKernel } from '../../index';
@@ -13,7 +7,6 @@ import { createKernel } from '../index';
 import { createBrowserOutboxStore } from '../save-outbox';
 import type { BrowserOutboxEnvironment } from '../save-outbox/store';
 
-// The stored format is part of the interface: spelled out, not imported.
 const SAVES_KEY = 'c15t-v3-pending-consent-saves:v1';
 const REASSIGNMENTS_KEY = 'c15t-v3-subject-reassignments:v1';
 
@@ -39,7 +32,6 @@ const memoryStorage = function memoryStorage(): Storage {
 	};
 };
 
-/** A lock manager that grants one request at a time, in order. */
 const serialLocks = function serialLocks() {
 	const names: string[] = [];
 	let chain: Promise<unknown> = Promise.resolve();
@@ -65,7 +57,6 @@ const kernelOn = function kernelOn(
 
 const offline = () => vi.fn().mockRejectedValue(new Error('save offline'));
 
-/** A queued save as an earlier release wrote it. */
 const legacyEntry = {
 	attempts: 2,
 	payload: {
@@ -231,9 +222,6 @@ describe('browser outbox store', () => {
 	});
 
 	test('a clear empties the queue before it returns, even while another tab holds the lock', async () => {
-		// The page clearing the records can close before the lock is granted.
-		// Its queued saves must not replay for the cleared subject on the
-		// next page.
 		const storage = memoryStorage();
 		storage.setItem(SAVES_KEY, JSON.stringify([legacyEntry]));
 		storage.setItem(
@@ -245,7 +233,6 @@ describe('browser outbox store', () => {
 			SAVES_KEY,
 			() =>
 				new Promise<void>(() => {
-					// Never released.
 				})
 		);
 		const kernel = kernelOn(
@@ -259,7 +246,6 @@ describe('browser outbox store', () => {
 		expect(storage.getItem(REASSIGNMENTS_KEY)).toBeNull();
 		kernel.dispose();
 
-		// The next page: the lock is free again, and nothing is left to replay.
 		const save = vi.fn().mockResolvedValue({ ok: true });
 		const next = kernelOn(
 			{ transport: { init: vi.fn().mockResolvedValue({}), save } },
@@ -274,9 +260,6 @@ describe('browser outbox store', () => {
 	});
 
 	test('a clear runs again under the lock, after a transaction that read the queue before it', async () => {
-		// Another tab's transaction can read the queue before the clear and
-		// write it back after. The clear waits for the lock and empties it
-		// again.
 		const storage = memoryStorage();
 		const { locks } = serialLocks();
 		let releaseLock: () => void = () => {};
@@ -352,8 +335,6 @@ describe('browser outbox store', () => {
 	});
 
 	test('keeps the queue in memory without localStorage', async () => {
-		// A host with no localStorage (a server, blocked storage) still
-		// retries a failed save for as long as the kernel lives.
 		const save = vi
 			.fn()
 			.mockRejectedValueOnce(new Error('save offline'))

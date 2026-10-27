@@ -1,11 +1,9 @@
 export interface ButtonCSSVariables {
-	/* Primary Colors */
 	'--button-primary': string;
 	'--button-primary-dark': string;
 	'--button-primary-hover': string;
 	'--button-primary-hover-dark': string;
 
-	/* Neutral Colors */
 	'--button-neutral': string;
 	'--button-neutral-dark': string;
 	'--button-neutral-hover': string;
@@ -13,7 +11,6 @@ export interface ButtonCSSVariables {
 	'--button-neutral-soft': string;
 	'--button-neutral-soft-dark': string;
 
-	/* Theme Colors */
 	'--button-text': string;
 	'--button-text-dark': string;
 	'--button-background-color': string;
@@ -25,7 +22,6 @@ export interface ButtonCSSVariables {
 	'--button-hover-overlay': string;
 	'--button-hover-overlay-dark': string;
 
-	/* Component Variables */
 	'--button-font': string;
 	'--button-border-width': string;
 	'--button-border-style': string;
@@ -39,7 +35,6 @@ export interface ButtonCSSVariables {
 	'--button-hover-transition-full': string;
 	'--button-cursor': string;
 
-	/* Shadows */
 	'--button-shadow': string;
 	'--button-shadow-dark': string;
 	'--button-shadow-primary-focus': string;

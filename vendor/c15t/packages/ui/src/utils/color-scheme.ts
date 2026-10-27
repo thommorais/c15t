@@ -1,19 +1,3 @@
-/**
- * The `c15t-dark` class, kept in its own module so a page that only sets
- * the color scheme does not load the dialog's focus-trap and scroll-lock
- * helpers.
- */
-
-/**
- * Manages color scheme preferences.
- *
- * Where `matchMedia` is missing, as in jsdom and a few embedded webviews,
- * `'system'` is light.
- *
- * @param colorScheme - 'light' | 'dark' | 'system'. Unset mirrors a `dark`
- * class on `<html>` into `c15t-dark` as it changes.
- * @returns Cleanup function
- */
 export const setupColorScheme = function setupColorScheme(
 	colorScheme?: 'light' | 'dark' | 'system'
 ) {

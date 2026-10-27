@@ -1,17 +1,3 @@
-/**
- * DOM mount / unmount.
- *
- * `mountScript` creates a `<script>` element from the script config
- * (or routes through the callback-only path), then either pushes the
- * pending append onto the active batch or appends directly. The batch
- * is flushed at the end of a reconcile pass by `flushPendingMounts`,
- * which groups appends by target so each target sees one layout
- * invalidation per reconcile rather than one per script.
- *
- * `unmountScript` removes the element (or honors
- * `persistAfterConsentRevoked` and just drops our reference), then
- * fires `onConsentChange` if wired.
- */
 import type { ConsentSnapshot } from '../../types';
 import { buildCallbackInfo, hasAnyCallback, invokeCallback } from './callbacks';
 import type { ElementIdResolver } from './normalize';
@@ -22,39 +8,23 @@ import type {
 	ScriptLoaderTools,
 } from './types';
 
-/**
- * Dependencies shared by the mount/unmount/flush helpers. The factory
- * (`createScriptLoader`) supplies these so the helpers stay free of
- * closure capture and remain testable.
- */
 export interface MountDeps {
-	/** Consent reads for callback payloads. */
 	tools: Pick<
 		ScriptLoaderTools,
 		'deniedVendors' | 'gateState' | 'registration'
 	>;
-	/** Stop lifecycle callbacks when disposal is requested during mounting. */
 	isDisposed: () => boolean;
-	/** Latest kernel state for callbacks completing after consent changes. */
 	getSnapshot: () => ConsentSnapshot;
-	/** Resolve callbacks and permission from the currently registered configuration. */
 	getCurrentScript?: (
 		scriptId: string,
 		snapshot: ConsentSnapshot
 	) => { script: Script; hasConsent: boolean } | undefined;
-	/** Retained elements still observed after consent revocation. */
 	retainedElements: Map<string, HTMLScriptElement>;
-	/** Per-loader registry: scriptId → element (or `null` for callback-only). */
 	loadedElements: Map<string, HTMLScriptElement | null>;
-	/** Script IDs whose DOM element this loader owns, including transferred resources. */
 	ownedScriptIds: Set<string>;
-	/** Resolves the DOM `id` attribute for a script. */
 	elementIds: ElementIdResolver;
-	/** Debug emitter (merged onDebug + v2 compat). */
 	emit: (event: ScriptLoaderDebugEvent) => void;
-	/** Whether consumer or legacy debug listeners need callback metadata. */
 	hasDebugListener: boolean;
-	/** CSP nonce for created elements when the script declares none. */
 	nonce?: string;
 }
 
@@ -100,16 +70,13 @@ interface ElementObserver {
 	stop: () => void;
 }
 
-// Each loader observes a shared download and can take over DOM ownership.
 const elementObservers = new WeakMap<
 	HTMLScriptElement,
 	Map<MountDeps, Map<string, ElementObserver>>
 >();
 
-// Keep physical completion when another registration joins after the event.
 const elementCompletions = new WeakMap<HTMLScriptElement, ElementCompletion>();
 
-// A batched resource is not in the DOM yet, but later registrations reuse it.
 const pendingResources = new WeakMap<
 	PendingMount[],
 	Map<string, PendingMount>
@@ -210,20 +177,10 @@ const observeElement = (
 	});
 	const completion = elementCompletions.get(element);
 	if (completion) {
-		// Adoption's consent callback and reconcile finish before completion.
 		queueMicrotask(() => complete(completion));
 	}
 };
 
-/**
- * An element the page's inline `serverStart` code created. `__c15tInsert`
- * is set while it waits for the page's priority images; deleting it
- * cancels the insert. `__c15tHeld` is set when the stored consent changed
- * during that wait: its setup ran, and only a loader that runs the script
- * inserts it. `__c15tConsent` is whether its setup ran with consent,
- * `__c15tScript` the id of the script whose setup ran, and `__c15tAdopted`
- * that a loader took it over.
- */
 type ServerStartedElement = HTMLScriptElement & {
 	__c15tAdopted?: boolean;
 	__c15tConsent?: boolean;
@@ -235,7 +192,6 @@ type ServerStartedElement = HTMLScriptElement & {
 
 type ServerStartedRegistry = Record<string, ServerStartedElement>;
 
-/** A server-started element that is waiting to be inserted, or held. */
 const notYetInserted = function notYetInserted(
 	element: ServerStartedElement | null | undefined
 ): boolean {
@@ -249,7 +205,6 @@ const serverStartedRegistry = function serverStartedRegistry():
 		.__c15tStarted;
 };
 
-/** Drops a removed server-started element from the page's registry. */
 const forgetServerStarted = function forgetServerStarted(
 	element: ServerStartedElement
 ): void {
@@ -261,7 +216,6 @@ const forgetServerStarted = function forgetServerStarted(
 	}
 };
 
-/** Release a loader's listeners and transfer its resource to a surviving loader. @internal */
 export const releaseScriptElement = (
 	deps: MountDeps,
 	scriptId: string,
@@ -297,7 +251,6 @@ export const releaseScriptElement = (
 	}
 };
 
-/** Finalize an append, dropping any batch entry skipped by an interrupted pass. */
 const completeMount = (deps: MountDeps, pending: PendingMount): void => {
 	const { script, element, elementId, hasConsent } = pending;
 	if (deps.loadedElements.get(script.id) !== element) {
@@ -313,7 +266,6 @@ const completeMount = (deps: MountDeps, pending: PendingMount): void => {
 		return;
 	}
 	if (!script.src) {
-		// Inline adopters share completion even if the original loader is gone.
 		setTimeout(() => {
 			elementCompletions.set(element, 'load');
 			for (const registrations of elementObservers.get(element)?.values() ??
@@ -336,15 +288,6 @@ const completeMount = (deps: MountDeps, pending: PendingMount): void => {
 	});
 };
 
-/**
- * The element the HTML's `serverStart` code started for `script`'s
- * resource, keyed like the loader's element id by `resourceKey ?? id`.
- * It may still be waiting to be inserted, or held. An element that is
- * none of these, such as one a loader removed, is dropped.
- *
- * Sets `__c15tLoaderRan`, so HTML code that hasn't run yet leaves the
- * script to this loader.
- */
 const serverStartedFor = function serverStartedFor(
 	script: Script
 ): ServerStartedElement | undefined {
@@ -361,17 +304,6 @@ const serverStartedFor = function serverStartedFor(
 	Reflect.deleteProperty(started, key);
 };
 
-/**
- * Takes over an element the HTML already set up and inserted, or will
- * insert. It gets the loader's id, and `onBeforeLoad` sees
- * `startedOnServer` and the consent the setup ran with, so it records
- * state without running setup again. When the loader's consent differs,
- * `onConsentChange` then moves the script to it. A load that already
- * happened replays.
- *
- * The element is kept even when its `src` differs from the script's: the
- * vendor's setup already ran, and a second copy would run it twice.
- */
 const adoptServerStarted = function adoptServerStarted(
 	deps: MountDeps,
 	script: Script,
@@ -434,12 +366,6 @@ const adoptServerStarted = function adoptServerStarted(
 	deps.emit(event);
 };
 
-/**
- * The element the server started for `script`, for a client that won't run
- * it: adopted as the server left it, so it can be revoked like any loaded
- * script. An element another script with the same `resourceKey` started is
- * left for that script's loader.
- */
 const adoptToRevoke = function adoptToRevoke(
 	deps: MountDeps,
 	script: Script,
@@ -460,17 +386,6 @@ const adoptToRevoke = function adoptToRevoke(
 	return started;
 };
 
-/**
- * Mount a script into the DOM, or queue it for batched append.
- *
- * - If already loaded, fires `onConsentChange` (or skips if no listener)
- *   and emits `already_loaded`.
- * - `callbackOnly` scripts run their lifecycle without touching DOM.
- * - When `batch` is provided, the element append is deferred so the
- *   caller can flush all pending appends in a single pass.
- *
- * Throws on conflicting fields (`src && textContent` or no source at all).
- */
 // oxlint-disable-next-line complexity -- Preserve established branch order and control flow.
 export const mountScript = function mountScript(
 	deps: MountDeps,
@@ -486,8 +401,6 @@ export const mountScript = function mountScript(
 	const elementId = deps.elementIds.resolve(script);
 
 	if (deps.loadedElements.has(script.id)) {
-		// Already loaded — fire onConsentChange if wired (skip the info
-		// allocation when nothing would consume it).
 		if (typeof script.onConsentChange === 'function' || deps.hasDebugListener) {
 			const existing = deps.loadedElements.get(script.id) ?? undefined;
 			const info = buildCallbackInfo(
@@ -555,8 +468,6 @@ export const mountScript = function mountScript(
 	const started = serverStartedFor(script);
 	if (started && !started.__c15tAdopted) {
 		adoptServerStarted(deps, script, snapshot, hasConsent, elementId, started);
-		// Its setup ran, but the stored consent changed before its insert.
-		// This loader runs the script, so it inserts the element.
 		if (started.__c15tHeld && !deps.isDisposed()) {
 			delete started.__c15tHeld;
 			(script.target === 'body'
@@ -567,8 +478,6 @@ export const mountScript = function mountScript(
 		return;
 	}
 
-	// Another script with the same resource adopted the server's element,
-	// which may not be in the document yet.
 	const existingElement =
 		started ??
 		(typeof document.getElementById === 'function'
@@ -638,8 +547,6 @@ export const mountScript = function mountScript(
 		}
 	}
 
-	// Only allocate the callback-info object if a callback will fire or a
-	// debug listener is registered. Hot path in mount bursts.
 	const infoCallers = hasAnyCallback(script) || deps.hasDebugListener;
 	const info = infoCallers
 		? buildCallbackInfo(
@@ -699,14 +606,6 @@ export const mountScript = function mountScript(
 	});
 };
 
-/**
- * Unmount a script. Honors `persistAfterConsentRevoked` (DOM stays,
- * but our registry reference is dropped so a later re-grant re-fires
- * callbacks).
- *
- * Fires `onConsentChange` after detaching so consumers can react to
- * the consent transition.
- */
 export const unmountScript = function unmountScript(
 	deps: MountDeps,
 	script: Script,
@@ -748,8 +647,6 @@ export const unmountScript = function unmountScript(
 
 	const elementId = deps.elementIds.resolve(script);
 
-	// A server-started element still waiting to be inserted, or held, never
-	// loaded, so there is nothing to keep.
 	const neverInserted = notYetInserted(element);
 	if (
 		script.persistAfterConsentRevoked &&
@@ -759,8 +656,6 @@ export const unmountScript = function unmountScript(
 		if (element) {
 			deps.retainedElements.set(script.id, element);
 		}
-		// Element stays in DOM but we drop our reference so a later
-		// re-grant re-fires callbacks rather than short-circuiting.
 		deps.loadedElements.delete(script.id);
 		if (typeof script.onConsentChange === 'function') {
 			const info = buildCallbackInfo(
@@ -815,18 +710,6 @@ export const unmountScript = function unmountScript(
 	});
 };
 
-/**
- * Append every pending mount to its target in batched form.
- *
- * Strategy: group elements by append target. If a target only has one
- * element, append directly. If a target has multiple, build a single
- * `DocumentFragment` and append the fragment so the browser parses /
- * inserts in one pass.
- *
- * After append, walks each pending entry to register the loaded element,
- * defer inline `onLoad` (one tick) so the browser parses first, and
- * emit the lifecycle event.
- */
 export const flushPendingMounts = function flushPendingMounts(
 	deps: MountDeps,
 	batch: PendingMount[],
@@ -836,8 +719,6 @@ export const flushPendingMounts = function flushPendingMounts(
 	if (batch.length === 0 || !isCurrentPass()) {
 		return;
 	}
-	// Register before insertion: inline execution and DOM adapters can dispatch
-	// load events synchronously while the element is being appended.
 	const resources = new Set<HTMLScriptElement>();
 	for (const pending of batch) {
 		deps.loadedElements.set(pending.script.id, pending.element);
@@ -869,8 +750,6 @@ export const flushPendingMounts = function flushPendingMounts(
 			if (deps.isDisposed() || !isCurrentPass()) {
 				break;
 			}
-			// A previous target can execute inline code that revokes consent or
-			// replaces this loader's scripts. Never insert invalidated entries.
 			const elements = [
 				...new Set(
 					entries

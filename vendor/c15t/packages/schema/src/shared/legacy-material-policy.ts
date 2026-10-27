@@ -1,4 +1,3 @@
-/** Frozen v2 hash input. Never interpreted as a runtime policy or wire response. */
 export interface LegacyMaterialPolicyInput {
 	model: 'opt-in' | 'opt-out' | 'iab' | 'none';
 	consent?: {
@@ -19,7 +18,6 @@ export interface LegacyMaterialPolicyInput {
 		dialog?: LegacyMaterialSurfaceInput;
 	};
 }
-/** Only the presentation fields included in the original v2 material hash. */
 export interface LegacyMaterialSurfaceInput {
 	allowedActions?: string[];
 	primaryActions?: string[];
@@ -27,10 +25,8 @@ export interface LegacyMaterialSurfaceInput {
 	direction?: 'row' | 'column';
 }
 
-/** Authoring-only v2 receipt compatibility, pinned to the reviewed v3 behavior. */
 export interface LegacyMaterialCompatibility {
 	input: LegacyMaterialPolicyInput;
-	/** Exact v3 policy fingerprint for which the original v2 input is valid. */
 	policyFingerprint: string;
 }
 
@@ -98,9 +94,6 @@ const ui = (value: unknown): boolean =>
 	optional(value.banner, surface) &&
 	optional(value.dialog, surface);
 
-/** Validates frozen data only; it never supplies runtime behavior.
- * @internal
- */
 export const isLegacyMaterialCompatibility = (
 	value: unknown
 ): value is LegacyMaterialCompatibility => {

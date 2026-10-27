@@ -1,14 +1,11 @@
-/** Forward public policy events without synthesizing choices from permissions. */
 import type { ConsentKernel, Unsubscribe } from '../types';
 import type { ConsentRuntimeOptions } from './types';
 
-/** Options for the runtime callback bridge. */
 export interface WireRuntimeCallbacksOptions {
 	kernel: ConsentKernel;
 	callbacks?: ConsentRuntimeOptions['callbacks'];
 }
 
-/** Render a thrown value as an error message. */
 export const stringifyRuntimeError = (error: unknown): string => {
 	if (error instanceof Error) {
 		return error.message;
@@ -23,12 +20,6 @@ export const stringifyRuntimeError = (error: unknown): string => {
 	}
 };
 
-/**
- * Subscribe once per owning runtime to explicit actions, permission changes
- * and surface impressions.
- * @param options - The kernel and application callbacks.
- * @returns A disposer for the subscriptions.
- */
 export const wireRuntimeCallbacks = ({
 	kernel,
 	callbacks,

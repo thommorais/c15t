@@ -5,10 +5,6 @@ import { useEffect } from 'react';
 
 export type ColorScheme = 'light' | 'dark' | 'system' | null;
 
-/**
- * Manage color scheme preferences for components.
- * React wrapper for `@c15t/ui` setupColorScheme.
- */
 export const useColorScheme = function useColorScheme(
 	colorScheme?: ColorScheme
 ) {

@@ -8,11 +8,6 @@ interface IABConsentBannerDescriptionProps extends HTMLAttributes<HTMLParagraphE
 	children: ReactNode;
 }
 
-/**
- * Description component for the IAB Consent Banner.
- *
- * @public
- */
 const IABConsentBannerDescription = createForwardRef<
 	HTMLParagraphElement,
 	IABConsentBannerDescriptionProps

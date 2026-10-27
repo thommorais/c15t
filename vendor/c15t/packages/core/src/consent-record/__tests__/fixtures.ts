@@ -33,7 +33,6 @@ export const decision = function decision(
 	return { basis, confirmedAt, value };
 };
 
-/** Builds a v3 choice where every listed category shares one time and basis. */
 export const makeChoice = function makeChoice(
 	values: Partial<Record<OptionalConsentCategory, boolean>>,
 	confirmedAt: number,

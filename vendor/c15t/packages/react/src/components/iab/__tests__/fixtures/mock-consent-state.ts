@@ -1,16 +1,5 @@
-/**
- * Mock Consent State for IAB React Component Tests
- *
- * Provides mock IAB state objects for testing React components.
- *
- * @packageDocumentation
- */
-
 import type { GlobalVendorList } from '@c15t/core';
 
-/**
- * Mock GVL for React component testing
- */
 export const mockGVL: GlobalVendorList = {
 	features: {
 		1: {
@@ -244,9 +233,6 @@ export const mockGVL: GlobalVendorList = {
 	},
 };
 
-/**
- * Mock IAB state for testing components
- */
 export const createMockIABState = function createMockIABState(
 	overrides?: Partial<{
 		gvl: GlobalVendorList | null;
@@ -302,7 +288,6 @@ export const createMockIABState = function createMockIABState(
 		rejectAll: () => {},
 		save: () => {},
 		setPreferenceCenterTab: () => {},
-		// Actions
 		setPurposeConsent: () => {},
 		setPurposeLegitimateInterest: () => {},
 		setSpecialFeatureOptIn: () => {},
@@ -320,9 +305,6 @@ export const createMockIABState = function createMockIABState(
 	};
 };
 
-/**
- * Mock IAB state with all consents accepted
- */
 export const createMockIABStateAllAccepted =
 	function createMockIABStateAllAccepted() {
 		return createMockIABState({
@@ -364,9 +346,6 @@ export const createMockIABStateAllAccepted =
 		});
 	};
 
-/**
- * Mock IAB state with loading GVL
- */
 export const createMockIABStateLoading = function createMockIABStateLoading() {
 	return createMockIABState({
 		gvl: null,
@@ -374,9 +353,6 @@ export const createMockIABStateLoading = function createMockIABStateLoading() {
 	});
 };
 
-/**
- * Mock IAB state with LI objections
- */
 export const createMockIABStateWithLIObjections =
 	function createMockIABStateWithLIObjections() {
 		return createMockIABState({
@@ -388,15 +364,12 @@ export const createMockIABStateWithLIObjections =
 				4: true,
 				5: true,
 				6: true,
-				// Objected
 				7: false,
 				8: true,
-				// Objected,
 				9: false,
 			},
 			vendorLegitimateInterests: {
 				'1': true,
-				// Objected
 				'10': false,
 				'2': true,
 				'755': true,
@@ -404,9 +377,6 @@ export const createMockIABStateWithLIObjections =
 		});
 	};
 
-/**
- * Custom vendor for testing non-IAB vendors
- */
 export const mockCustomVendor = {
 	cookieMaxAgeSeconds: 31536000,
 	dataCategories: [1, 2, 6, 8],
@@ -421,9 +391,6 @@ export const mockCustomVendor = {
 	usesCookies: true,
 };
 
-/**
- * Mock IAB state with custom vendors
- */
 export const createMockIABStateWithCustomVendors =
 	function createMockIABStateWithCustomVendors() {
 		return {

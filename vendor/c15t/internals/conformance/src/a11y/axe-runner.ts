@@ -15,14 +15,8 @@ export interface A11yViolation {
 }
 
 export interface A11yConfig {
-	/**
-	 * Rule IDs to ignore. Use sparingly — exclusions must have a justification
-	 * recorded in the test or a TODO comment.
-	 */
 	disableRules?: readonly string[];
-	/** Tags to include. Default: wcag2a, wcag2aa, wcag21a, wcag21aa, best-practice */
 	tags?: readonly string[];
-	/** Maximum allowed violations. Default 0. */
 	maxViolations?: number;
 }
 
@@ -69,10 +63,6 @@ export const runAxe = async function runAxe(
 	}));
 };
 
-/**
- * Assert zero a11y violations for the given target. Throws with a readable
- * summary of violations otherwise.
- */
 export const assertNoA11yViolations = async function assertNoA11yViolations(
 	target: Element | Document = document,
 	config: A11yConfig = {}

@@ -1,15 +1,3 @@
-/**
- * Vendor-level consent on the wire (POST /subject, GET /subject/:id).
- *
- * One confirmation time for the whole map: a vendor toggle is a single act,
- * unlike category receipts which each carry their own basis and expiry. The
- * map lists every vendor the client knew about at save time with its
- * granted flag, so a backend can store and replay the complete decision
- * without knowing the vendor list itself.
- *
- * @packageDocumentation
- */
-
 import * as v from 'valibot';
 
 import { isPlainPolicyObject } from '../../shared/policy-rule';
@@ -21,7 +9,6 @@ const plainObjectSchema = v.custom<Record<string, unknown>>(
 	'Expected a plain object'
 );
 
-/** Per-vendor grants a client confirmed in one action. */
 export const vendorChoiceWireSchema = v.pipe(
 	plainObjectSchema,
 	v.strictObject({

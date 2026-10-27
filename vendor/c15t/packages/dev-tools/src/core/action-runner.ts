@@ -1,6 +1,5 @@
 import { createElement } from './elements';
 
-/** Runs a UI command with pending, success, and failure feedback. */
 export type RunAction = (
 	pending: string,
 	task: () => Promise<unknown>,

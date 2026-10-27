@@ -22,8 +22,6 @@ afterEach(() => {
 	vi.useRealTimers();
 });
 
-// V3 has no fingerprint write-back. Guard offline initialization and an
-// init response with old records against replacing a newer local choice (#1134).
 test.each([false, true])(
 	'startup preserves a local choice when init returns old records = %s',
 	async (returnsOldRecords) => {
@@ -85,7 +83,6 @@ test.each([false, true])(
 			expect(kernel.getSnapshot().effectivePermissions.marketing).toBe(false);
 			const stored = readStoredConsentRecord(undefined, NOW);
 			expect(stored.selected?.choice).toEqual(savedChoice);
-			// The decoder checks both the cookie and localStorage, not just memory.
 			const valid = stored.candidates.filter(
 				(candidate) => candidate.status === 'valid'
 			);

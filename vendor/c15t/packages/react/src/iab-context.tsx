@@ -25,8 +25,6 @@ import type { IABContextValue } from './context/iab-context-value';
 import { useCommittedRef } from './hooks/use-committed-ref';
 import { markIABProviderLoaded } from './hooks/use-iab-policy-guard';
 
-// The standard surfaces throw for an `iab` policy in an app without IAB;
-// an app that loads this module renders IAB itself.
 markIABProviderLoaded();
 
 export interface ReactIABState extends KernelIABState {
@@ -46,31 +44,22 @@ export interface ReactIABState extends KernelIABState {
 	setPurposeConsent: (purposeId: number, value: boolean) => void;
 	setPurposeLegitimateInterest: (purposeId: number, value: boolean) => void;
 	setSpecialFeatureOptIn: (featureId: number, value: boolean) => void;
-	/** Set consent for a Google ad tech provider (Additional Consent). */
 	setAdTechProviderConsent: (providerId: number, value: boolean) => void;
 	acceptAll: () => void;
 	rejectAll: () => void;
 	save: () => Promise<void>;
 }
 
-/**
- * One period during which the provider renders a kernel. Switching away and
- * back to the same kernel starts a new selection, so an action taken for the
- * current selection is never confused with one left over from an earlier
- * selection of that kernel.
- */
 interface KernelSelection {
 	kernel: ConsentKernel;
 }
 
-/** An IAB action waiting for the handle of the selection it was taken in. */
 interface QueuedIABAction {
 	selection: KernelSelection;
 	run: (handle: IABHandle) => void;
 	cancel: () => void;
 }
 
-/** The current selection, replaced whenever the kernel in context changes. */
 const useKernelSelection = function useKernelSelection(
 	kernel: ConsentKernel
 ): KernelSelection {
@@ -80,8 +69,6 @@ const useKernelSelection = function useKernelSelection(
 	if (selection.kernel === kernel) {
 		return selection;
 	}
-	// Adjusting state during render: React re-renders before committing, so
-	// every commit sees the selection that matches its kernel.
 	const next = { kernel };
 	setSelection(next);
 	return next;
@@ -106,9 +93,6 @@ export const IABProvider = ({ children, ...options }: IABProviderProps) => {
 	const [tab, setTab] = useState<'purposes' | 'vendors'>('purposes');
 	const selection = useKernelSelection(kernel);
 	const committedSelectionRef = useCommittedRef(selection);
-	// The handle is bound to the selection it was created for. After the
-	// provider switches kernels, the previous handle is disposed and must not
-	// be exposed for the render before the effect below creates the next one.
 	const [mountedHandle, setMountedHandle] = useState<{
 		handle: IABHandle;
 		selection: KernelSelection;
@@ -116,23 +100,12 @@ export const IABProvider = ({ children, ...options }: IABProviderProps) => {
 	const handle =
 		mountedHandle?.selection === selection ? mountedHandle.handle : null;
 	const optionsRef = useRef(options);
-	// The imperative handle, tagged with its selection. During a switch it
-	// still holds the previous handle until the passive effect cleanup runs,
-	// and a child layout effect or a click can call `run` in between.
 	const handleRef = useRef<{
 		handle: IABHandle;
 		selection: KernelSelection;
 	} | null>(null);
-	// Selections whose handle this provider has torn down. An action still
-	// addressed to one of them is aborted, never applied to a newer handle.
-	// Returning to the same kernel starts a new selection, which is not.
 	const retiredRef = useRef(new WeakSet<KernelSelection>());
-	// Actions taken between hydration and the effect below creating the
-	// handle. A server-rendered banner is clickable in that window. Each
-	// action remembers its selection, so it never runs against another one.
 	const queuedRef = useRef<QueuedIABAction[]>([]);
-	// Whether the provider is mounted, and whether it has stayed unmounted
-	// long enough to abort its queue. No handle will drain a closed queue.
 	const mountedRef = useRef(false);
 	const closedRef = useRef(false);
 
@@ -145,10 +118,6 @@ export const IABProvider = ({ children, ...options }: IABProviderProps) => {
 		closedRef.current = false;
 		return () => {
 			mountedRef.current = false;
-			// StrictMode, and a hidden Activity that is shown again, replay this
-			// cleanup and setup. Only a provider still unmounted once the
-			// current task's microtasks run aborts its queue, whichever
-			// selection each action belongs to.
 			queueMicrotask(() => {
 				if (mountedRef.current) {
 					return;
@@ -163,7 +132,6 @@ export const IABProvider = ({ children, ...options }: IABProviderProps) => {
 
 	useEffect(() => {
 		const retired = retiredRef.current;
-		// StrictMode replays cleanup then setup for the same selection.
 		retired.delete(selection);
 		if (selection.kernel.getSnapshot().externalPermissions) {
 			return;
@@ -181,8 +149,6 @@ export const IABProvider = ({ children, ...options }: IABProviderProps) => {
 			}
 		}
 		return () => {
-			// Cleanup always runs before the next selection's setup, so the ref
-			// still holds this effect's handle here.
 			handleRef.current = null;
 			retired.add(selection);
 			next.dispose();
@@ -191,10 +157,6 @@ export const IABProvider = ({ children, ...options }: IABProviderProps) => {
 
 	const run = useCallback<NonNullable<IABContextValue['run']>>(
 		(action) => {
-			// An action from a result kept across a switch still carries the
-			// previous selection. Compare it with the selection last committed,
-			// which changes before any layout effect of the switch commit runs;
-			// `handleRef` only moves on in the passive effect.
 			const stale = committedSelectionRef.current !== selection;
 			const { current } = handleRef;
 			if (!stale && current?.selection === selection) {
@@ -220,9 +182,6 @@ export const IABProvider = ({ children, ...options }: IABProviderProps) => {
 					cancel();
 					return;
 				}
-				// No handle exists yet, or the one that does belongs to the
-				// selection this provider is switching away from: wait for this
-				// selection's handle.
 				queuedRef.current.push({
 					cancel,
 					run: async (mounted) => {
@@ -236,12 +195,8 @@ export const IABProvider = ({ children, ...options }: IABProviderProps) => {
 					selection,
 				});
 			});
-			// Void IAB actions have no promise consumer. Handle their
-			// cancellation, while returning the original promise so awaiting
-			// save still rejects.
 			// oxlint-disable-next-line promise/prefer-await-to-then
 			pending.catch(() => {
-				// Observed by the caller when it awaits.
 			});
 			return pending;
 		},
@@ -284,15 +239,7 @@ export const useIAB = function useIAB(): ReactIABState | null {
 		}
 		const handle = iabContext?.handle;
 		const noop = () => {
-			// Intentionally empty.
 		};
-		// Rendering keys on kernel state so a server-resolved GVL renders the
-		// IAB surfaces into the first HTML. Every action goes through the
-		// provider's `run`, even when this render already has a handle: `run`
-		// acts at once on the current handle, queues until the provider creates
-		// one, and aborts an action from a result kept across a runtime switch
-		// instead of applying it to the previous runtime's handle. Outside any
-		// IAB provider there is no handle and actions are no-ops.
 		const deferred =
 			iabContext?.run ??
 			((action: (mounted: IABHandle) => void | Promise<void>) =>

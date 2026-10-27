@@ -1,27 +1,9 @@
-/**
- * The network half of the browser manifest resolver: fetching the manifest
- * when the build bundled none, and asking `geoURL` for the visitor's
- * location. A page with a bundled snapshot and no `geoURL` never runs
- * either, so the resolver loads this module only when it needs one.
- *
- * @internal
- */
 import type { ConsentManifest } from '@c15t/schema/types';
 
 import { failedResponseError } from '../libs/failed-response';
 import type { ManifestModeInputs } from '../modes';
 import { createManifestRequestInit } from './manifest-request';
 
-/**
- * Fetch the backend's consent manifest.
- *
- * @param manifestURL - Where the manifest lives.
- * @param fetchImpl - Fetch implementation.
- * @param options - Request headers and credentials mode.
- * @returns The manifest.
- * @throws {Error} When the backend answers with an error status.
- * @internal
- */
 export const fetchManifest = async function fetchManifest(
 	manifestURL: string,
 	fetchImpl: typeof globalThis.fetch,
@@ -51,15 +33,6 @@ const normalizeGeoValue = function normalizeGeoValue(
 		: undefined;
 };
 
-/**
- * Ask a same-origin route for the visitor's `{ country, region }`.
- *
- * @param geoURL - The route.
- * @param fetchImpl - Fetch implementation.
- * @returns The location, or `undefined` when the route fails; the `/init`
- * fallback still answers then.
- * @internal
- */
 export const fetchGeoInputs = async function fetchGeoInputs(
 	geoURL: string,
 	fetchImpl: typeof globalThis.fetch

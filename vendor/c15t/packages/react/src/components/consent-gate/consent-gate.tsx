@@ -37,20 +37,16 @@ const ConsentGateComponent = createForwardRef<HTMLDivElement, ConsentGateProps>(
 		},
 		ref
 	) => {
-		// Never reads the clock while server rendering, so the gate can sit in
-		// a statically prerendered page. Registers the category on mount.
 		const { state, policyBlockedMessage } = useConsentGate(category);
 
 		const renderContent = () => {
 			if (state === 'granted') {
 				return children;
 			}
-			// Granted children wait for hydration; see `useConsentGate`.
 			if (state === 'pending') {
 				return null;
 			}
 
-			// Otherwise show placeholder
 			return (
 				placeholder || (
 					<DefaultPlaceholder

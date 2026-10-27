@@ -1,15 +1,5 @@
 'use client';
 
-/**
- * Enhanced ConsentBanner component with compound components attached.
- *
- * @remarks
- * This is the main export that provides access to all ConsentBanner components.
- * It follows the compound components pattern, allowing for flexible composition
- * of the banner's parts.
- *
- */
-
 import type { FC } from 'react';
 
 import { Overlay } from './atoms/overlay';
@@ -36,10 +26,6 @@ import type {
 	ConsentBannerProps,
 } from './prompt';
 
-/**
- * This interface extends the base ConsentBanner component with additional sub-components
- * that can be used to compose the banner's structure.
- */
 export interface ConsentBannerCompoundComponent extends FC<ConsentBannerProps> {
 	Root: typeof Root;
 	Card: typeof Card;
@@ -57,90 +43,11 @@ export interface ConsentBannerCompoundComponent extends FC<ConsentBannerProps> {
 	RightLink: typeof RightLink;
 	Overlay: typeof Overlay;
 }
-/**
- * A customizable consent banner component.
- *
- * @remarks
- * This component serves as the main entry point for rendering a consent banner.
- * Start with the pre-built component and its existing configuration surface.
- * For most customization, use `ConsentProvider` options, theme tokens,
- * slots, and `theme.consentActions` before reaching for compound composition.
- *
- * Key features:
- * - Fully accessible by default
- * - GDPR Compliant
- * - Customizable appearance
- * - Responsive design
- * - Error boundary protection
- * - Advanced compound component support when markup must change
- *
- * @example
- * Simple usage with default settings:
- * ```tsx
- * <ConsentBanner />
- * ```
- *
- * @example
- * Preferred customization via provider `i18n`, theme tokens, and components:
- * ```tsx
- * <ConsentProvider
- *   options={{
- *     mode: hosted({ backendURL: '/api/c15t' }),
- *     i18n: {
- *       locale: 'en',
- *       messages: {
- *         en: {
- *           cookieBanner: { title: 'Privacy choices' },
- *         },
- *       },
- *     },
- *     theme: {
- *       colors: {
- *         surface: '#fffdf8',
- *         surfaceHover: '#f6f3ee',
- *       },
- *     },
- *     components: {
- *       banner: {
- *         card: { className: 'rounded-3xl' },
- *         footer: { className: 'border-t border-black/10' },
- *       },
- *     },
- *   }}
- * >
- *   <ConsentBanner primaryButton="accept" />
- * </ConsentProvider>
- * ```
- *
- * @example
- * Advanced custom markup with compound components:
- * ```tsx
- * <ConsentBanner.Root>
- *   <ConsentBanner.Card>
- *     <ConsentBanner.Header>
- *       <ConsentBanner.Title />
- *       <ConsentBanner.Description />
- *     </ConsentBanner.Header>
- *     <ConsentBanner.Footer>
- *       <ConsentBanner.CustomizeButton />
- *       <ConsentBanner.FooterSubGroup>
- *         <ConsentBanner.RejectButton />
- *         <ConsentBanner.AcceptButton />
- *       </ConsentBanner.FooterSubGroup>
- *     </ConsentBanner.Footer>
- *   </ConsentBanner.Card>
- * </ConsentBanner.Root>
- * ```
- * Note: Next.js Server Components do not support compound components. Ensure you add `'use client'` to the file.
- *
- * @public
- */
 const ConsentBanner = Object.assign(ConsentBannerComponent, {
 	AcceptButton,
 	Actions: FooterSubGroup,
 
 	Card,
-	// Aliases for backward compatibility
 	Content: Card,
 	CustomizeButton,
 	Description,
@@ -157,10 +64,8 @@ const ConsentBanner = Object.assign(ConsentBannerComponent, {
 	Title,
 }) as ConsentBannerCompoundComponent;
 
-// Export the main component as both default and named export
 export default ConsentBanner;
 
-// Export individual components for backward compatibility
 export { ConsentBannerOverlay, Overlay } from './atoms/overlay';
 export { ConsentBannerRoot, Root } from './atoms/root';
 export {

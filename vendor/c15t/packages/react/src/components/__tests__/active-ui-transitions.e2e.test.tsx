@@ -1,12 +1,3 @@
-/**
- * E2E tests for activeUI state transitions.
- *
- * Tests that UI visibility is driven by the `activeUI` enum
- * and transitions correctly between 'none', 'banner', and 'dialog'.
- *
- * @packageDocumentation
- */
-
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { render } from 'vitest-browser-react';
 import { userEvent } from 'vitest/browser';
@@ -35,7 +26,6 @@ const getDefined = <Value,>(
 	return value;
 };
 
-// Mock localStorage
 const localStorageMock = (() => {
 	let store: Record<string, string> = {};
 	return {
@@ -78,7 +68,6 @@ const defaultOptions: ConsentProviderOptions = {
 		prompt: 'choice',
 		scopeMode: 'permissive',
 	}),
-	// These tests seed or read records under the default key.
 	storageConfig: DEFAULT_KEY_STORAGE,
 };
 
@@ -146,7 +135,6 @@ describe('activeUI Transitions E2E Tests', () => {
 			</ConsentProvider>
 		);
 
-		// Wait for banner
 		await vi.waitFor(
 			() => {
 				const banner = document.querySelector(
@@ -157,13 +145,11 @@ describe('activeUI Transitions E2E Tests', () => {
 			{ timeout: 3000 }
 		);
 
-		// Click customize
 		const customizeButton = document.querySelector(
 			'[data-testid="consent-banner-customize-button"]'
 		);
 		await userEvent.click(getDefined(customizeButton));
 
-		// Dialog should open
 		await vi.waitFor(
 			() => {
 				const dialog = document.querySelector(
@@ -174,7 +160,6 @@ describe('activeUI Transitions E2E Tests', () => {
 			{ timeout: 3000 }
 		);
 
-		// Banner should be gone
 		const banner = document.querySelector(
 			'[data-testid="consent-banner-root"]'
 		);
@@ -189,7 +174,6 @@ describe('activeUI Transitions E2E Tests', () => {
 			</ConsentProvider>
 		);
 
-		// Wait for banner, then click customize
 		await vi.waitFor(
 			() => {
 				const btn = document.querySelector(
@@ -204,7 +188,6 @@ describe('activeUI Transitions E2E Tests', () => {
 		);
 		await userEvent.click(getDefined(customizeButton));
 
-		// Wait for dialog
 		await vi.waitFor(
 			() => {
 				const dialog = document.querySelector(
@@ -215,13 +198,11 @@ describe('activeUI Transitions E2E Tests', () => {
 			{ timeout: 3000 }
 		);
 
-		// Click save in dialog
 		const saveButton = document.querySelector(
 			'[data-testid="consent-widget-footer-save-button"]'
 		);
 		await userEvent.click(getDefined(saveButton));
 
-		// Both banner and dialog should be gone
 		await vi.waitFor(
 			() => {
 				const banner = document.querySelector(
@@ -238,7 +219,6 @@ describe('activeUI Transitions E2E Tests', () => {
 	});
 
 	test('banner hidden for returning visitor', async () => {
-		// Pre-set localStorage consent
 		window.localStorage.setItem(
 			'c15t',
 			JSON.stringify(storedAcceptAllConsent())
@@ -250,7 +230,6 @@ describe('activeUI Transitions E2E Tests', () => {
 			</ConsentProvider>
 		);
 
-		// Wait long enough to confirm banner doesn't appear
 		await new Promise<void>((resolve) => {
 			setTimeout(resolve, 500);
 		});
@@ -270,7 +249,6 @@ describe('activeUI Transitions E2E Tests', () => {
 			</ConsentProvider>
 		);
 
-		// Wait for banner
 		await vi.waitFor(
 			() => {
 				const btn = document.querySelector(
@@ -281,13 +259,11 @@ describe('activeUI Transitions E2E Tests', () => {
 			{ timeout: 3000 }
 		);
 
-		// Accept all
 		const acceptButton = document.querySelector(
 			'[data-testid="consent-banner-accept-button"]'
 		);
 		await userEvent.click(getDefined(acceptButton));
 
-		// Banner should disappear
 		await vi.waitFor(
 			() => {
 				const banner = document.querySelector(
@@ -298,7 +274,6 @@ describe('activeUI Transitions E2E Tests', () => {
 			{ timeout: 3000 }
 		);
 
-		// Trigger should appear
 		await vi.waitFor(
 			() => {
 				const trigger = document.querySelector(
@@ -314,7 +289,6 @@ describe('activeUI Transitions E2E Tests', () => {
 			{ timeout: 3000 }
 		);
 
-		// Click trigger — dialog should open
 		const trigger = document.querySelector(
 			'button[aria-label="Open privacy settings"]'
 		);
@@ -399,8 +373,6 @@ describe('activeUI Transitions E2E Tests', () => {
 					'[role="toolbar"][aria-label="Site controls"]'
 				).querySelectorAll('button')
 			);
-			// The fixture rule is opt-in, so the built-in action carries the
-			// preferences right and its translated label.
 			expect(toolbarButtons.at(preferencesIndex)).toHaveAttribute(
 				'aria-label',
 				'Manage preferences'
@@ -453,7 +425,6 @@ describe('activeUI Transitions E2E Tests', () => {
 			</ConsentProvider>
 		);
 
-		// Step 1: Banner appears
 		await vi.waitFor(
 			() => {
 				const banner = document.querySelector(
@@ -464,7 +435,6 @@ describe('activeUI Transitions E2E Tests', () => {
 			{ timeout: 3000 }
 		);
 
-		// Step 2: Click customize → transitions to dialog
 		const customizeButton = document.querySelector(
 			'[data-testid="consent-banner-customize-button"]'
 		);
@@ -480,7 +450,6 @@ describe('activeUI Transitions E2E Tests', () => {
 			{ timeout: 3000 }
 		);
 
-		// Step 3: Save from dialog → hides everything
 		const saveButton = document.querySelector(
 			'[data-testid="consent-widget-footer-save-button"]'
 		);
@@ -496,7 +465,6 @@ describe('activeUI Transitions E2E Tests', () => {
 			{ timeout: 3000 }
 		);
 
-		// Step 4: Trigger appears
 		await vi.waitFor(
 			() => {
 				const trigger = document.querySelector(
@@ -507,7 +475,6 @@ describe('activeUI Transitions E2E Tests', () => {
 			{ timeout: 3000 }
 		);
 
-		// Step 5: Click trigger → dialog opens again
 		const trigger = document.querySelector(
 			'button[aria-label="Open privacy settings"]'
 		);

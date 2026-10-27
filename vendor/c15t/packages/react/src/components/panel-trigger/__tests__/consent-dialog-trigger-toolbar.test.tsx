@@ -10,10 +10,6 @@ import { offline } from '~/transports/offline';
 
 import { ConsentDialogTrigger, ConsentDialogTriggerToolbar } from '../index';
 
-/**
- * Renders the trigger surface inside a real provider with a preference
- * center, so opening preferences can be observed on the dialog root.
- */
 const renderWithConsent = function renderWithConsent(
 	children: ReactNode,
 	{ noStyle = false }: { noStyle?: boolean } = {}

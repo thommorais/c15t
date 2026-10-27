@@ -2,7 +2,6 @@ import type { PolicyRule } from './policy-rule';
 
 const DEFAULT_PROFILE = 'default';
 
-/** Stock profiles use the base translations unless the host supplies a profile. */
 export const isBuiltInMessageProfile = (profile: string): boolean =>
 	profile === DEFAULT_PROFILE || profile === 'preferences';
 const SUPPORTED_BASE_LANGUAGES = new Set([

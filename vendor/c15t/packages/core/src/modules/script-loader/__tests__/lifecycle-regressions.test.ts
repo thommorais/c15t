@@ -606,8 +606,6 @@ test('stops a consent callback feedback loop and reports the failure', () => {
 				id: 'feedback-loop',
 				onConsentChange: () => {
 					calls += 1;
-					// Bound the reproduction so the unfixed implementation cannot
-					// hang the test process indefinitely.
 					if (calls < 1000) {
 						allowed = !allowed;
 						void kernel.commands.save({ measurement: allowed });

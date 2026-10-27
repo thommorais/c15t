@@ -1,16 +1,3 @@
-/**
- * Tests for @c15t/core/modules/iframe-blocker.
- *
- * Verifies feature parity with v2:
- * - iframes without data-category are untouched
- * - data-src → src move on consent granted
- * - src cleared on consent revoked
- * - newly-added iframes processed via MutationObserver
- * - an invalid data-category stays blocked and warns instead of throwing
- * - a node or iframe page script cannot read does not stop the rest of a
- *   pass
- * - dispose disconnects observer + kernel subscription
- */
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
 import { choiceRecords } from '../../../__tests__/fixtures/kernel-fixtures';
@@ -182,7 +169,6 @@ describe('iframe-blocker: reacts to consent changes', () => {
 		const kernel = createConsentKernel();
 
 		createIframeBlocker({ kernel });
-		// initial pass clears data-src (actually leaves it since not consented)
 		expect(iframe.getAttribute('src')).toBeNull();
 		expect(iframe.getAttribute('data-src')).toBe('https://example.com/');
 
@@ -219,10 +205,6 @@ describe('iframe-blocker: MutationObserver processes new iframes', () => {
 	});
 });
 
-/**
- * Stands in for a node page script can't read. Firefox throws this error
- * for some nodes, such as ones an extension inserted.
- */
 const createUnreadableNode = function createUnreadableNode(): unknown {
 	return {
 		get nodeType(): number {
@@ -231,10 +213,6 @@ const createUnreadableNode = function createUnreadableNode(): unknown {
 	};
 };
 
-/**
- * An iframe whose attributes page script can't read, as can happen when an
- * unreadable node carries or contains it.
- */
 const createUnreadableIframe = function createUnreadableIframe(): StubIframe {
 	return {
 		...createStubIframe('marketing', 'https://unreadable.example/'),
@@ -247,7 +225,6 @@ const createUnreadableIframe = function createUnreadableIframe(): StubIframe {
 describe('iframe-blocker: an invalid data-category', () => {
 	test('stays blocked and warns without stopping the other iframes', () => {
 		const warn = vi.spyOn(console, 'warn').mockImplementation(() => {
-			/* asserted below */
 		});
 		const invalid = createStubIframe('bogus', 'https://bogus.example.com/');
 		const iframe = createStubIframe('marketing', 'https://example.com/');
@@ -264,7 +241,6 @@ describe('iframe-blocker: an invalid data-category', () => {
 
 	test('keeps an empty data-category blocked, even with every consent granted', () => {
 		const warn = vi.spyOn(console, 'warn').mockImplementation(() => {
-			/* asserted below */
 		});
 		const iframe = createStubIframe(undefined, 'https://example.com/');
 		iframe.setAttribute('data-category', '');
@@ -289,7 +265,6 @@ describe('iframe-blocker: an invalid data-category', () => {
 
 	test('does not stop a revoke from clearing the other iframes', () => {
 		vi.spyOn(console, 'warn').mockImplementation(() => {
-			/* covered above */
 		});
 		const iframe = createStubIframe('marketing', 'https://example.com/');
 		body.children.push(iframe);
@@ -342,7 +317,6 @@ describe('iframe-blocker: a mutation batch with a bad node', () => {
 
 	test('gates the iframes next to one with an invalid data-category', () => {
 		vi.spyOn(console, 'warn').mockImplementation(() => {
-			/* covered above */
 		});
 		createIframeBlocker({ kernel: createConsentKernel() });
 		const iframe = createStubIframe('marketing', 'https://example.com/');
@@ -382,7 +356,6 @@ describe('iframe-blocker: dispose', () => {
 
 		blocker.dispose();
 
-		// Post-dispose consent changes should not process iframes.
 		iframe.setAttribute('src', 'https://example.com/');
 		void kernel.commands.save({ marketing: false });
 		expect(iframe.getAttribute('src')).toBe('https://example.com/');
@@ -405,7 +378,6 @@ describe('iframe-blocker: disableAutomaticBlocking', () => {
 		const kernel = createConsentKernel();
 		createIframeBlocker({ disableAutomaticBlocking: true, kernel });
 
-		// Initial scan didn't run → src is untouched.
 		expect(iframe.getAttribute('src')).toBe('https://example.com/');
 	});
 

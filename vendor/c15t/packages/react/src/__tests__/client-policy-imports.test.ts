@@ -1,16 +1,5 @@
-/**
- * The provider and components read policy resolutions; they never resolve a
- * pack.
- *
- * Resolving validates authored rules and hashes them with SHA-256. Every app
- * that renders the provider ships its module graph, so one value import of
- * the resolver puts that work, and about 20 KB of source, into every client
- * bundle. Offline mode resolves in the browser on purpose and server helpers
- * never reach a browser, so both are left out of the scan.
- */
 import { describe, expect, test } from 'vitest';
 
-// Raw source text, inlined by Vite so the scan works in browser-mode vitest.
 const rawSources = import.meta.glob(
 	[
 		'../**/*.{ts,tsx}',
@@ -23,7 +12,6 @@ const rawSources = import.meta.glob(
 	{ eager: true, import: 'default', query: '?raw' }
 ) as Record<string, string>;
 
-/** Schema exports that resolve, validate or hash an authored pack. */
 const RESOLVER_EXPORTS = [
 	'createPolicyRuleFingerprints',
 	'hashSha256Hex',

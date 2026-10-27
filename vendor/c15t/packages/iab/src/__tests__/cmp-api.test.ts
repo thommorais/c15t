@@ -169,7 +169,6 @@ test('withholds the TC string when the policy stops using TCF mid-decode', async
 	api.updateConsent(tcString, undefined, true);
 	const callback = vi.fn();
 	window.__tcfapi?.('getTCData', 2, callback);
-	// The string is still decoding when the policy changes.
 	api.updateConsent(tcString, undefined, false);
 	await vi.waitFor(() => expect(callback).toHaveBeenCalled());
 	const [data] = callback.mock.calls[0] ?? [];
@@ -184,7 +183,6 @@ test('reports TCF when the policy starts using it before an outside-TCF answer',
 	api.updateConsent(tcString);
 	const callback = vi.fn();
 	window.__tcfapi?.('getTCData', 2, callback);
-	// The base fields are ready at once, but the answer is not sent yet.
 	api.updateConsent(tcString, undefined, true);
 	await vi.waitFor(() => expect(callback).toHaveBeenCalled());
 	expect(callback.mock.calls[0]?.[0]).toMatchObject({
@@ -204,7 +202,6 @@ test('withholds a cached TC string when the policy stops using TCF', async () =>
 
 	const callback = vi.fn();
 	window.__tcfapi?.('getTCData', 2, callback);
-	// The cached data is ready at once, but the answer is not sent yet.
 	api.updateConsent(tcString, undefined, false);
 	await vi.waitFor(() => expect(callback).toHaveBeenCalled());
 	const [data] = callback.mock.calls[0] ?? [];

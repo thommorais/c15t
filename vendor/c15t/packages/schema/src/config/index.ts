@@ -32,10 +32,6 @@ export type ConsentLegalLinks = Partial<
 	Record<ConsentLegalLinkKey, ConsentLegalLink>
 >;
 
-/**
- * Consent model a host component can be scoped to. Equal to the policy
- * rule model list so a `none` rule is a model too, never `null`.
- */
 export type PolicyModel = PolicyRuleModel;
 
 export type ConsentDialogTriggerPosition =
@@ -53,7 +49,6 @@ export type ConsentDialogTriggerSize = 'sm' | 'md' | 'lg';
 
 export type ConsentDialogTriggerIcon = 'fingerprint' | 'settings' | 'branding';
 
-/** Standard consent category keys aligned with GDPR purpose groups. */
 export type ConsentCategory =
 	| 'necessary'
 	| 'functionality'
@@ -90,13 +85,9 @@ export interface ConsentComponentSlots<T = Record<string, unknown>> {
 		actions?: T;
 		actionGroup?: T;
 	};
-	/** The placeholder `ConsentGate` renders while its category is denied. */
 	'consent-gate'?: {
-		/** Placeholder card, `ConsentGate.Root` in React. */
 		root?: T;
-		/** Placeholder title, `ConsentGate.Title` in React. */
 		title?: T;
-		/** Button that opens the preferences, `ConsentGate.Button` in React. */
 		button?: T;
 	};
 	button?: {
@@ -112,11 +103,8 @@ export interface ConsentComponentSlots<T = Record<string, unknown>> {
 		root?: T;
 		icon?: T;
 		text?: T;
-		/** Toolbar group rendered by `ConsentDialogTriggerToolbar`. */
 		toolbar?: T;
-		/** One action button inside the trigger toolbar. */
 		toolbarItem?: T;
-		/** Icon wrapper inside a trigger toolbar action. */
 		toolbarIcon?: T;
 	};
 	accordion?: {
@@ -134,7 +122,6 @@ export interface ConsentComponentSlots<T = Record<string, unknown>> {
 		trigger?: T;
 		content?: T;
 	};
-	/** Vendor rows nested under a category in the preference center. */
 	'vendor-list'?: {
 		root?: T;
 		trigger?: T;
@@ -415,29 +402,16 @@ export const CONSENT_COMPONENT_SLOT_KEYS = Object.entries(
 	)
 );
 
-/**
- * Central consent configuration contract shared across framework packages.
- *
- * @typeParam T - Framework attribute type bound to theme slot overrides.
- */
 export interface ConsentConfig<T = Record<string, unknown>> {
 	backendURL?: string;
-	/**
-	 * Consent categories shown in the UI. Backend policy allowlists that include
-	 * optional categories narrow this set. A policy allowlist of only `necessary`
-	 * does not restrict optional categories. `necessary` is always included.
-	 */
 	consentCategories?: ConsentCategory[];
-	/** Overrides parsed request headers for `/init` (custom SSR, tests). */
 	location?: {
 		countryCode?: string | null;
 		regionCode?: string | null;
 	};
 	disableAnimation?: boolean;
 	trapFocus?: boolean;
-	/** Provider-level legal link URLs (labels come from init translations). */
 	legalLinks?: ConsentLegalLinks;
-	/** Which legal links render per surface (`undefined` = none). */
 	bannerLegalLinks?: ConsentLegalLinkKey[] | null;
 	dialogLegalLinks?: ConsentLegalLinkKey[] | null;
 	hideBranding?: boolean;
@@ -455,15 +429,7 @@ export interface ConsentConfig<T = Record<string, unknown>> {
 	iabDialogModels?: PolicyModel[];
 	bannerUiSource?: string;
 	dialogUiSource?: string;
-	/**
-	 * Viewport corner for the consent banner root.
-	 * @default 'bottom-left'
-	 */
 	bannerPosition?: ConsentBannerPosition;
-	/**
-	 * How the preference manager is presented when `activeUI` is `manager`.
-	 * @default 'dialog'
-	 */
 	managerMode?: ConsentManagerMode;
 	triggerDefaultPosition?: ConsentDialogTriggerPosition;
 	triggerPersistPosition?: boolean;
@@ -471,7 +437,6 @@ export interface ConsentConfig<T = Record<string, unknown>> {
 	triggerAriaLabel?: string;
 	triggerSize?: ConsentDialogTriggerSize;
 	triggerIcon?: ConsentDialogTriggerIcon;
-	/** CSS custom property values applied as `--{key}` on `:root`. */
 	tokens?: Partial<
 		Record<
 			| 'c15t-primary'
@@ -520,7 +485,6 @@ export interface ConsentConfig<T = Record<string, unknown>> {
 			string | number
 		>
 	>;
-	/** Per-component slot attribute overrides. */
 	components?: ConsentComponentSlots<T>;
 }
 

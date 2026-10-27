@@ -1,16 +1,3 @@
-/**
- * Render-count benchmark: ConsentProvider + useConsent.
- *
- * Setup: 10 children, each reading a different consent slice.
- * Action: flip marketing on.
- * Measure: total React commits across all Profilers for the mutation.
- *
- * Expectation: exactly the children reading `marketing` re-render.
- * The other 8 stay quiet (zero unrelated re-renders invariant).
- *
- * Output is stashed in .benchmarks/current/react/render-counts.json so
- * it can feed the continuous-monitoring scoreboard.
- */
 import { Profiler } from 'react';
 import { describe, expect, test } from 'vitest';
 import { render } from 'vitest-browser-react';
@@ -122,17 +109,12 @@ describe('render-count bench', () => {
 			suite: 'react-render-counts',
 		};
 
-		// Stash on window so a test-runner reporter (or adjacent node
-		// harness) can pull it out. Can't write node:fs from the browser
-		// bundle.
 		(globalThis as Record<string, unknown>).__C15T_RENDER_BENCH__ = payload;
 
 		console.log(
 			`\n[render-count-bench] mount=${run.mountRenders} mutation=${run.mutationRenders}\n`
 		);
 
-		// Expected marketing readers: index % 5 === 2, so 2 of 10 children.
-		// Strict invariant: exactly those 2 re-render.
 		const expectedMarketingReaders = Array.from(
 			{ length: CHILDREN },
 			(_, i) => i

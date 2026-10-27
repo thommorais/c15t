@@ -27,7 +27,6 @@ export const stableStringify = function stableStringify(
 const sha256HexPureJs = function sha256HexPureJs(input: string): string {
 	const data = new TextEncoder().encode(input);
 
-	// SHA-256 constants
 	const K = new Uint32Array([
 		0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5, 0x3956c25b, 0x59f111f1,
 		0x923f82a4, 0xab1c5ed5, 0xd807aa98, 0x12835b01, 0x243185be, 0x550c7dc3,
@@ -56,8 +55,6 @@ const sha256HexPureJs = function sha256HexPureJs(input: string): string {
 		0x1f83d9ab, 0x5be0cd19,
 	]);
 	const W = new Uint32Array(64);
-	// SHA-256 operates on fixed-width words; native bitwise operations avoid
-	// allocating and scanning 32 individual bits for every compression step.
 	/* oxlint-disable no-bitwise -- SHA-256 requires unsigned 32-bit word operations. */
 	const toUint32 = (value: number) => value >>> 0;
 	const rightShift = (value: number, places: number) => value >>> places;
@@ -217,10 +214,6 @@ export const createMaterialPolicyFingerprint =
 		);
 	};
 
-/**
- * Synchronous variant of {@link createMaterialPolicyFingerprint}. Same
- * input, same bytes; used where resolution must stay synchronous.
- */
 export const createMaterialPolicyFingerprintSync =
 	function createMaterialPolicyFingerprintSync(
 		policy: LegacyMaterialPolicyInput

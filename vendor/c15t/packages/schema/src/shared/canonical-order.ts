@@ -1,24 +1,3 @@
-/**
- * String ordering for canonical sets and fingerprint keys.
- *
- * `String.prototype.localeCompare` gives the order every canonical set in
- * c15t has used so far, so it is the order stored fingerprints depend on.
- * Its first call in a page initialises the ICU collator, which costs a few
- * milliseconds on the main thread before the banner can show. Every string
- * these sets hold is printable ASCII, and for printable ASCII the root
- * collation is a fixed table: punctuation, then digits, then letters
- * compared without case, with lowercase before uppercase on a tie. This
- * module applies that table directly and only falls back to the `en`
- * collator for a string it cannot place, so the order is unchanged and the
- * collator stays unloaded on the common path.
- *
- * @internal
- */
-
-/**
- * Printable ASCII in root-collation order. Uppercase letters share the
- * primary weight of their lowercase letter and sort after it on a tie.
- */
 const ASCII_ORDER =
 	' _-,;:!?.\'"()[]{}@*/\\&#%`^+<=>|~$0123456789abcdefghijklmnopqrstuvwxyz';
 
@@ -28,7 +7,6 @@ const UPPER_A = 0x41;
 const UPPER_Z = 0x5a;
 const CASE_OFFSET = 0x20;
 
-/** Primary weight per code point, or -1 outside printable ASCII. */
 const PRIMARY = new Int8Array(LAST_PRINTABLE + 1).fill(-1);
 for (let index = 0; index < ASCII_ORDER.length; index += 1) {
 	const code = ASCII_ORDER.charCodeAt(index);
@@ -59,32 +37,13 @@ const hasNonPrintable = function hasNonPrintable(
 };
 
 const collate = function collate(left: string, right: string): number {
-	// The table above is the `en` order, so the fallback must be too;
-	// mixing it with the runtime locale would not give a total order.
 	return left.localeCompare(right, 'en');
 };
 
-/**
- * Compares two strings in the order `localeCompare` gives under the root
- * collation, without a collator when both are printable ASCII.
- *
- * @param left - First string.
- * @param right - Second string.
- * @returns Negative when `left` sorts first, positive when `right` does,
- * zero when they are equal.
- * @example
- * ```ts
- * ['scopeMode', 'scope', 'Scope'].sort(compareCanonical);
- * // ['scope', 'Scope', 'scopeMode']
- * ```
- */
 export const compareCanonical = function compareCanonical(
 	left: string,
 	right: string
 ): number {
-	// One pass, leaving at the first primary difference: the sorts on the
-	// init path compare short strings thousands of times, so this has to
-	// cost no more than the collator it replaces.
 	const shared = Math.min(left.length, right.length);
 	let caseDifference = 0;
 	for (let index = 0; index < shared; index += 1) {

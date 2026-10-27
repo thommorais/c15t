@@ -6,8 +6,6 @@ describe('hasGlobalPrivacyControlSignal', () => {
 	let originalWindow: typeof window | undefined;
 
 	beforeEach(() => {
-		// Preserve the original window so we can safely override it per test
-		// without leaking global state across tests.
 		// eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
 		if (typeof window === 'undefined') {
 			originalWindow = undefined;
@@ -17,9 +15,7 @@ describe('hasGlobalPrivacyControlSignal', () => {
 	});
 
 	afterEach(() => {
-		// Restore the original window reference after each test
 		if (originalWindow === undefined) {
-			// Clean up a window created by the test.
 			Reflect.deleteProperty(globalThis, 'window');
 		} else {
 			globalThis.window = originalWindow;
@@ -27,7 +23,6 @@ describe('hasGlobalPrivacyControlSignal', () => {
 	});
 
 	it('returns false when window is undefined (server-side environment)', () => {
-		// Simulate a server-side environment where window is not available
 		Reflect.deleteProperty(globalThis, 'window');
 
 		const result = hasGlobalPrivacyControlSignal();
@@ -40,7 +35,6 @@ describe('hasGlobalPrivacyControlSignal', () => {
 			globalPrivacyControl: true,
 		} as Navigator & { globalPrivacyControl?: boolean | string };
 
-		// Provide a minimal window implementation with the mocked navigator
 		const mockWindow = { navigator: mockNavigator } as unknown as Window;
 
 		// @ts-expect-error - We intentionally override the global window
@@ -80,7 +74,6 @@ describe('hasGlobalPrivacyControlSignal', () => {
 
 		expect(resultFalse).toBe(false);
 
-		// Now simulate the flag being completely absent
 		const mockNavigatorWithoutFlag: Navigator = {} as Navigator;
 		const mockWindowWithoutFlag = {
 			navigator: mockNavigatorWithoutFlag,
@@ -95,8 +88,6 @@ describe('hasGlobalPrivacyControlSignal', () => {
 	});
 
 	it('returns false if reading navigator.globalPrivacyControl throws', () => {
-		// Provide a navigator accessor that throws when accessed to exercise
-		// the defensive try/catch path in the helper.
 		const throwingWindow = {} as Window;
 
 		Object.defineProperty(throwingWindow, 'navigator', {

@@ -1,9 +1,3 @@
-/**
- * POST /subject schemas - Records consent (append-only).
- *
- * @packageDocumentation
- */
-
 import * as v from 'valibot';
 
 import {
@@ -15,9 +9,6 @@ import { ADDITIONAL_CONSENT_V2_PATTERN } from '../../shared/ad-tech-provider';
 import { subjectChoiceWireSchema } from './choice-wire';
 import { vendorChoiceWireSchema } from './vendor-choice-wire';
 
-/**
- * Base subject ID validation - must be in sub_xxx format
- */
 export const subjectIdSchema = v.pipe(
 	v.string(),
 	v.regex(/^sub_[1-9A-HJ-NP-Za-km-z]+$/u, 'Invalid subject ID format'),
@@ -25,15 +16,7 @@ export const subjectIdSchema = v.pipe(
 	v.examples(['sub_2jv6z8n4q9'])
 );
 
-/**
- * Base consent input schema for POST /subject
- * Note: subjectId is now required (client-generated)
- */
 const baseSubjectConsentSchema = v.object({
-	/**
-	 * Google Additional Consent v2 string, sent beside `tcString`. The
-	 * backend stores it only when a TC string comes with it.
-	 */
 	addtlConsent: v.optional(
 		v.pipe(
 			v.string(),
@@ -47,7 +30,6 @@ const baseSubjectConsentSchema = v.object({
 			v.examples(['2~89.486~dv.2572'])
 		)
 	),
-	/** Consent action type (e.g., 'all', 'necessary', 'custom') */
 	consentAction: v.optional(
 		v.pipe(
 			v.string(),
@@ -55,7 +37,6 @@ const baseSubjectConsentSchema = v.object({
 			v.examples(['all', 'necessary', 'custom'])
 		)
 	),
-	/** Signed legal-document snapshot token from a rendered document view */
 	documentSnapshotToken: v.optional(
 		v.pipe(
 			v.string(),
@@ -64,13 +45,11 @@ const baseSubjectConsentSchema = v.object({
 			)
 		)
 	),
-	/** Domain where consent was given */
 	domain: v.pipe(
 		v.string(),
 		v.description('Domain where consent was collected.'),
 		v.examples(['example.com'])
 	),
-	/** External subject ID from your auth system (optional) */
 	externalSubjectId: v.optional(
 		v.pipe(
 			v.string(),
@@ -78,18 +57,13 @@ const baseSubjectConsentSchema = v.object({
 			v.examples(['user_123'])
 		)
 	),
-	/** When the consent was given in epoch milliseconds */
 	givenAt: v.pipe(
 		v.number(),
-		// Keep the timestamp within the range JavaScript Date can represent.
-		// The backend derives an ID with Date#toISOString, which throws for an
-		// out-of-range value.
 		v.minValue(-8_640_000_000_000_000),
 		v.maxValue(8_640_000_000_000_000),
 		v.description('Timestamp when consent was given, in epoch milliseconds.'),
 		v.examples([1_735_689_600_000])
 	),
-	/** Identity provider name (optional) */
 	identityProvider: v.optional(
 		v.pipe(
 			v.string(),
@@ -97,11 +71,6 @@ const baseSubjectConsentSchema = v.object({
 			v.examples(['auth0', 'clerk'])
 		)
 	),
-	/**
-	 * Signed proof of `externalSubjectId`, minted by your server. Without it
-	 * the link is stored unverified and does not count in reads by external
-	 * id. Ignored when the subject already exists.
-	 */
 	identityToken: v.optional(
 		v.pipe(
 			v.string(),
@@ -110,12 +79,6 @@ const baseSubjectConsentSchema = v.object({
 			)
 		)
 	),
-	/**
-	 * Regulation label a 2.x client sends. Accepted so those clients keep
-	 * validating; the backend ignores it.
-	 *
-	 * @deprecated v3 clients do not send it.
-	 */
 	jurisdiction: v.optional(
 		v.pipe(
 			v.string(),
@@ -123,12 +86,6 @@ const baseSubjectConsentSchema = v.object({
 			v.examples(['GDPR'])
 		)
 	),
-	/**
-	 * `model` under its 2.x name. Accepted so 2.x clients keep validating;
-	 * `model` wins when both are sent.
-	 *
-	 * @deprecated Send `model`.
-	 */
 	jurisdictionModel: v.optional(
 		v.pipe(
 			v.string(),
@@ -136,14 +93,12 @@ const baseSubjectConsentSchema = v.object({
 			v.examples(['opt-in', 'opt-out', 'iab'])
 		)
 	),
-	/** Additional metadata */
 	metadata: v.optional(
 		v.pipe(
 			v.record(v.string(), v.unknown()),
 			v.description('Additional audit metadata to store with the consent.')
 		)
 	),
-	/** Consent model the client applied (e.g., 'opt-in', 'opt-out', 'iab') */
 	model: v.optional(
 		v.pipe(
 			v.string(),
@@ -153,25 +108,20 @@ const baseSubjectConsentSchema = v.object({
 			v.examples(['opt-in', 'opt-out', 'iab'])
 		)
 	),
-	/** Signed policy snapshot token from /init for consistency/auditability */
 	policySnapshotToken: v.optional(
 		v.pipe(
 			v.string(),
 			v.description('Signed policy snapshot token returned by /init.')
 		)
 	),
-	/** Client-generated subject ID in sub_xxx format (required) */
 	subjectId: subjectIdSchema,
-	/** IAB TCF TC String (only for IAB consents) */
 	tcString: v.optional(
 		v.pipe(
 			v.string(),
 			v.description('IAB TCF TC string for IAB consent submissions.')
 		)
 	),
-	/** Type of consent */
 	type: policyTypeSchema,
-	/** Which UI component collected this consent (e.g., 'banner', 'dialog', 'widget') */
 	uiSource: v.optional(
 		v.pipe(
 			v.string(),
@@ -182,7 +132,6 @@ const baseSubjectConsentSchema = v.object({
 });
 
 const manifestDecisionInputEntries = {
-	/** Country input used by the manifest resolver */
 	country: v.optional(
 		v.nullable(
 			v.pipe(
@@ -192,7 +141,6 @@ const manifestDecisionInputEntries = {
 			)
 		)
 	),
-	/** Runtime policy fingerprint asserted by manifest-mode clients */
 	fingerprint: v.optional(
 		v.pipe(
 			v.string(),
@@ -201,14 +149,12 @@ const manifestDecisionInputEntries = {
 			)
 		)
 	),
-	/** Global Privacy Control input used by the manifest resolver */
 	gpc: v.optional(
 		v.pipe(
 			v.boolean(),
 			v.description('Global Privacy Control input used by manifest-mode saves.')
 		)
 	),
-	/** Language input used by the manifest resolver */
 	language: v.optional(
 		v.pipe(
 			v.string(),
@@ -216,7 +162,6 @@ const manifestDecisionInputEntries = {
 			v.examples(['en'])
 		)
 	),
-	/** Policy ID to recompute on write; null explicitly asserts no matching policy. */
 	policyId: v.optional(
 		v.nullable(
 			v.pipe(
@@ -228,7 +173,6 @@ const manifestDecisionInputEntries = {
 			)
 		)
 	),
-	/** Region input used by the manifest resolver */
 	region: v.optional(
 		v.nullable(
 			v.pipe(
@@ -240,17 +184,9 @@ const manifestDecisionInputEntries = {
 	),
 };
 
-/**
- * Cookie banner consent - requires preferences
- */
 export const subjectCookieBannerInputSchema = v.object({
 	...baseSubjectConsentSchema.entries,
 	...manifestDecisionInputEntries,
-	/**
-	 * v3 per-category receipts confirmed by this action. When present, the
-	 * backend records coverage and confirmation time per category from here
-	 * rather than from `preferences` plus one `givenAt`.
-	 */
 	choice: v.optional(subjectChoiceWireSchema),
 	preferences: v.pipe(
 		v.record(v.string(), v.boolean()),
@@ -258,20 +194,9 @@ export const subjectCookieBannerInputSchema = v.object({
 		v.examples([{ marketing: false, measurement: true, necessary: true }])
 	),
 	type: v.literal('cookie_banner'),
-	/**
-	 * Per-vendor grants confirmed by this action, when the publisher declares
-	 * vendors. Absent when no vendor was toggled and none is declared.
-	 */
 	vendorChoice: v.optional(vendorChoiceWireSchema),
 });
 
-/**
- * Policy-based consent
- *
- * For legal documents, callers should prefer `documentSnapshotToken` when
- * available. `policyHash` is intended as a lighter-weight fallback when the
- * client knows the rendered release hash but not the internal c15t policy ID.
- */
 export const subjectPolicyBasedInputSchema = v.object({
 	...baseSubjectConsentSchema.entries,
 	policyHash: v.optional(
@@ -299,9 +224,6 @@ export const subjectPolicyBasedInputSchema = v.object({
 	type: legalDocumentPolicyTypeSchema,
 });
 
-/**
- * Other consent types
- */
 export const subjectOtherConsentInputSchema = v.object({
 	...baseSubjectConsentSchema.entries,
 	preferences: v.optional(
@@ -313,18 +235,12 @@ export const subjectOtherConsentInputSchema = v.object({
 	type: v.picklist(['marketing_communications', 'age_verification', 'other']),
 });
 
-/**
- * POST /subject input schema - variant (discriminated union)
- */
 export const postSubjectInputSchema = v.variant('type', [
 	subjectCookieBannerInputSchema,
 	subjectPolicyBasedInputSchema,
 	subjectOtherConsentInputSchema,
 ]);
 
-/**
- * POST /subject output schema
- */
 export const postSubjectOutputSchema = v.object({
 	appliedPreferences: v.optional(v.record(v.string(), v.boolean())),
 	consentId: v.string(),
@@ -337,9 +253,6 @@ export const postSubjectOutputSchema = v.object({
 	uiSource: v.optional(v.string()),
 });
 
-/**
- * Error schemas for POST /subject
- */
 export const postSubjectErrorSchemas = {
 	consentCreationFailed: v.object({
 		domain: v.string(),
@@ -398,6 +311,5 @@ export const postSubjectErrorSchemas = {
 	}),
 };
 
-// Type exports
 export type PostSubjectInput = v.InferOutput<typeof postSubjectInputSchema>;
 export type PostSubjectOutput = v.InferOutput<typeof postSubjectOutputSchema>;

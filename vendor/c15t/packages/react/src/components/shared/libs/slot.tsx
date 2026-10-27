@@ -40,14 +40,6 @@ const isReactWarningGetter = function isReactWarningGetter(
 	);
 };
 
-/**
- * Read a child's ref without tripping a deprecation warning.
- *
- * React 19 moved `ref` onto `props` and made `element.ref` a warning
- * getter in development; React 16 to 18 did the reverse and made
- * `props.ref` the warning getter. Each getter is flagged with
- * `isReactWarning`, so check it before touching either location.
- */
 const getElementRef = function getElementRef(
 	element: ReactElement<Record<string, unknown>>
 ): Ref<HTMLElement> | undefined {

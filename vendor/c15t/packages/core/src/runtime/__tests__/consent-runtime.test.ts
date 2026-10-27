@@ -51,11 +51,6 @@ const createIABHandle = function createIABHandle(): ConsentRuntimeIABHandle {
 	};
 };
 
-/**
- * Expires every cookie the document currently carries. Assigning an empty
- * string to `document.cookie` sets a cookie rather than clearing any, so a
- * consent cookie one test wrote would hydrate the next one's runtime.
- */
 const clearCookies = function clearCookies(): void {
 	for (const pair of document.cookie.split(';')) {
 		const name = pair.split('=')[0]?.trim();
@@ -210,8 +205,6 @@ describe('createRuntimeKernel', () => {
 			'google-analytics',
 			'meta-pixel',
 		]);
-		// The prefetched backend vendor's category is selectable at construction,
-		// so the server snapshot and the hydrated one agree on scope.
 		expect(consentCategories).toContain('measurement');
 	});
 
@@ -302,7 +295,6 @@ describe('app i18n over backend translations', () => {
 
 		const copy = kernel.getSnapshot().translations?.translations;
 		expect(copy?.cookieBanner.title).toBe('App title');
-		// Keys the app did not override keep the backend's copy.
 		expect(copy?.cookieBanner.description).toBe('Backend description');
 		kernel.dispose();
 	});
@@ -620,9 +612,6 @@ describe('createConsentRuntime', () => {
 	});
 
 	test('loads consent-gated scripts immediately when disabled', () => {
-		// `enabled: false` grants every category, so the documented behaviour
-		// is that gated scripts run as they would after "accept all" — not
-		// that they silently never load.
 		const onBeforeLoad = vi.fn();
 		const runtime = createConsentRuntime({
 			enabled: false,
@@ -743,7 +732,6 @@ describe('createConsentRuntime', () => {
 
 		runtime.setOverrides({ country: 'FR' });
 		expect(runtime.kernel.getSnapshot().overrides.country).toBe('FR');
-		// Merged, not replaced: a key left out keeps its value.
 		runtime.setOverrides({ language: 'de' });
 		expect(runtime.kernel.getSnapshot().overrides).toMatchObject({
 			country: 'FR',
@@ -818,7 +806,6 @@ describe('createConsentRuntime', () => {
 				},
 				prefetch: RESOLVED_PREFETCH,
 			});
-			// A component that mounts before the host calls `start()`.
 			const early = window.fetch('https://tracker.example/collect');
 			await new Promise<void>((resolve) => {
 				setTimeout(resolve, 0);
@@ -860,11 +847,8 @@ describe('createConsentRuntime', () => {
 
 			runtime.dispose();
 
-			// Nothing checked consent for the held request, so it is answered
-			// as blocked rather than sent, and it does not hang.
 			expect((await early).status).toBe(451);
 			expect(original).not.toHaveBeenCalled();
-			// The hold is gone: nothing waits from here on.
 			expect(window.fetch).toBe(original);
 		} finally {
 			window.fetch = nativeFetch;
@@ -895,9 +879,6 @@ describe('createConsentRuntime', () => {
 			mode: custom(createTransport()),
 		});
 
-		// `@c15t/core` bundles English only, so the copy stays English until
-		// the backend or a `messages` override supplies German. The language
-		// is what travels to `/init`, and it has to be the one asked for.
 		const { translations } = runtime.kernel.getSnapshot();
 		expect(translations?.language).toBe('de');
 		expect(translations?.translations.common.save).toBeTruthy();
@@ -986,7 +967,6 @@ describe('the runtime network hold', () => {
 		const nativeFetch = window.fetch;
 		const network = vi.fn().mockResolvedValue(new Response('ok'));
 		window.fetch = network as unknown as typeof window.fetch;
-		// Another caller, such as a component, holds its own rules.
 		const other = holdNetworkRequests([
 			{ category: 'marketing', domain: 'ads.example' },
 		]);
@@ -1004,7 +984,6 @@ describe('the runtime network hold', () => {
 
 			runtime.dispose();
 
-			// Nothing checked consent for it: answered as blocked, not sent.
 			expect((await own).status).toBe(451);
 			expect(network).not.toHaveBeenCalled();
 			await tick();
@@ -1037,7 +1016,6 @@ describe('the runtime network hold', () => {
 			runtime.start();
 			await tick();
 
-			// The disabled blocker's pass-through would send it unchecked.
 			expect(ads.settled).toBe(false);
 			expect(network).not.toHaveBeenCalledWith(
 				'https://ads.example/pixel',
@@ -1052,7 +1030,6 @@ describe('the runtime network hold', () => {
 
 	describe('a blocker whose chunk fails to load', () => {
 		const RULES = [{ category: 'measurement', domain: 'tracker.example' }];
-		/** A lazy blocker whose chunk fails until `recover()` is called. */
 		const failingBlocker = function failingBlocker() {
 			let recovered = false;
 			const loads = { count: 0 };
@@ -1101,8 +1078,6 @@ describe('the runtime network hold', () => {
 				});
 				await tick();
 
-				// Settled the way the blocker answers a blocked request, not
-				// left pending for the life of the page.
 				expect(early.settled).toBe(true);
 				expect((await held).status).toBe(451);
 				const later = window.fetch('https://tracker.example/collect');
@@ -1112,11 +1087,9 @@ describe('the runtime network hold', () => {
 				expect((await later).status).toBe(451);
 				expect(network).not.toHaveBeenCalled();
 
-				// Requests no rule matches go out as usual.
 				await window.fetch('https://cdn.example/app.js');
 				expect(network).toHaveBeenCalledOnce();
 				runtime.dispose();
-				// Disposing ends the hold.
 				expect(window.fetch).toBe(network);
 			} finally {
 				window.fetch = nativeFetch;
@@ -1136,7 +1109,6 @@ describe('the runtime network hold', () => {
 				});
 				await tick();
 				await runtime.kernel.commands.save({ measurement: true });
-				// Granted, but nothing can check it: still blocked.
 				expect(
 					(await window.fetch('https://tracker.example/collect')).status
 				).toBe(451);
@@ -1148,7 +1120,6 @@ describe('the runtime network hold', () => {
 				});
 				await tick();
 
-				// The blocker decides now: measurement is granted.
 				await window.fetch('https://tracker.example/collect');
 				expect(network).toHaveBeenCalledWith(
 					'https://tracker.example/collect',
@@ -1205,10 +1176,6 @@ describe('revocation reload', () => {
 	});
 });
 
-/**
- * One lifecycle in core. Where React's provider, Vue's kernel and Svelte's
- * context had their own copies, these pin the behaviour the runtime keeps.
- */
 describe('lifecycle verbs', () => {
 	const choice = {
 		categories: {
@@ -1222,8 +1189,6 @@ describe('lifecycle verbs', () => {
 	};
 
 	test('`clearRecords()` without persistence clears every record, vendors included, and announces it', () => {
-		// Vue's copy left `vendorChoice` behind, so a cleared visitor kept
-		// their vendor denials.
 		const runtime = createConsentRuntime({
 			mode: custom(createTransport()),
 			persistence: false,
@@ -1244,10 +1209,8 @@ describe('lifecycle verbs', () => {
 
 		const snapshot = runtime.kernel.getSnapshot();
 		expect(snapshot.explicitChoice).toBeNull();
-		// The subject ID stays, so the visitor can still be reached.
 		expect(snapshot.subject).toEqual({ subjectId: 'sub_1' });
 		expect(snapshot.vendorChoice).toBeNull();
-		// The save outbox listens for this to drop the cleared subject's saves.
 		expect(cleared).toHaveBeenCalledOnce();
 		runtime.dispose();
 	});
@@ -1271,8 +1234,6 @@ describe('lifecycle verbs', () => {
 	});
 
 	test('a prefetch still marked pending is not adopted: `start()` runs init', async () => {
-		// React treated any prefetch with a policy as resolved; the policy of
-		// a provisional prefetch is a placeholder, so the runtime asks.
 		const transport = createTransport();
 		const runtime = createConsentRuntime({
 			mode: custom(transport),
@@ -1306,8 +1267,6 @@ describe('lifecycle verbs', () => {
 	});
 
 	test('`dispose()` tears modules down in reverse start order, before the kernel', () => {
-		// Vue disposed in push order, so the script loader went before the
-		// blockers that still read from the kernel.
 		const order: string[] = [];
 		const tracked = <Handle extends { dispose: () => void }>(
 			name: string,
@@ -1356,8 +1315,6 @@ describe('lifecycle verbs', () => {
 	});
 
 	test('the IAB factory receives the configured publisher options over what the backend sent', () => {
-		// Vue mounted IAB from `cmpId` alone, which reset the publisher's
-		// restrictions and custom vendors.
 		const createIAB = vi.fn().mockReturnValue(createIABHandle());
 		const publisherRestrictions = [
 			{ purposeId: 2, restrictionType: 0, vendorIds: [1] },

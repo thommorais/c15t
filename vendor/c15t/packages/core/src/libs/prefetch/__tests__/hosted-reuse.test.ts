@@ -39,7 +39,6 @@ afterEach(() => {
 	vi.restoreAllMocks();
 });
 type JourneyWindow = Window & { __c15tJourney?: KernelJourney };
-// The runtime's init carries the journey the early request claimed.
 const context = {
 	get journey() {
 		return (window as JourneyWindow).__c15tJourney;
@@ -66,7 +65,6 @@ describe('hosted browser prefetch consumption', () => {
 	it('consumes the generated script response once and preserves protocol negotiation', async () => {
 		const fetch = vi.fn().mockImplementation(() => Promise.resolve(response()));
 		vi.stubGlobal('fetch', fetch);
-		// Execute the actual beforeInteractive script, including its window registry.
 		window.eval(buildPrefetchScript({ backendURL: '/api/c15t' }));
 		const transport = createHostedTransport({ backendURL: '/api/c15t' });
 		expect(fetch).toHaveBeenCalledTimes(1);
@@ -75,7 +73,6 @@ describe('hosted browser prefetch consumption', () => {
 		expect(fetch).toHaveBeenCalledTimes(1);
 		const [url, init] = fetch.mock.calls[0] ?? [];
 		expect(new URL(url).searchParams.get('contract')).toBe('1');
-		// A cross-origin backend answers this without a CORS preflight.
 		expect(corsPreflightReasons(init)).toEqual([]);
 		await transport.init?.(context);
 		expect(fetch).toHaveBeenCalledTimes(2);
@@ -87,7 +84,6 @@ describe('hosted browser prefetch consumption', () => {
 			.mockImplementation(() => Promise.resolve(response()));
 		vi.stubGlobal('fetch', pageFetch);
 		window.eval(buildPrefetchScript({ backendURL: '/api/c15t' }));
-		// A wrapper that signs or routes requests has to see `/init`.
 		const signed = vi
 			.fn()
 			.mockImplementation(() => Promise.resolve(response()));
@@ -172,8 +168,6 @@ describe('hosted browser prefetch consumption', () => {
 		const sent = createHostedTransport({ backendURL: '/api/c15t' }).init?.(
 			context
 		);
-		// A provider sends init from its first render; the request has to be
-		// out by the time the call returns, not a microtask later.
 		expect(fetch).toHaveBeenCalledTimes(1);
 		expect((await sent)?.policyResolution).toEqual(payload.policyResolution);
 	});
@@ -197,7 +191,6 @@ describe('hosted browser prefetch consumption', () => {
 			).__c15tInitialDataPromises ?? {}
 		);
 		expect(entries.map((entry) => entry.requestContext.gpc)).toEqual([false]);
-		// Detected GPC is never sent: browsers drop a script's `Sec-GPC`.
 		expect(fetch.mock.calls[0]?.[1].headers).toEqual({});
 		await Promise.resolve();
 	});

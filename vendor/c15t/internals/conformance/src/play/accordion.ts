@@ -37,10 +37,6 @@ const assertMountedAccordionContent = function assertMountedAccordionContent(
 	}
 };
 
-/**
- * Verifies single-mode accordion: clicking a trigger opens it and closes the
- * previously open item.
- */
 export const singleModeToggle: PlayFunction = async ({ canvasElement }) => {
 	const canvas = within(canvasElement);
 	const triggers = canvas.getAllByRole('button');
@@ -51,14 +47,12 @@ export const singleModeToggle: PlayFunction = async ({ canvasElement }) => {
 
 	assertMountedAccordionContent(canvasElement, triggers.length);
 
-	// First trigger's content should be open by default (defaultValue)
 	await waitFor(() => {
 		expect(firstItem).toHaveAttribute('data-state', 'open');
 		expect(firstContent).toHaveAttribute('data-state', 'open');
 		expect(secondContent).toHaveAttribute('data-state', 'closed');
 	});
 
-	// Click second trigger — it opens, first closes
 	await userEvent.click(getDefined(triggers[1]));
 	await waitFor(() => {
 		expect(firstItem).toHaveAttribute('data-state', 'closed');
@@ -67,7 +61,6 @@ export const singleModeToggle: PlayFunction = async ({ canvasElement }) => {
 		expect(secondContent).toHaveAttribute('data-state', 'open');
 	});
 
-	// Click second trigger again — it collapses (collapsible mode)
 	await userEvent.click(getDefined(triggers[1]));
 	await waitFor(() => {
 		expect(secondItem).toHaveAttribute('data-state', 'closed');
@@ -75,9 +68,6 @@ export const singleModeToggle: PlayFunction = async ({ canvasElement }) => {
 	});
 };
 
-/**
- * Verifies multiple-mode accordion: multiple items can be open simultaneously.
- */
 export const multipleModeToggle: PlayFunction = async ({ canvasElement }) => {
 	const canvas = within(canvasElement);
 	const triggers = canvas.getAllByRole('button');
@@ -88,7 +78,6 @@ export const multipleModeToggle: PlayFunction = async ({ canvasElement }) => {
 
 	assertMountedAccordionContent(canvasElement, triggers.length);
 
-	// Both should be open by default (defaultValue includes both)
 	await waitFor(() => {
 		expect(firstItem).toHaveAttribute('data-state', 'open');
 		expect(firstContent).toHaveAttribute('data-state', 'open');
@@ -96,7 +85,6 @@ export const multipleModeToggle: PlayFunction = async ({ canvasElement }) => {
 		expect(secondContent).toHaveAttribute('data-state', 'open');
 	});
 
-	// Close first — second stays open
 	await userEvent.click(getDefined(triggers[0]));
 	await waitFor(() => {
 		expect(firstItem).toHaveAttribute('data-state', 'closed');

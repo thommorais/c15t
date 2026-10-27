@@ -1,10 +1,3 @@
-/**
- * React's wrapper around `@c15t/core/preference-draft`. The draft rules
- * (seeding, staging, stale, baseline merge, displayed categories) are pinned
- * by the core suite; these tests cover what React adds: subscription through
- * `useSyncExternalStore`, the shared `ConsentDraftProvider`, and the save
- * action the banner uses without loading the draft.
- */
 import { useState } from 'react';
 import type { ReactNode } from 'react';
 import { expect, test } from 'vitest';
@@ -30,7 +23,6 @@ const Provider = ({
 }) => (
 	<ConsentProvider
 		options={{
-			// A permissive policy offers only what the site declares.
 			consentCategories: ['measurement', 'marketing'],
 			mode: offline({ acknowledgeNoRecords: true }),
 			persistence: false,
@@ -175,8 +167,6 @@ test('useVendorDraft reports a stale draft and resets it', async () => {
 		.toHaveTextContent(
 			'{"dirty":true,"stale":false,"vendors":{"meta-pixel":false}}'
 		);
-	// A vendor declared under the staged denial changes the set of switches:
-	// the hook alone shows that the draft needs review.
 	await screen.getByRole('button', { name: 'Declare vendor' }).click();
 	await expect
 		.element(screen.getByRole('status'))
@@ -190,13 +180,9 @@ test('useVendorDraft reports a stale draft and resets it', async () => {
 });
 
 test('the save action outside a draft provider saves what a fresh draft shows', async () => {
-	// The banner's buttons use this path. It must not need a mounted draft:
-	// a custom save loads the draft module on demand and confirms the
-	// presentation defaults, a bulk save goes straight to the kernel.
 	const Probe = () => {
 		const save = useConsentSaveAction();
 		const snapshot = useSnapshot();
-		// Sorted: the record keeps the key order of the first save.
 		const recorded = Object.fromEntries(
 			Object.entries(snapshot.explicitChoice?.categories ?? {})
 				.toSorted(([left], [right]) => left.localeCompare(right))

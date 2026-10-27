@@ -7,8 +7,6 @@ import {
 	standardExcludePatterns,
 } from '../shared/rslib-utils';
 
-// One entry per language, `@c15t/translations/<code>`, so an app loads only
-// the languages it uses. English keeps its own `./en` entry.
 const languageEntries = Object.fromEntries(
 	readdirSync(new URL('./src/languages', import.meta.url))
 		.filter((file) => file.endsWith('.ts'))

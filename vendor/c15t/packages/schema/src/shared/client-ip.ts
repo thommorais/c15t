@@ -1,17 +1,3 @@
-/**
- * Client IP derivation from request headers.
- *
- * Lives beside the geo helpers because it is the same category of thing:
- * request metadata recovered from proxy headers. It is shared rather than
- * duplicated because the IP it produces is **stored on every consent record**
- * — a compliance field — so two backends deriving different values for the
- * same visitor would put inconsistent data in the audit trail.
- *
- * Masking is on by default: the last IPv4 octet, or the last 80 bits of an
- * IPv6 address, are zeroed. Storing a full client IP is rarely defensible for
- * a consent record, so the default errs toward the smaller footprint.
- */
-
 const DEFAULT_IP_HEADERS = [
 	'x-client-ip',
 	'x-forwarded-for',
@@ -24,12 +10,7 @@ const DEFAULT_IP_HEADERS = [
 	'forwarded',
 ];
 
-/**
- * Expands a compressed IPv6 address to its full form.
- * For example: "2001:db8::1" -> "2001:0db8:0000:0000:0000:0000:0000:0001"
- */
 const expandIPv6 = function expandIPv6(ip: string): string {
-	// Handle IPv4-mapped IPv6 addresses (e.g., ::ffff:192.168.1.1)
 	if (ip.includes('.')) {
 		return ip;
 	}
@@ -38,12 +19,10 @@ const expandIPv6 = function expandIPv6(ip: string): string {
 	const emptyIndex = parts.indexOf('');
 
 	if (emptyIndex !== -1) {
-		// Count how many groups we need to insert
 		const nonEmptyParts = parts.filter((p) => p !== '');
 		const missingGroups = 8 - nonEmptyParts.length;
 		const zeros = Array(missingGroups).fill('0000');
 
-		// Handle leading ::
 		if (emptyIndex === 0) {
 			parts.shift();
 			if (parts[0] === '') {
@@ -51,7 +30,6 @@ const expandIPv6 = function expandIPv6(ip: string): string {
 			}
 			parts.unshift(...zeros);
 		}
-		// Handle trailing ::
 		else if (emptyIndex === parts.length - 1) {
 			parts.pop();
 			if (parts[parts.length - 1] === '') {
@@ -59,24 +37,17 @@ const expandIPv6 = function expandIPv6(ip: string): string {
 			}
 			parts.push(...zeros);
 		}
-		// Handle middle ::
 		else {
 			parts.splice(emptyIndex, 1, ...zeros);
 		}
 	}
 
-	// Pad each group to 4 characters
 	return parts.map((p) => p.padStart(4, '0')).join(':');
 };
 
-/**
- * Compresses an IPv6 address by removing leading zeros and using :: for consecutive zero groups.
- */
 const compressIPv6 = function compressIPv6(ip: string): string {
-	// Remove leading zeros from each group
 	const groups = ip.split(':').map((g) => g.replace(/^0+/u, '') || '0');
 
-	// Find the longest run of consecutive zeros
 	let longestStart = -1;
 	let longestLength = 0;
 	let currentStart = -1;
@@ -100,13 +71,11 @@ const compressIPv6 = function compressIPv6(ip: string): string {
 		}
 	}
 
-	// Check final run
 	if (currentLength > longestLength) {
 		longestStart = currentStart;
 		longestLength = currentLength;
 	}
 
-	// Replace longest run with ::
 	if (longestLength > 1) {
 		const before = groups.slice(0, longestStart);
 		const after = groups.slice(longestStart + longestLength);
@@ -126,14 +95,6 @@ const compressIPv6 = function compressIPv6(ip: string): string {
 	return groups.join(':');
 };
 
-/**
- * Masks an IP address to reduce PII.
- * - IPv4: Replaces last octet with 0 (e.g., 192.168.1.100 -> 192.168.1.0)
- * - IPv6: Masks last 80 bits (e.g., 2001:db8:85a3::1 -> 2001:db8:85a3::)
- *
- * @param ip - The IP address to mask
- * @returns The masked IP address
- */
 export const maskIpAddress = function maskIpAddress(
 	ip: string | null
 ): string | null {
@@ -141,7 +102,6 @@ export const maskIpAddress = function maskIpAddress(
 		return null;
 	}
 
-	// IPv4 detection (no colons, has dots)
 	if (ip.includes('.') && !ip.includes(':')) {
 		const parts = ip.split('.');
 		if (parts.length === 4) {
@@ -151,9 +111,7 @@ export const maskIpAddress = function maskIpAddress(
 		return ip;
 	}
 
-	// IPv6 detection
 	if (ip.includes(':')) {
-		// Handle IPv4-mapped IPv6 (::ffff:192.168.1.100)
 		if (ip.includes('.')) {
 			const lastColon = ip.lastIndexOf(':');
 			const ipv4Part = ip.substring(lastColon + 1);
@@ -167,11 +125,9 @@ export const maskIpAddress = function maskIpAddress(
 			return ip;
 		}
 
-		// Pure IPv6 - mask last 80 bits (keep first 48 bits / 3 groups)
 		const expanded = expandIPv6(ip);
 		const groups = expanded.split(':');
 
-		// Zero out groups 4-8 (indices 3-7)
 		for (let i = 3; i < 8; i += 1) {
 			groups[i] = '0000';
 		}
@@ -182,7 +138,6 @@ export const maskIpAddress = function maskIpAddress(
 	return ip;
 };
 
-/** Header names checked in order, first match wins. */
 export const DEFAULT_IP_HEADERS_LIST: readonly string[] = DEFAULT_IP_HEADERS;
 
 export interface IpAddressConfig {
@@ -191,12 +146,6 @@ export interface IpAddressConfig {
 	readonly ipAddressHeaders?: readonly string[];
 }
 
-/**
- * Extracts the client IP, masked unless masking is explicitly disabled.
- *
- * Returns null when tracking is off, so a deployment that opts out records no
- * IP at all rather than a placeholder.
- */
 export const getIpAddress = function getIpAddress(
 	source: Request | Headers,
 	config?: IpAddressConfig
@@ -213,7 +162,6 @@ export const getIpAddress = function getIpAddress(
 		if (!value) {
 			continue;
 		}
-		// A forwarding chain lists the original client first.
 		const ip = value.split(',')[0]?.trim();
 		if (!ip) {
 			continue;

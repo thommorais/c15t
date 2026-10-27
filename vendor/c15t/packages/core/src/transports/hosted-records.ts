@@ -1,16 +1,3 @@
-/**
- * The hosted transport's record half: saves, identity links and subject
- * reads, without `init`.
- *
- * `createHostedTransport` builds on it and adds `init`. An adapter whose
- * server already resolved the visitor's state can use this half on its own
- * and load the init path only when the browser has to resolve init itself,
- * so the init request code, the prefetch reader and the init-response
- * mapper stay out of its first-load bundle.
- *
- * Reading a subject record back is rare (a user switch or an explicit
- * reload), so its reviver loads on first use.
- */
 import { failedResponseError } from '../libs/failed-response';
 import { isValidSubjectId } from '../libs/generate-subject-id';
 import type { KernelTransport, KernelUser, SaveResult } from '../types';
@@ -22,66 +9,32 @@ import type { SubjectSavePayload } from './subject-body';
 import type { TransportHydrationRecords } from './subject-record';
 import { c15tProtocolHeaders } from './version-header';
 
-/** Options for {@link createHostedRecordTransport}. */
 export interface HostedRecordTransportOptions {
-	/**
-	 * Backend URL. Can be relative (`/api/c15t`) or absolute.
-	 * Trailing slashes are stripped.
-	 */
 	backendURL: string;
-	/** Fetch implementation. Defaults to `globalThis.fetch`. */
 	fetch?: typeof globalThis.fetch;
-	/**
-	 * Fetch credentials mode. Defaults to `'include'` so the backend can set
-	 * and read consent cookies.
-	 */
 	credentials?: RequestCredentials;
-	/**
-	 * Domain sent to `POST /subjects`. Defaults to the browser hostname, or
-	 * the backend URL hostname for absolute URLs in server runtimes.
-	 */
 	domain?: string;
-	/** Clock used to validate records read from the backend. */
 	now?: () => number;
 }
 
-/**
- * Where a save finds the decision it asserts when the payload carries
- * neither a `policySnapshotToken` nor decision inputs of its own.
- *
- * @internal
- */
 export interface HostedDecisionSource {
-	/** Refuse to save until an init resolved a decision. */
 	required: boolean;
-	/** The init in flight, if any. A save waits for it before asserting. */
 	pending: () => Promise<unknown> | undefined;
-	/** Decision inputs the latest init remembered. */
 	inputs: () => RememberedDecisionInputs | undefined;
 }
 
-/** The record methods of a hosted transport. */
 export interface HostedRecordTransport extends KernelTransport {
 	save: (payload: SubjectSavePayload) => Promise<SaveResult>;
 	identify: (user: KernelUser, subjectId: string | null) => Promise<void>;
-	/**
-	 * Reads the backend's merged receipts for a subject. `null` when the
-	 * backend has no such subject.
-	 */
 	loadSubjectRecord: (
 		subjectId: string
 	) => Promise<TransportHydrationRecords | null>;
 }
 
-/** Strip a single trailing slash so `${base}/subjects` doesn't double up. */
 export const trimSlash = function trimSlash(url: string): string {
 	return url.endsWith('/') ? url.slice(0, -1) : url;
 };
 
-/**
- * Resolve the `domain` field sent on `POST /subjects`: the explicit option,
- * the browser hostname, the backend URL hostname, then `'localhost'`.
- */
 const resolveDomain = function resolveDomain(
 	backendURL: string,
 	explicit: string | undefined
@@ -99,13 +52,6 @@ const resolveDomain = function resolveDomain(
 	}
 };
 
-/**
- * A `SaveResult` from the backend's answer.
- *
- * The backend's 2.x response shape has no `ok`; success is the HTTP status.
- * Reading the body as a `SaveResult` made every successful save look failed
- * and queued it for replay forever.
- */
 const toSaveResult = function toSaveResult(data: unknown): SaveResult {
 	const subjectId =
 		typeof data === 'object' &&
@@ -116,7 +62,6 @@ const toSaveResult = function toSaveResult(data: unknown): SaveResult {
 	return subjectId === undefined ? { ok: true } : { ok: true, subjectId };
 };
 
-/** Resolve the fetch implementation or throw when the runtime has none. */
 export const resolveFetch = function resolveFetch(
 	fetchImpl: typeof globalThis.fetch | undefined
 ): typeof globalThis.fetch {
@@ -129,22 +74,6 @@ export const resolveFetch = function resolveFetch(
 	return resolved;
 };
 
-/**
- * Build the record half of a hosted transport. Plain object, no listeners,
- * no caches. Safe to create per request.
- *
- * @param options - Backend connection options.
- * @param decision - Where saves find a remembered decision. Omit it when
- *   every save carries its own decision inputs.
- * @returns Save, identify and subject-read methods.
- * @example
- * ```ts
- * import { createHostedRecordTransport } from '@c15t/core';
- *
- * const records = createHostedRecordTransport({ backendURL: '/api/c15t' });
- * await records.save(payload);
- * ```
- */
 export const createHostedRecordTransport = function createHostedRecordTransport(
 	options: HostedRecordTransportOptions,
 	decision?: HostedDecisionSource
@@ -174,8 +103,6 @@ export const createHostedRecordTransport = function createHostedRecordTransport(
 	return {
 		async identify(user, subjectId): Promise<void> {
 			if (!subjectId) {
-				// No server subject to link. The identity stays in the kernel and
-				// travels with the next save; nothing is owed to the network.
 				return;
 			}
 			const response = await fetchImpl(subjectURL(subjectId), {
@@ -188,9 +115,6 @@ export const createHostedRecordTransport = function createHostedRecordTransport(
 				headers: jsonHeaders,
 				method: 'PATCH',
 			});
-			// A backend older than first-load subject IDs only knows subjects
-			// a save created. The identity then travels with the next save.
-			// The backend rejects an ID of another form, and so would the save.
 			if (response.status === 404 && isValidSubjectId(subjectId)) {
 				return;
 			}
@@ -232,11 +156,6 @@ export const createHostedRecordTransport = function createHostedRecordTransport(
 				!payload.policySnapshotToken &&
 				!payload.decisionInputs
 			) {
-				// A server-rendered banner is interactive before the client init
-				// resolves, and the provider re-initialises when its overrides
-				// change. Wait out every init in flight (a newer one may start
-				// while waiting) so the assertion reflects the latest decision;
-				// if none resolves, refuse rather than record an unbound consent.
 				let awaited = decision.pending();
 				while (awaited) {
 					// oxlint-disable-next-line no-await-in-loop -- Each iteration waits for the init that superseded the last.

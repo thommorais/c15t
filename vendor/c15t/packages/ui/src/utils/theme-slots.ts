@@ -1,18 +1,5 @@
 import type { AllThemeKeys, CSSProperties, SlotStyle } from '../theme/types';
 
-/**
- * The `components` slot that styles the same part as each `theme.slots`
- * key.
- *
- * The script tag, Svelte and Astro read `theme.slots` (keys such as
- * `consentDialogCard`). React and Vue style the same parts through their
- * `components` option (`dialog.card`), and translate `theme.slots` into it
- * with {@link applyThemeSlots}, so a theme's slots style the same parts in
- * every adapter. Every slot key has an entry, so a new slot cannot ship
- * without one.
- *
- * @internal
- */
 export const THEME_SLOT_COMPONENT_KEYS = {
 	buttonPrimary: 'button.primary',
 	buttonSecondary: 'button.secondary',
@@ -63,10 +50,8 @@ export const THEME_SLOT_COMPONENT_KEYS = {
 	toggle: 'switch.root',
 } as const satisfies Record<AllThemeKeys, `${string}.${string}`>;
 
-/** The attributes one `components` slot binds. */
 export type ComponentSlotAttributes = Record<string, unknown>;
 
-/** A `components` map, grouped the way `ConsentComponentSlots` is. */
 export type ComponentSlotMap = Record<
 	string,
 	Record<string, ComponentSlotAttributes | undefined> | undefined
@@ -75,13 +60,6 @@ export type ComponentSlotMap = Record<
 const isPlainObject = (value: unknown): value is Record<string, unknown> =>
 	typeof value === 'object' && value !== null && !Array.isArray(value);
 
-/**
- * Put one slot's attributes from `theme.slots` under the ones `components`
- * sets for the same part. Classes from both apply, theme first. Inline
- * styles merge, with `components` winning per property. `noStyle` from
- * either side applies, as in `resolveStyles`. Any other attribute set in
- * `components` replaces the theme's.
- */
 const mergeSlot = function mergeSlot(
 	fromTheme: ComponentSlotAttributes,
 	explicit: ComponentSlotAttributes | undefined,
@@ -97,8 +75,6 @@ const mergeSlot = function mergeSlot(
 	const themeClass = fromTheme[classAttribute];
 	const explicitClass = explicit[classAttribute];
 	if (themeClass && explicitClass) {
-		// Vue binds arrays and objects as classes too, so a non-string class
-		// keeps both values in an array.
 		merged[classAttribute] =
 			typeof explicitClass === 'string'
 				? `${String(themeClass)} ${explicitClass}`
@@ -107,8 +83,6 @@ const mergeSlot = function mergeSlot(
 	const themeStyle = fromTheme.style;
 	const explicitStyle = explicit.style;
 	if (themeStyle && explicitStyle) {
-		// Vue binds style strings and arrays too, so a style that is not a
-		// plain object keeps both values in an array.
 		merged.style = isPlainObject(explicitStyle)
 			? { ...(themeStyle as Record<string, unknown>), ...explicitStyle }
 			: [themeStyle, explicitStyle];
@@ -116,11 +90,6 @@ const mergeSlot = function mergeSlot(
 	return merged;
 };
 
-/**
- * Properties whose numeric values take no unit, in kebab-case without a
- * vendor prefix. Mirrors React's `isUnitlessNumber` list, so a slot style
- * renders the same declaration in every adapter.
- */
 const UNITLESS_PROPERTIES = new Set([
 	'animation-iteration-count',
 	'aspect-ratio',
@@ -168,18 +137,6 @@ const UNITLESS_PROPERTIES = new Set([
 	'zoom',
 ]);
 
-/**
- * Turn a style key into a CSS property name.
- *
- * camelCase keys, the form React and Vue styles use, become kebab-case
- * (`backgroundColor` to `background-color`, `WebkitMask` to
- * `-webkit-mask`, `msFlex` to `-ms-flex`). Custom properties (`--brand`)
- * and keys that already contain a dash are kept as written.
- *
- * @param name - The style key.
- * @returns The CSS property name.
- * @internal
- */
 export const toCSSPropertyName = function toCSSPropertyName(
 	name: string
 ): string {
@@ -191,24 +148,6 @@ export const toCSSPropertyName = function toCSSPropertyName(
 		.replace(/[A-Z]/gu, (letter) => `-${letter.toLowerCase()}`);
 };
 
-/**
- * Turn a style value into the text a CSS declaration takes.
- *
- * A number gets `px` unless the property is unitless (`opacity`,
- * `zIndex`, `flexGrow`, `lineHeight`, ...) or a custom property, and `0`
- * stays `0`, the way React writes numeric styles. Strings pass through.
- *
- * @param name - The style key, camelCase or kebab-case.
- * @param value - The declared value.
- * @returns The CSS value.
- * @internal
- *
- * @example
- * ```ts
- * toCSSValue('padding', 8); // '8px'
- * toCSSValue('zIndex', 10); // '10'
- * ```
- */
 export const toCSSValue = function toCSSValue(
 	name: string,
 	value: string | number
@@ -223,11 +162,6 @@ export const toCSSValue = function toCSSValue(
 	return UNITLESS_PROPERTIES.has(property) ? String(value) : `${value}px`;
 };
 
-/**
- * A slot style with numeric values written as CSS text, so `{ padding: 8 }`
- * reaches the element as `8px` in adapters that pass style objects through
- * unchanged, such as Vue. React renders either form the same way.
- */
 const withCSSLengths = function withCSSLengths(
 	style: CSSProperties
 ): CSSProperties {
@@ -239,34 +173,6 @@ const withCSSLengths = function withCSSLengths(
 	);
 };
 
-/**
- * Translate `theme.slots` into a `components` map and merge it under the
- * map a React or Vue app passes itself.
- *
- * Each slot's classes and `style` become the attributes the framework
- * binds: `className` for React, `class` for Vue. A slot's `noStyle: true`
- * sets `noStyle: true` on the part, which drops that part's stock classes
- * and keeps the slot's, as in the other adapters. A `noStyle` set on the
- * part in `components` stays: either side turns it on.
- *
- * @param slots - The theme's `slots`.
- * @param components - The app's own `components` map, which wins where both
- * set the same attribute.
- * @param classAttribute - The attribute the framework reads classes from.
- * @returns The merged map, or `components` unchanged when the theme has no
- * slots.
- *
- * @internal
- * @example
- * ```ts
- * applyThemeSlots(
- * 	{ consentBannerCard: 'rounded-none' },
- * 	{ banner: { card: { 'data-brand': 'on' } } },
- * 	'className'
- * );
- * // { banner: { card: { className: 'rounded-none', 'data-brand': 'on' } } }
- * ```
- */
 export const applyThemeSlots = function applyThemeSlots<
 	Components extends object,
 >(
@@ -308,14 +214,6 @@ export const applyThemeSlots = function applyThemeSlots<
 	return applied ? (merged as Components) : components;
 };
 
-/**
- * The declarations a style object sets, as CSS property and value pairs.
- * Empty values (`undefined`, `null`, `''`) are dropped.
- *
- * @param style - A slot or component style object.
- * @returns `[property, value]` pairs, ready for `style.setProperty`.
- * @internal
- */
 export const toCSSDeclarations = function toCSSDeclarations(
 	style: CSSProperties | undefined
 ): [property: string, value: string][] {
@@ -328,19 +226,6 @@ export const toCSSDeclarations = function toCSSDeclarations(
 	return declarations;
 };
 
-/**
- * Serialize a style object for a `style` attribute.
- *
- * @param style - A slot or component style object.
- * @returns The attribute value, or `undefined` when nothing is set.
- * @internal
- *
- * @example
- * ```ts
- * toStyleAttributeValue({ padding: 8, opacity: 0.5 });
- * // 'padding:8px;opacity:0.5'
- * ```
- */
 export const toStyleAttributeValue = function toStyleAttributeValue(
 	style: CSSProperties | undefined
 ): string | undefined {

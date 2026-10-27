@@ -1,8 +1,3 @@
-/**
- * GPP code that runs without a DOM: the TCF EU parsed section and server
- * rendering.
- */
-
 import { createConsentKernel } from '@c15t/core';
 import {
 	createPolicyRuleFingerprints,
@@ -18,7 +13,6 @@ import { parseTCFEUSection } from '../gpp/tcf-section';
 import { completeGVL } from './fixtures/gvl-sample';
 import { PURPOSE_PROHIBITED_TC_STRING } from './fixtures/publisher-restrictions';
 
-/** IDs set in a reference-implementation boolean bitfield. */
 const setIds = (bits: boolean[]): number[] =>
 	bits.flatMap((set, index) => (set ? [index + 1] : []));
 
@@ -40,7 +34,6 @@ describe('parseTCFEUSection', () => {
 		});
 		expect(core?.Created).toBeInstanceOf(Date);
 
-		// The IAB reference decoder reads the same values from the string.
 		const reference = new GppModel(
 			encodeGPPString([{ encoded: PURPOSE_PROHIBITED_TC_STRING, id: 2 }])
 		);

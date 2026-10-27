@@ -1,9 +1,3 @@
-/**
- * `manifest()` and `hosted()` from `c15t/react` default to what the build
- * integration downloaded, served as `@c15t/core/generated`. Without a build
- * integration that module exports `undefined`, so they need their source
- * passed in.
- */
 import { manifest as browserManifest } from '@c15t/core/transports/manifest-browser';
 import type { ConsentManifest } from '@c15t/schema/types';
 import { describe, expect, test } from 'vitest';

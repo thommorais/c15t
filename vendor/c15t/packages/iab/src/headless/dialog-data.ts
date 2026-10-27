@@ -1,14 +1,3 @@
-/**
- * Framework-agnostic IAB dialog data processing.
- *
- * Processes GVL data into UI-ready structures for the consent dialog.
- * This keeps the O(purposes x vendors) derivation out of framework
- * components and makes the same result consumable by React, Vue, Svelte,
- * Solid, and Astro wrappers.
- *
- * @packageDocumentation
- */
-
 import type {
 	AdTechProvider,
 	GlobalVendorList,
@@ -110,11 +99,6 @@ const mapCustomVendor = function mapCustomVendor(
 	};
 };
 
-/**
- * Purposes some vendor declares. Listed ad tech providers declare the
- * purposes Google needs before it counts their consent, so Accept All can
- * grant only what this list shows.
- */
 const processPurposes = function processPurposes(
 	gvl: GlobalVendorList,
 	customVendors: NonIABVendor[],
@@ -301,13 +285,6 @@ const groupPurposesIntoStacks = function groupPurposesIntoStacks(
 	return { stacks, standalonePurposes };
 };
 
-/**
- * Processes GVL data into a format suitable for the consent dialog UI.
- *
- * @param iab - IAB state with GVL, optional custom vendors, and the UI
- * language that picks each vendor's privacy links
- * @returns Processed GVL data for rendering
- */
 export const processGVLForDialog = function processGVLForDialog(
 	iab: HeadlessIABStateInput | null
 ): HeadlessIABDialogData {

@@ -1,8 +1,3 @@
-/**
- * Kernel positive correctness tests.
- *
- * These run against the public kernel implementation and must pass.
- */
 import { describe, expect, test, vi } from 'vitest';
 
 import { createConsentKernel } from '../index';
@@ -119,7 +114,6 @@ describe('kernel: subscribe', () => {
 			true
 		);
 
-		// Draft staging does not touch the snapshot.
 		kernel.set.draft({ marketing: true });
 		expect(listener).toHaveBeenCalledTimes(1);
 

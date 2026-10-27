@@ -1,12 +1,3 @@
-/**
- * GPP string encoding.
- *
- * Encodes the GPP header and the fixed-width US sections. A TCF EU section
- * is the TC String itself, so it is never re-encoded here.
- *
- * @packageDocumentation
- */
-
 import {
 	GPC_SUBSECTION,
 	GPC_SUBSECTION_TYPE,
@@ -15,13 +6,11 @@ import {
 } from './sections';
 import type { GPPFieldSpec, USSectionDefinition } from './sections';
 
-/** Values for one subsection, keyed by field name. */
 export type GPPFieldValues = Record<string, number | boolean | number[]>;
 
 const BASE64_URL =
 	'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_';
 
-/** `value` as a big-endian bit string `bits` wide. */
 const fixedInteger = function fixedInteger(
 	value: number,
 	bits: number
@@ -32,7 +21,6 @@ const fixedInteger = function fixedInteger(
 	return value.toString(2).padStart(bits, '0');
 };
 
-/** Fibonacci code of a positive integer, ending in `11`. */
 const fibonacciInteger = function fibonacciInteger(value: number): string {
 	const sequence = [1, 2];
 	while (
@@ -55,10 +43,6 @@ const fibonacciInteger = function fibonacciInteger(value: number): string {
 	return `${digits.join('').replace(/0+$/u, '')}1`;
 };
 
-/**
- * Encodes sorted, distinct integers as a Fibonacci-coded range: a 12-bit
- * group count, then each run as an offset from the end of the previous one.
- */
 export const fibonacciRange = function fibonacciRange(
 	values: readonly number[]
 ): string {
@@ -87,11 +71,6 @@ export const fibonacciRange = function fibonacciRange(
 	return bits;
 };
 
-/**
- * Base64url without padding characters. The bit string is padded with
- * zeros to a whole byte, then to a whole character, as GPP's compressed
- * encoding requires.
- */
 export const compressedBase64Url = function compressedBase64Url(
 	bits: string
 ): string {
@@ -121,7 +100,6 @@ const encodeField = function encodeField(
 	return entries.map((entry) => fixedInteger(entry, bits)).join('');
 };
 
-/** Encodes one subsection from its field table. */
 const encodeSubsection = function encodeSubsection(
 	fields: readonly GPPFieldSpec[],
 	values: GPPFieldValues
@@ -131,22 +109,11 @@ const encodeSubsection = function encodeSubsection(
 	);
 };
 
-/** One US section's field values, as `getSection` reports them. */
 export interface USSectionValues {
 	core: GPPFieldValues;
-	/** GPC flag; encoded only when the section defines a GPC subsection. */
 	gpc: boolean;
 }
 
-/**
- * Encodes a US section: the core subsection, then the GPC subsection when
- * the section defines one.
- *
- * @param definition - The section's field table.
- * @param values - Field values. Absent fields encode as `0`.
- * @returns The section string.
- * @throws {RangeError} When a value does not fit its field.
- */
 export const encodeUSSection = function encodeUSSection(
 	definition: USSectionDefinition,
 	values: USSectionValues
@@ -161,18 +128,11 @@ export const encodeUSSection = function encodeUSSection(
 	})}`;
 };
 
-/** An encoded section and its ID. */
 export interface EncodedGPPSection {
 	id: number;
 	encoded: string;
 }
 
-/**
- * Joins sections into a GPP string behind a header listing their IDs.
- *
- * @param sections - Encoded sections, in any order.
- * @returns The GPP string, or `''` when there is no section.
- */
 export const encodeGPPString = function encodeGPPString(
 	sections: readonly EncodedGPPSection[]
 ): string {

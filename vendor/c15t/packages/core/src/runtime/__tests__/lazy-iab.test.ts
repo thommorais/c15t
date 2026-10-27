@@ -1,7 +1,3 @@
-/**
- * `createLazyIABFactory` — the deferred `createIAB` every framework passes
- * to the runtime so `@c15t/iab` stays out of non-IAB bundles.
- */
 import { describe, expect, test, vi } from 'vitest';
 
 import { createLazyIABFactory } from '../lazy-iab';
@@ -55,8 +51,6 @@ describe('createLazyIABFactory', () => {
 	});
 
 	test('the handle carries its own readiness signal', async () => {
-		// A surface rendering a borrowed runtime cannot reach this factory,
-		// so the proxy has to answer `whenReady()` itself.
 		const handle = createHandle();
 		const gate = (Promise as PromiseWithResolvers).withResolvers<undefined>();
 		const createIAB = vi.fn().mockReturnValue(handle);
@@ -83,8 +77,6 @@ describe('createLazyIABFactory', () => {
 	});
 
 	test('replays calls made before the module lands, in order', async () => {
-		// A server-rendered IAB banner is clickable before `@c15t/iab` has
-		// downloaded; those clicks must record consent, not vanish.
 		const handle = createHandle();
 		const gate = (Promise as PromiseWithResolvers).withResolvers<undefined>();
 		const createIAB = vi.fn().mockReturnValue(handle);

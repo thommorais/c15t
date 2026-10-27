@@ -1,9 +1,3 @@
-/**
- * Vendor-level consent at the shared gate. A denied vendor blocks a target
- * whose category passes; unknown, undeclared and disabled vendors are
- * granted; IAB mode ignores the vendor slug; category evaluation still runs
- * first so config errors throw.
- */
 import { describe, expect, test } from 'vitest';
 
 import {
@@ -16,7 +10,6 @@ import { createConsentKernel } from '../../index';
 import type { ConsentSnapshot } from '../../types';
 import { evaluateConsent, isVendorDenied } from '../has';
 
-/** The slugs these tests deny, declared so the gate honors the denial. */
 const declaredVendors = (ids: readonly string[]) => ({
 	declared: ids.map((id) => ({
 		category: 'marketing' as const,
@@ -87,8 +80,6 @@ describe('evaluateConsent with a vendor slug', () => {
 	});
 
 	test('a stored denial for a vendor no longer declared is ignored', () => {
-		// The visitor has no switch left to grant it again, so it follows its
-		// category like a vendor never declared.
 		const snap = createConsentKernel({
 			initialRecords: {
 				...choiceRecords({ marketing: true }),
@@ -163,7 +154,6 @@ describe('evaluateConsent with a vendor slug', () => {
 			now: NOW,
 		}).getSnapshot();
 		expect(base.model).toBe('iab');
-		// No IAB fields: the category path decides and the vendor is ignored.
 		expect(
 			evaluateConsent({ category: 'marketing', vendor: 'meta-pixel' }, base)
 		).toBe(base.effectivePermissions.marketing);

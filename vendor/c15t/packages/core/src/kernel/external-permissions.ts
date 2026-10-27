@@ -1,6 +1,5 @@
 import type { ConsentState } from '../types';
 
-/** Normalize a complete external CMP decision; omitted categories fail closed. */
 export const normalizeExternalPermissions = (
 	permissions: Partial<ConsentState>
 ): Readonly<ConsentState> =>
@@ -12,7 +11,6 @@ export const normalizeExternalPermissions = (
 		necessary: true,
 	});
 
-/** External decisions are volatile authority, never c15t choice receipts. */
 export const evaluateExternalPermissions = (
 	permissions: Readonly<ConsentState>
 ) => ({

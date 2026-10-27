@@ -1,35 +1,3 @@
-/**
- * Storage boundary for consent records.
- *
- * Reads raw stored candidates with their provenance and decodes them into
- * the reviewed per-category receipt model. Reading is what the first
- * banner needs, so this file is in the first load. The writes, which run
- * only when the kernel explicitly asks, are in `writer/store.ts` and load
- * on demand.
- *
- * Read guarantees:
- *
- * - Read-only. No migration, mirroring, deletion, callback or
- *   `Date.now()` on any read path. Callers pass `now`.
- * - Candidates are inspected in a fixed order: cookie, localStorage under
- *   the configured key, localStorage under the legacy key. The first
- *   structurally valid candidate wins. Structural validity is the only
- *   selection criterion: a semantically expired but well-formed cookie
- *   still wins over a fresher localStorage record, so a stale local copy
- *   can never resurrect authority the cookie no longer carries.
- * - Encoding provenance is kept. A v2 compact cookie omitted `false`, so
- *   the legacy normalizer restores `false` for the known legacy universe
- *   only for that encoding; a v2 JSON record keeps absent keys absent.
- *   The raw parsed value is exposed before normalization so callers can
- *   see original coverage.
- * - A versioned envelope is never decoded with the legacy reader, and a
- *   v1.x `id`-only record is rejected as unsupported, not read as v2.
- * - Cookie bytes are recognized by form before any decoding. Percent
- *   sequences inside a raw v2 value are identity bytes, not encoding.
- *
- * @internal
- */
-
 import { normalizeLegacyConsentRecord } from '../../consent-record/normalize';
 import type { LegacyRecordEncoding } from '../../consent-record/normalize';
 import type {
@@ -77,16 +45,13 @@ export type { ResolvedStorageKeys } from '../../libs/storage-keys';
 
 export type { LegacyRecordEncoding as StoredRecordEncoding };
 
-/** Where a candidate was read from, in selection order. */
 export type StoredRecordSource =
 	| 'cookie'
 	| 'local-storage'
 	| 'legacy-local-storage';
 
-/** Which record format a parsed candidate turned out to be. */
 export type StoredRecordFormat = 'legacy-v2' | 'v3';
 
-/** One raw stored value, parsed but not validated or normalized. */
 export type RawStoredCandidate =
 	| { source: StoredRecordSource; key: string; status: 'absent' }
 	| { source: StoredRecordSource; key: string; status: 'unparseable' }
@@ -94,24 +59,12 @@ export type RawStoredCandidate =
 			source: StoredRecordSource;
 			key: string;
 			status: 'parsed';
-			/** How the bytes were encoded. Drives legacy `false` restoration. */
 			encoding: LegacyRecordEncoding;
-			/**
-			 * Compact v3 cookies are decoded straight into an envelope by the
-			 * codec; everything else is the parsed JSON or v2 compact object.
-			 */
 			format: 'compact-v3' | 'parsed';
-			/** Parsed value exactly as stored. Absent keys are still absent. */
 			value: unknown;
-			/**
-			 * Text handed to the decoder: the stored bytes with surrounding
-			 * whitespace removed and, only when the bytes matched no known form,
-			 * one outer URI-encoding layer unwrapped.
-			 */
 			rawText: string;
 	  };
 
-/** A structurally valid stored record in the reviewed receipt model. */
 export interface DecodedStoredConsent {
 	source: StoredRecordSource;
 	key: string;
@@ -120,7 +73,6 @@ export interface DecodedStoredConsent {
 	choice: ExplicitChoice;
 	subject: ConsentSubject | null;
 	iab: StoredIabMetadata | null;
-	/** Clear epoch the record was written under; `0` for legacy records. */
 	epoch: number;
 }
 
@@ -143,9 +95,7 @@ export type StoredConsentCandidate =
 	  };
 
 export interface StoredConsentSelection {
-	/** First structurally valid candidate in read order, or `null`. */
 	selected: DecodedStoredConsent | null;
-	/** Every candidate that was inspected, in read order. */
 	candidates: StoredConsentCandidate[];
 }
 
@@ -163,15 +113,6 @@ const LEGACY_BOOLEAN_MAPS: ReadonlySet<string> = new Set([
 	'iabCustomVendorLegitimateInterests',
 ]);
 
-/**
- * Types one v2 compact leaf by its path instead of by what the text looks
- * like. The generic v2 parser turns `i.eid:12345` into a number and
- * `i.idp:1` into `true`, which then fails identity validation and throws
- * away the whole record. Here only `consentInfo.time` is numeric and only
- * category and vendor flags are booleans; every other leaf stays a string.
- * Unrecognized flag text and non-digit time text are kept verbatim so the
- * legacy normalizer reports them as invalid.
- */
 const typeLegacyCompactLeaf = function typeLegacyCompactLeaf(
 	path: readonly string[],
 	value: string
@@ -195,12 +136,6 @@ const typeLegacyCompactLeaf = function typeLegacyCompactLeaf(
 	return value;
 };
 
-/**
- * Decodes v2 compact `key:value,key:value` text into the `{ consents,
- * consentInfo, ... }` object the legacy normalizer expects. Nested objects
- * are only created for own keys and any `__proto__` segment drops the
- * entry, so cookie bytes cannot reach the prototype chain.
- */
 const decodeLegacyCompact = function decodeLegacyCompact(
 	text: string
 ): Record<string, unknown> | null {
@@ -239,16 +174,6 @@ type RecognizedCookieForm =
 
 const VERSION_FIELD_START = /^v=/u;
 
-/**
- * Recognizes the stored bytes without decoding them. Surrounding
- * whitespace is ignored for recognition only.
- *
- * - `v=` at the start is a reserved version field, whatever follows it.
- * - `{` at the start is JSON.
- * - A `:` anywhere is the v2 compact `key:value` marker. The v2 writer
- *   never percent-encodes, so a `%2F` inside a compact or JSON value is
- *   part of the stored identity and must not be decoded away.
- */
 const recognizeCookieForm = function recognizeCookieForm(
 	value: string
 ): RecognizedCookieForm | null {
@@ -268,19 +193,6 @@ const recognizeCookieForm = function recognizeCookieForm(
 	return null;
 };
 
-/**
- * Turns a raw cookie value into a candidate.
- *
- * Recognition is format-aware and happens before any decoding. Only when
- * the bytes match no known form and contain a `%` is one outer layer of
- * URI encoding removed and recognition retried; that single unwrap keeps
- * the component escapes inside a valid v3 cookie intact. Any reserved
- * version field, including a malformed or unknown one, goes to the
- * versioned decoder and never falls through to the legacy parser. JSON
- * objects (JSON whitespace allowed) are `json` encoding; v2 `key:value`
- * text is `compact` and is decoded by path-typed leaves so numeric-looking
- * identifiers stay strings.
- */
 export const parseRawCookieCandidate = function parseRawCookieCandidate(
 	rawValue: string | null | undefined,
 	key: string
@@ -379,10 +291,6 @@ const parseLocalStorageCandidate = function parseLocalStorageCandidate(
 	};
 };
 
-/**
- * Reads every raw candidate in selection order without validating any of
- * them. Nothing is written.
- */
 export const readRawStoredConsentCandidates =
 	function readRawStoredConsentCandidates(
 		config?: StorageConfig,
@@ -408,11 +316,6 @@ export const readRawStoredConsentCandidates =
 		return candidates;
 	};
 
-/**
- * Reads the single cookie candidate from a request `Cookie` header. The
- * server counterpart of {@link readRawStoredConsentCandidates}; there is
- * no localStorage to fall back to.
- */
 export const readRawStoredConsentCandidateFromCookieHeader =
 	function readRawStoredConsentCandidateFromCookieHeader(
 		cookieHeader: string | undefined,
@@ -481,11 +384,6 @@ const decodeEnvelope = function decodeEnvelope(
 	};
 };
 
-/**
- * Structurally decodes one raw candidate. A parsed object with an own
- * `version` field is a versioned envelope and never falls through to the
- * legacy reader; anything else is read as a v2 record.
- */
 export const decodeStoredConsentCandidate =
 	function decodeStoredConsentCandidate(
 		candidate: RawStoredCandidate,
@@ -534,11 +432,6 @@ export const decodeStoredConsentCandidate =
 		};
 	};
 
-/**
- * The categories of `record` still in force under `epoch`: decisions made
- * before the clear are void, and one in the clearing millisecond counts
- * only when the record was written under that epoch.
- */
 const categoriesSinceEpoch = function categoriesSinceEpoch(
 	record: DecodedStoredConsent,
 	epoch: number
@@ -549,16 +442,6 @@ const categoriesSinceEpoch = function categoriesSinceEpoch(
 	);
 };
 
-/**
- * Whether `decision` is a denial newer than `current`. A denial from the
- * same millisecond as a grant counts as newer: two conflicting decisions
- * that cannot be ordered fall back to the restrictive one.
- *
- * @param decision - The candidate decision.
- * @param current - The decision it would replace.
- * @returns Whether to apply `decision` over `current`.
- * @internal
- */
 export const isNewerDenial = function isNewerDenial(
 	decision: CategoryDecision | undefined,
 	current: CategoryDecision | undefined
@@ -571,30 +454,6 @@ export const isNewerDenial = function isNewerDenial(
 	);
 };
 
-/**
- * The cookie record with every newer localStorage denial applied, or the
- * cookie record itself when there is none.
- *
- * The cookie stays authoritative: a well-formed cookie wins even when it is
- * expired, so a stale local copy can never resurrect authority the cookie
- * no longer carries. But a browser can drop a cookie write (over the size
- * limit, say) while localStorage takes it, and then the cookie holds an
- * older choice. A local denial newer than the cookie's decision for that
- * category is therefore applied on top of it; a newer local grant never
- * is, so the result only ever moves toward less permission.
- *
- * When the two were written under different clear epochs, both are first
- * cut to the later one: each side's decisions from before it are void. The
- * same rule then applies, so a later epoch never lets a local grant replace
- * a cookie denial.
- *
- * The subject and IAB metadata come from the copy written under the later
- * epoch. Under the same epoch they come from the cookie, which a server
- * response or a sibling subdomain can rewrite without this origin's
- * localStorage, unless `localIsNewer` shows that the last write here
- * reached localStorage but not the cookie, and the cookie has not changed
- * since.
- */
 const withNewerLocalDenials = function withNewerLocalDenials(
 	cookie: DecodedStoredConsent,
 	local: DecodedStoredConsent,
@@ -616,8 +475,6 @@ const withNewerLocalDenials = function withNewerLocalDenials(
 			changed = true;
 		}
 	}
-	// A copy from before the later epoch never saw that clear, so its
-	// identity is void with its decisions.
 	const identity =
 		local.epoch > cookie.epoch || (local.epoch === epoch && localIsNewer)
 			? local
@@ -634,16 +491,6 @@ const withNewerLocalDenials = function withNewerLocalDenials(
 	};
 };
 
-/**
- * Decodes candidates and selects one. The cookie wins over the configured
- * localStorage key, with the local copy's newer denials applied (see
- * {@link withNewerLocalDenials}); the configured localStorage record is
- * used alone only when the cookie holds no valid one, and the legacy key
- * only when neither does. Semantic freshness is not consulted here; that
- * belongs to the evaluator with the same `now`. `localIsNewer` is the
- * evidence that the local copy's identity is the newer one (see
- * {@link readStoredConsentRecord}).
- */
 export const selectStoredConsent = function selectStoredConsent(
 	rawCandidates: readonly RawStoredCandidate[],
 	now: number,
@@ -669,21 +516,6 @@ export const selectStoredConsent = function selectStoredConsent(
 	return { candidates, selected };
 };
 
-/**
- * Browser read of the cookie, the configured localStorage key and the
- * legacy localStorage key. The cookie wins, with newer denials from the
- * configured localStorage copy applied (see {@link selectStoredConsent}),
- * and the full candidate report is returned for diagnostics. A server
- * render reads the cookie alone, so the two agree except when the browser
- * dropped a cookie write that carried a denial, where the browser is the
- * stricter of the two. Never writes.
- *
- * The local copy's subject counts as newer only while the marker a
- * dropped cookie write leaves (`<key>-cookie-miss`, see
- * {@link writeStoredConsentEnvelope}) still matches the cookie. Any other
- * cookie change, such as a server-side restoration or a sibling
- * subdomain's save, came after that write.
- */
 export const readStoredConsentRecord = function readStoredConsentRecord(
 	config: StorageConfig | undefined,
 	now: number,
@@ -698,10 +530,6 @@ export const readStoredConsentRecord = function readStoredConsentRecord(
 	);
 };
 
-/**
- * Server read from a request `Cookie` header. Same decoding as the
- * browser cookie candidate, so SSR and hydration agree on the record.
- */
 export const readStoredConsentRecordFromCookieHeader =
 	function readStoredConsentRecordFromCookieHeader(
 		cookieHeader: string | undefined,
@@ -713,15 +541,6 @@ export const readStoredConsentRecordFromCookieHeader =
 			now
 		);
 	};
-
-// ---------------------------------------------------------------------------
-// Auxiliary records: notice dismissal
-//
-// Each lives under its own localStorage key and has a compact cookie
-// projection under the same name so a server render can read it from the
-// request. The cookie is read first, then localStorage, mirroring the
-// consent record order. Neither is ever written during hydration.
-// ---------------------------------------------------------------------------
 
 const readLocalJson = function readLocalJson<RecordType>(
 	key: string,
@@ -765,7 +584,6 @@ const readCompactCookie = function readCompactCookie<RecordType>(
 	return { issues: [{ code: 'malformed-encoding', path: '' }], ok: false };
 };
 
-/** Attach identity only while its matching acknowledgement is still present. */
 const noticeWithSubjectCookie = function noticeWithSubjectCookie(
 	notice: DecodeResult<StoredNoticeDismissal> | null,
 	rawSubject: string | null | undefined,
@@ -791,13 +609,6 @@ const noticeWithSubjectCookie = function noticeWithSubjectCookie(
 	return notice;
 };
 
-/**
- * Reads the local notice dismissal from its cookie projection and its
- * localStorage copy. When both are valid the newer dismissal wins, the
- * cookie on a tie; otherwise the valid one is used. `null` when nothing is
- * stored; an invalid record is reported, not silently treated as absent,
- * so callers can log it while still deriving `missing`.
- */
 export const readStoredNoticeDismissal = function readStoredNoticeDismissal(
 	config: StorageConfig | undefined,
 	now: number,
@@ -816,17 +627,10 @@ export const readStoredNoticeDismissal = function readStoredNoticeDismissal(
 		(value) => decodeNoticeDismissal(value, now),
 		onUnavailable
 	);
-	// The newer dismissal wins; same-acknowledgement identity is resolved below.
-	// A dismissal only hides
-	// the notice for the fingerprint it names, which the evaluator checks,
-	// and it never grants a category.
 	if (fromCookie?.ok && fromLocal?.ok) {
 		if (fromLocal.record.dismissedAt > fromCookie.record.dismissedAt) {
 			return fromLocal;
 		}
-		// Prefer a local identity rewrite only while both cookie projections
-		// still match the values observed when that write was dropped. A later
-		// server or sibling-subdomain cookie rewrite supersedes the marker.
 		if (
 			fromLocal.record.dismissedAt === fromCookie.record.dismissedAt &&
 			fromLocal.record.fingerprint === fromCookie.record.fingerprint &&
@@ -846,7 +650,6 @@ export const readStoredNoticeDismissal = function readStoredNoticeDismissal(
 	return fromLocal ?? fromCookie;
 };
 
-/** Server read of the notice cookie projection from a `Cookie` header. */
 export const readStoredNoticeDismissalFromCookieHeader =
 	function readStoredNoticeDismissalFromCookieHeader(
 		cookieHeader: string | undefined,
@@ -864,10 +667,6 @@ export const readStoredNoticeDismissalFromCookieHeader =
 		);
 	};
 
-// ---------------------------------------------------------------------------
-// Clear epoch: the time of the last clear, kept by the clear itself
-// ---------------------------------------------------------------------------
-
 const newerEpoch = function newerEpoch(
 	result: DecodeResult<number> | null,
 	current: number
@@ -883,12 +682,6 @@ const readRawEpoch = function readRawEpoch(
 	return trimmed ? decodeClearEpoch(trimmed, now) : null;
 };
 
-/**
- * Reads the clear epoch: the newer of the cookie and localStorage copies,
- * or `0` when neither holds a valid one. An unreadable or invalid copy
- * counts as `0`, which voids nothing, so a failed read never turns a
- * stored denial into a grant.
- */
 export const readStoredClearEpoch = function readStoredClearEpoch(
 	config: StorageConfig | undefined,
 	now: number,
@@ -906,7 +699,6 @@ export const readStoredClearEpoch = function readStoredClearEpoch(
 	return newerEpoch(fromLocal, newerEpoch(fromCookie, 0));
 };
 
-/** Server read of the clear epoch cookie from a request `Cookie` header. */
 export const readStoredClearEpochFromCookieHeader =
 	function readStoredClearEpochFromCookieHeader(
 		cookieHeader: string | undefined,
@@ -920,39 +712,24 @@ export const readStoredClearEpochFromCookieHeader =
 		);
 	};
 
-/**
- * The subject ID a stored copy holds, `null` when it holds none. It accepts
- * every ID the kernel does, any non-empty string, not only generated `sub_`
- * IDs: an ID the app or a backend assigned may be the only copy, and
- * rejecting it here would replace the subject on the next load.
- */
 const validSubjectId = function validSubjectId(
 	text: string | null | undefined
 ): string | null {
-	// The ID is opaque: it is returned as written, never normalized, so a
-	// reload keeps the exact subject a save or identity link targeted.
 	return isNonEmptyString(text) ? text : null;
 };
 
-/** The ID a `<key>-sid` cookie holds: URI-encoded, as it is written. */
 const cookieSubjectId = function cookieSubjectId(
 	raw: string | null | undefined
 ): string | null {
 	return raw ? validSubjectId(decodeComponent(raw)) : null;
 };
 
-/** The subject ID the `<key>-sid` cookie holds, `null` when it holds none. */
 export const readStoredCookieSubjectId = function readStoredCookieSubjectId(
 	config: StorageConfig | undefined
 ): string | null {
 	return cookieSubjectId(getRawCookieValue(resolveStorageKeys(config).subject));
 };
 
-/**
- * Reads the stored subject ID: the cookie copy, else the localStorage copy.
- * The cookie wins because a server may have set it for this request. An
- * invalid copy counts as absent. `null` when neither holds a valid ID.
- */
 export const readStoredSubjectId = function readStoredSubjectId(
 	config: StorageConfig | undefined,
 	onUnavailable?: () => void
@@ -964,11 +741,6 @@ export const readStoredSubjectId = function readStoredSubjectId(
 	);
 };
 
-/**
- * The subject ID when every readable copy of `<key>-sid` holds it, `null`
- * when a copy is missing or the copies differ, so the caller writes both
- * again. A store the browser blocks does not count as missing.
- */
 export const readSyncedSubjectId = function readSyncedSubjectId(
 	config: StorageConfig | undefined
 ): string | null {
@@ -994,7 +766,6 @@ export const readSyncedSubjectId = function readSyncedSubjectId(
 	return cookie === local ? cookie : null;
 };
 
-/** Server read of the subject ID cookie from a request `Cookie` header. */
 export const readStoredSubjectIdFromCookieHeader =
 	function readStoredSubjectIdFromCookieHeader(
 		cookieHeader: string | undefined,
@@ -1008,22 +779,6 @@ export const readStoredSubjectIdFromCookieHeader =
 		);
 	};
 
-/**
- * Reads the vendor denial list from both projections. The two can
- * disagree: a compact cookie that grew past the browser's limit fails to
- * write while localStorage already holds the new list. When the local copy
- * is at least as new, its denials are added to the cookie's and its time
- * and subject are kept; an equal time with different content means the
- * cookie missed the subject rewrite after `subject:resolved`. A denial the
- * cookie holds is never lifted by the local copy, so a dropped cookie write
- * only ever leaves fewer vendors allowed. An older local copy is ignored.
- *
- * Each copy is first cut to the clear epoch: one confirmed before it was
- * cleared and reads as absent, so its denials never merge into a list
- * recorded after the clear. `epoch` defaults to the stored clear epoch; a
- * caller that also knows the consent envelope's epoch passes the later of
- * the two. `null` when nothing is stored.
- */
 export const readStoredVendorChoice = function readStoredVendorChoice(
 	config: StorageConfig | undefined,
 	now: number,
@@ -1062,7 +817,6 @@ export const readStoredVendorChoice = function readStoredVendorChoice(
 	return fromLocal ?? fromCookie;
 };
 
-/** Server read of the vendor cookie projection from a `Cookie` header. */
 export const readStoredVendorChoiceFromCookieHeader =
 	function readStoredVendorChoiceFromCookieHeader(
 		cookieHeader: string | undefined,

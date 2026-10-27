@@ -23,10 +23,6 @@ const config = {
 };
 const resolution = matchedResolution(optInRule());
 
-/**
- * Data clearing loads on demand (it is opt-in), so it starts working once
- * its chunk has landed.
- */
 const startAndLoad = async (runtime: ConsentRuntime) => {
 	runtime.start();
 	await vi.dynamicImportSettled();

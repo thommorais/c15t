@@ -1,9 +1,4 @@
 /** @vitest-environment jsdom */
-/**
- * Persistence observes committed choices through the kernel's event bus.
- * A throwing or reentrant consumer registered next to it must not keep a
- * committed denial out of storage.
- */
 import { afterEach, beforeEach, expect, test, vi } from 'vitest';
 
 import { NOW } from '../../../__tests__/fixtures/kernel-fixtures';

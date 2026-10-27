@@ -134,7 +134,6 @@ for (const source of ['scripts', 'frames', 'iframes'] as const) {
 				);
 				expect(button).not.toBeNull();
 				button?.click();
-				// The dialog closes on the local record; the request follows.
 				expect(kernel.getSnapshot().activeUI).toBe('none');
 				await vi.waitFor(() => expect(save).toHaveBeenCalledOnce());
 				expect(
@@ -154,8 +153,6 @@ for (const source of ['scripts', 'frames', 'iframes'] as const) {
 
 test('a site that declares nothing shows only Strictly necessary, and any banner action dismisses it for good', async () => {
 	localStorage.clear();
-	// Persistence reads the consent cookie; another file's save must not
-	// make this a returning visitor.
 	for (const cookie of document.cookie.split(';')) {
 		const name = cookie.split('=')[0]?.trim();
 		if (name) {
@@ -296,8 +293,6 @@ test('a necessary-only dialog reopened after the acknowledgement closes on Save 
 		await vi.waitFor(() => expect(kernel).toBeDefined());
 		await kernel.commands.save('all');
 		expect(kernel.getSnapshot().promptRequirement).toEqual({ kind: 'none' });
-		// A later Save renews the acknowledgement without changing the prompt,
-		// so only the recorded acknowledgement can close the dialog early.
 		await new Promise((resolve) => {
 			setTimeout(resolve, 5);
 		});

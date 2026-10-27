@@ -1,15 +1,4 @@
 #!/usr/bin/env node
-/**
- * Restores `'use client'` directives on built dist files.
- *
- * rslib (bundleless + minify) drops leading directives, which breaks any
- * true React Server Component consumer importing package files directly
- * (client-only modules get treated as server code). This walks `src`,
- * finds modules that start with a use-client directive, and prepends it to
- * the corresponding `dist/**` `.js`/`.mjs` outputs.
- *
- * Usage: node ../shared/restore-client-directives.mjs [srcDir] [distDir...]
- */
 import { readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import { join, relative, resolve } from 'node:path';
 
@@ -58,7 +47,6 @@ for (const file of walk(srcDir)) {
 					restored += 1;
 				}
 			} catch {
-				// output variant doesn't exist — fine
 			}
 		}
 	}

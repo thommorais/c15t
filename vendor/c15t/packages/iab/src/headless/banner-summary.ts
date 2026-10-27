@@ -1,4 +1,3 @@
-/** Shared banner derivation, also used when preparing server state. */
 export {
 	resolveIABBannerSummary,
 	IAB_BANNER_MAX_DISPLAY_ITEMS,

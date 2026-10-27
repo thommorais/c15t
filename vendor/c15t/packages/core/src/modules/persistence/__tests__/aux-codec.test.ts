@@ -1,8 +1,3 @@
-/**
- * Compact cookie projection for the notice dismissal: round trip through
- * the shared validator, reject malformed or future input, and never touch
- * the consent record.
- */
 import { describe, expect, it } from 'vitest';
 
 import { decodeNoticeDismissalCompact } from '../record-codec';

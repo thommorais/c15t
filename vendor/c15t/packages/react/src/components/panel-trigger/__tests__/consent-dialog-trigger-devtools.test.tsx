@@ -20,7 +20,6 @@ const renderWithDevTools = function renderWithDevTools(trigger: ReactNode) {
 	);
 };
 
-/** DevTools root inside its shadow host. */
 const devToolsRoot = function devToolsRoot(): HTMLElement {
 	const root = document
 		.querySelector('[data-c15t-dev-tools-host]')
@@ -72,7 +71,6 @@ describe('DevTools launcher in the consent trigger', () => {
 			throw new Error('Expected the DevTools item inside the toolbar');
 		}
 
-		// Bottom-right: the DevTools item sits farthest from the corner.
 		const actions = [...toolbar.querySelectorAll('button')].map(
 			(button) => button.dataset.c15tTriggerAction
 		);
@@ -100,7 +98,6 @@ describe('DevTools launcher in the consent trigger', () => {
 		const panelRect = panel?.getBoundingClientRect();
 		const toolbarRect = toolbar.getBoundingClientRect();
 		expect(panelRect?.bottom).toBeLessThanOrEqual(toolbarTop);
-		// Flush with the toolbar's outer edge and inside the visible viewport.
 		expect(Math.round(panelRect?.right ?? 0)).toBe(
 			Math.round(toolbarRect.right)
 		);

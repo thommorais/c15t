@@ -1,21 +1,8 @@
-/**
- * Script normalization + element-ID resolution.
- *
- * Pure functions for shape conversion (`normalizeScripts`,
- * `generateRandomId`) and a small factory for the anonymized-ID cache
- * (`createElementIdResolver`). The cache lives in a closure rather than
- * a `Map<>` argument so callers don't have to plumb identity through.
- */
 import type { AllConsentNames } from '../../consent/consent-types';
 import type { NormalizedScript, Script, ScriptLoaderTools } from './types';
 
 const anonymizedElementIds = new Map<string, string>();
 
-/**
- * Generate an opaque 8-char random ID. Uses `crypto.randomUUID()`
- * when available (the modern path); falls back to `Math.random()` in
- * environments where crypto isn't exposed.
- */
 export const generateRandomId = function generateRandomId(): string {
 	if (
 		typeof crypto !== 'undefined' &&
@@ -26,11 +13,6 @@ export const generateRandomId = function generateRandomId(): string {
 	return Math.random().toString(36).slice(2, 10);
 };
 
-/**
- * Normalize raw `Script` configs by precomputing the metadata
- * `eligibility.ts` consults on every reconcile. Pure: same input
- * always produces the same output.
- */
 export const normalizeScripts = function normalizeScripts(
 	scripts: Script[],
 	isVendorId: ScriptLoaderTools['isVendorId']
@@ -47,8 +29,6 @@ export const normalizeScripts = function normalizeScripts(
 			typeof script.category === 'string'
 				? (script.category as AllConsentNames)
 				: null,
-		// An invalid slug is ignored here too, so the gate never denies on a
-		// vendor the preference surface cannot present or the wire cannot carry.
 		vendor:
 			typeof script.vendor === 'string' && isVendorId(script.vendor)
 				? script.vendor
@@ -57,30 +37,14 @@ export const normalizeScripts = function normalizeScripts(
 };
 
 export interface ElementIdResolver {
-	/** Resolve the DOM `id` attribute for a script. */
 	resolve: (script: Script) => string;
-	/** Drop cached IDs (used during dispose). */
 	clear: () => void;
 }
 
-/**
- * Build a per-loader element-ID resolver.
- *
- * Resource keys let independent loaders select different physical resources
- * under the same logical script ID. Without one, use the script ID.
- * When `script.anonymizeId` is `false`, the ID is `c15t-script-<key>` —
- * stable across mounts so consumers can target it from CSS / extensions.
- *
- * When `script.anonymizeId` is unset or `true`, the ID is a random
- * `c15t-<8 random chars>` token cached for the lifetime of this page's
- * module instance. The cache makes `getElementId()` idempotent across
- * fresh loader instances — same script always gets the same anon ID.
- */
 export const createElementIdResolver =
 	function createElementIdResolver(): ElementIdResolver {
 		return {
 			clear() {
-				/* empty */
 			},
 			resolve(script) {
 				const key = script.resourceKey ?? script.id;
@@ -99,7 +63,6 @@ export const createElementIdResolver =
 		};
 	};
 
-/** Compare the DOM resource, excluding callbacks and consent eligibility. */
 export const hasSameResource = (previous: Script, next: Script): boolean => {
 	const fields = [
 		'resourceKey',

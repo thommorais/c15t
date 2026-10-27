@@ -16,7 +16,6 @@ test('retains an external-runtime child and its draft after the IAB bridge loads
 	document.body.append(container);
 	const root = createRoot(container);
 	try {
-		// act() can resolve the old Suspense boundary before committing its fallback.
 		root.render(
 			<ConsentProvider runtime={runtime}>
 				<input
@@ -35,7 +34,6 @@ test('retains an external-runtime child and its draft after the IAB bridge loads
 		}
 		input.value = 'edited';
 		await import('../external-iab-context');
-		// Include the delayed commit that used to replace the fallback children.
 		await new Promise((resolve) => {
 			setTimeout(resolve, 350);
 		});

@@ -48,7 +48,6 @@ describe('createIAB: unusable CMP ids fail at mount', () => {
 			/registered with IAB Europe/u
 		);
 
-		// Vendors must not discover a CMP that cannot write a consent record.
 		expect(Reflect.has(window, '__tcfapi')).toBe(false);
 		expect(kernel.getSnapshot().iab?.cmpId).not.toBe(cmpId);
 	});

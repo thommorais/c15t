@@ -90,8 +90,6 @@ describe('journey query parameters', () => {
 	});
 
 	it('reads the alpha parameter names when the current ones are absent', () => {
-		// 3.0.0-alpha.8 and alpha.9 clients sent `c15tJourney`,
-		// `c15tJourneyScope` and `c15tStored`.
 		expect(
 			readJourneyParams(
 				`/init?c15tJourney=${ID}&c15tJourneyScope=tab&c15tStored=1`
@@ -111,7 +109,6 @@ describe('journey query parameters', () => {
 				`/init?c15tJourney=${other}&c15tJourneyScope=tab&c15tStored=1&journey=${ID}&journeyScope=page&stored=0`
 			)
 		).toEqual({ id: ID, scope: 'page', storedChoice: false });
-		// A current id with only an alpha scope is no journey under either set.
 		expect(
 			readJourneyParams(`/init?journey=${ID}&c15tJourneyScope=page`)
 		).toBeNull();

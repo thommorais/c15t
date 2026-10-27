@@ -1,12 +1,3 @@
-/**
- * Tests for the IAB-aware has() in v3/modules/has.ts.
- *
- * Coverage:
- * 1. Re-exported `has()` still behaves like v2 (simple, AND, OR, NOT, nested).
- * 2. `hasIABConsent` implements v2's vendor+purpose+LI+special-feature logic.
- * 3. `evaluateConsent` picks IAB when model==='iab' AND target has IAB fields,
- *    otherwise falls back to category-based has.
- */
 import { describe, expect, test } from 'vitest';
 
 import { choiceRecords } from '../../__tests__/fixtures/kernel-fixtures';
@@ -130,7 +121,6 @@ describe('hasIABConsent — v2 parity', () => {
 });
 
 describe('hasIABConsent — publisher restrictions', () => {
-	/** Vendor 755 grants every signal; purposes 2 and 7 are flexible. */
 	const granted = (
 		publisherRestrictions: KernelIABAuthority['publisherRestrictions']
 	): IABConsentInputs => ({
@@ -154,7 +144,6 @@ describe('hasIABConsent — publisher restrictions', () => {
 		expect(
 			hasIABConsent({ iabLegIntPurposes: [2], vendorId: 755 }, iab, flexible)
 		).toBe(false);
-		// Other purposes and other vendors are unaffected.
 		expect(
 			hasIABConsent({ iabPurposes: [7], vendorId: 755 }, iab, flexible)
 		).toBe(true);
@@ -187,7 +176,6 @@ describe('hasIABConsent — publisher restrictions', () => {
 				flexible
 			)
 		).toBe(false);
-		// Without flexibility the vendor has no permitted legal basis.
 		expect(hasIABConsent(target, granted(restrictions), {})).toBe(false);
 	});
 
@@ -284,8 +272,6 @@ describe('evaluateConsent — dispatch between IAB and category paths', () => {
 				...options.consents,
 			}),
 		});
-		// Force a specific model for the test — kernel usually derives this
-		// from jurisdiction, but here we want deterministic dispatch tests.
 		const snap = kernel.getSnapshot();
 		return {
 			...snap,
@@ -318,7 +304,6 @@ describe('evaluateConsent — dispatch between IAB and category paths', () => {
 			iab: { vendorConsents: { '755': true } },
 			model: 'opt-in',
 		});
-		// Not in iab mode → vendorId is ignored, marketing check wins.
 		expect(
 			evaluateConsent({ category: 'marketing', vendorId: 999 }, snap)
 		).toBe(false);
@@ -326,8 +311,6 @@ describe('evaluateConsent — dispatch between IAB and category paths', () => {
 
 	test('model==="iab" but iab slice is null → denies access', () => {
 		const snap = snapshotFor({ model: 'iab' });
-		// Construction above creates an iab slice via initialIab, but
-		// overriding model alone leaves iab null by default.
 		const withoutIab: ConsentSnapshot = { ...snap, iab: null };
 		expect(
 			evaluateConsent({ category: 'marketing', vendorId: 755 }, withoutIab)

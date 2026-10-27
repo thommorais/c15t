@@ -1,4 +1,3 @@
-/** c15t brand mark shared with the consent UI. */
 export const createLogo = (document: Document): SVGSVGElement => {
 	const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
 	svg.setAttribute('viewBox', '0 0 446 445');

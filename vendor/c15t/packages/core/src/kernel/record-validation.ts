@@ -1,12 +1,3 @@
-/**
- * Validation and newest-wins merging for records that enter the kernel
- * without creating a choice: SSR seeds, storage hydration and server-mapped
- * receipts. The records boundary (`records.ts`) and persistence use these.
- *
- * Pure. Every record is checked with the reviewed validators against the
- * supplied `now`; one invalid record rejects the whole input so nothing is
- * salvaged from a broken record.
- */
 import { OPTIONAL_CONSENT_CATEGORIES } from '../consent-record/types';
 import type {
 	ConsentSubject,
@@ -26,7 +17,6 @@ import type { RecordIssue } from '../consent-record/validation';
 import { isValidVendorId } from '../libs/vendors';
 import type { HydrationRecords, VendorChoice } from '../types';
 
-/** Validated records with the same omit/clear semantics as the input. */
 export interface ValidatedRecords {
 	choice?: ExplicitChoice | null;
 	subject?: ConsentSubject | null;
@@ -69,11 +59,6 @@ const validateSubject = function validateSubject(
 	return any ? subject : null;
 };
 
-/**
- * Validates a version 1 vendor denial list: a past timestamp and a list of
- * non-empty string ids. Duplicates collapse; the result is sorted so two
- * lists with the same members compare equal by value.
- */
 export const validateVendorChoice = function validateVendorChoice(
 	input: unknown,
 	now: number
@@ -102,8 +87,6 @@ export const validateVendorChoice = function validateVendorChoice(
 	const denied = new Set<string>();
 	if (Array.isArray(rawDenied)) {
 		for (const [index, entry] of rawDenied.entries()) {
-			// The same slug shape a declaration must have. A stored id outside
-			// it would ride into every later grant map and fail the wire schema.
 			if (!isNonEmptyString(entry) || !isValidVendorId(entry)) {
 				issues.push({ code: 'invalid-identifier', path: `denied[${index}]` });
 				continue;
@@ -126,11 +109,6 @@ export const validateVendorChoice = function validateVendorChoice(
 	};
 };
 
-/**
- * Validate hydration input. Keys that are omitted stay omitted so the
- * caller can preserve current values; `null` passes through as an explicit
- * clear.
- */
 export const validateHydrationRecords = function validateHydrationRecords(
 	input: HydrationRecords,
 	now: number
@@ -200,10 +178,6 @@ export const validateHydrationRecords = function validateHydrationRecords(
 	return { ok: true, records };
 };
 
-/**
- * Keep the newer of two vendor denial lists. Ties keep the current one, so
- * a delayed server read never replaces a newer local action.
- */
 export const mergeNewestVendorChoice = function mergeNewestVendorChoice(
 	current: VendorChoice | null,
 	incoming: VendorChoice | null
@@ -214,16 +188,9 @@ export const mergeNewestVendorChoice = function mergeNewestVendorChoice(
 	if (!incoming) {
 		return current;
 	}
-	// An empty list is a real, timestamped "nothing denied" decision, so it
-	// takes part in newest-wins like any other and is never folded to `null`.
 	return incoming.confirmedAt > current.confirmedAt ? incoming : current;
 };
 
-/**
- * Merge two choices keeping the newest receipt per category. Ties keep the
- * current receipt. Used for server-mapped records so a delayed read never
- * replaces a newer local action.
- */
 export const mergeNewestChoice = function mergeNewestChoice(
 	current: ExplicitChoice | null,
 	incoming: ExplicitChoice | null

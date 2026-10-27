@@ -1,8 +1,3 @@
-/**
- * `clientMode()` turns mode data into the transport a server-framework root
- * uses. The init paths load on demand; these tests inject the loaders and
- * check what each mode sends, and when.
- */
 import { createConsentManifestPolicyPack } from '@c15t/schema/types';
 import type { ConsentManifest } from '@c15t/schema/types';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
@@ -32,7 +27,6 @@ const context = {
 	translations: { language: 'en', translations: {} },
 } as unknown as ProviderTransportContext;
 
-/** A request URL without the query c15t adds to `/init`. */
 const pathOf = (url: unknown): string => String(url).split('?')[0] ?? '';
 
 const initContext = (overrides: InitContext['overrides'] = {}): InitContext =>
@@ -106,7 +100,6 @@ describe('clientMode()', () => {
 		});
 		const transport = mode(context);
 
-		// No init has resolved a decision, and the payload carries none.
 		await expect(
 			transport.save?.({ subjectId: 'sub_1' } as unknown as SavePayload)
 		).rejects.toThrow('cannot save before init resolved a policy decision');
@@ -130,8 +123,6 @@ describe('clientMode()', () => {
 	});
 
 	test('manifest() never saves to a route prefix it was not given as the backend', () => {
-		// A consent route without a proxy answers `GET` only, so a save posted
-		// to it would 404 or 405 after the visitor chose.
 		expect(() =>
 			clientMode(manifest({ snapshot: everywhereManifest }), {
 				routePrefix: '/api/c15t',
@@ -264,7 +255,6 @@ describe('lazyHosted()', () => {
 			'https://backend.example/init'
 		);
 		expect(sent.searchParams.get('country')).toBe('DE');
-		// Only `Accept` and `Accept-Language`: no CORS preflight.
 		expect(init?.headers).toEqual({
 			accept: 'application/json',
 			'accept-language': 'de',
@@ -272,7 +262,6 @@ describe('lazyHosted()', () => {
 		expect(init?.credentials).toBe('same-origin');
 		release();
 		await pending;
-		// The loaded transport took the early response.
 		expect(fetchSpy).toHaveBeenCalledTimes(1);
 	});
 
@@ -449,7 +438,6 @@ describe('lazyBrowserManifest()', () => {
 		const response = await built.init?.(initContext({ country: 'DE' }));
 
 		expect(load).toHaveBeenCalledTimes(1);
-		// The resolver read the early manifest response.
 		expect(fetchSpy).toHaveBeenCalledTimes(1);
 		expect(response?.policyResolution).toMatchObject({ status: 'matched' });
 	});
@@ -513,12 +501,9 @@ describe('lazyBrowserManifest()', () => {
 		expect((await response)?.policyResolution).toMatchObject({
 			status: 'matched',
 		});
-		// The resolver read the early manifest response.
 		expect(fetchSpy).toHaveBeenCalledTimes(1);
 	});
 
-	// The streamed init answers from the policy whether or not the state
-	// is marked pending, so neither would be read.
 	test('a streamed state with a policy marked pending starts neither', async () => {
 		const load = vi.fn<LoadManifestBrowserModule>(() =>
 			Promise.resolve({ createBrowserManifestTransport })
@@ -570,7 +555,6 @@ describe('lazyBrowserManifest()', () => {
 
 		const response = await built.init?.(initContext());
 
-		// The resolver read the early manifest response.
 		expect(load).toHaveBeenCalledTimes(1);
 		expect(fetchSpy).toHaveBeenCalledTimes(1);
 		expect(response?.policyResolution).toMatchObject({ status: 'matched' });

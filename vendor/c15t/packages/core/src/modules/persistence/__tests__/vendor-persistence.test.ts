@@ -1,10 +1,6 @@
 /**
  * @vitest-environment jsdom
  */
-/**
- * Persistence module wiring for vendor denials: a recorded toggle writes
- * the sibling record, hydration reads it back, and `clear()` removes it.
- */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
@@ -67,7 +63,6 @@ afterEach(() => {
 
 const createKernel = () =>
 	createConsentKernel({
-		// The runtime infers this from the declared vendor.
 		consentCategories: ['marketing'],
 		initialPolicyResolution: matchedResolution(
 			optInRule({ categories: ['marketing'] })
@@ -104,8 +99,6 @@ describe('vendor persistence', () => {
 		await vi.runAllTimersAsync();
 		await kernel.commands.save('all');
 		await vi.runAllTimersAsync();
-		// The time is what lets a later merge know this clear is newer than an
-		// older server denial, so it is written rather than removed.
 		expect(readStoredVendorChoice(undefined, NOW)).toMatchObject({
 			ok: true,
 			record: { confirmedAt: NOW, denied: [], version: 1 },
@@ -124,8 +117,6 @@ describe('vendor persistence', () => {
 			now: NOW,
 		});
 		const persistence = createPersistence({ kernel, now: () => NOW });
-		// No category receipt exists yet, so the consent envelope is never
-		// written; the subject has to travel with the vendor record instead.
 		await kernel.commands.save({}, { vendors: { 'meta-pixel': false } });
 		await vi.runAllTimersAsync();
 		const { subjectId } = kernel.getSnapshot().subject ?? {};
@@ -148,8 +139,6 @@ describe('vendor persistence', () => {
 	});
 
 	it('a category save that resolves the subject leaves a stored denial alone', async () => {
-		// A denial written by another tab or an earlier session that this kernel
-		// never hydrated.
 		writeStoredVendorChoice(
 			{ confirmedAt: NOW - 1, denied: ['meta-pixel'], version: 1 },
 			undefined,
@@ -170,8 +159,6 @@ describe('vendor persistence', () => {
 			now: () => NOW,
 			skipHydration: true,
 		});
-		// Fake timers are on: let the transport round trip and the write
-		// schedulers run before awaiting the save.
 		const saved = kernel.commands.save({ marketing: true });
 		await vi.runAllTimersAsync();
 		await saved;
@@ -186,15 +173,11 @@ describe('vendor persistence', () => {
 	});
 
 	it('reads the newer of the two projections when the cookie write was dropped', () => {
-		// First act: both projections agree.
 		writeStoredVendorChoice(
 			{ confirmedAt: NOW - 1000, denied: ['meta-pixel'], version: 1 },
 			undefined,
 			NOW
 		);
-		// Second act: the browser keeps the cookie assignment but stores
-		// nothing, the way an over-limit cookie fails, so only localStorage
-		// carries the newer list.
 		const descriptor = Object.getOwnPropertyDescriptor(
 			Document.prototype,
 			'cookie'
@@ -204,7 +187,6 @@ describe('vendor persistence', () => {
 			configurable: true,
 			get: () => frozen,
 			set: () => {
-				// Accepted and dropped.
 			},
 		});
 		try {
@@ -232,10 +214,6 @@ describe('vendor persistence', () => {
 	});
 
 	it('prefers the localStorage copy when both projections carry the same time', () => {
-		// The subject rewrite after `subject:resolved` keeps the decision's
-		// time. When the enlarged cookie is dropped and only localStorage took
-		// the rewrite, the tie must go to the copy that saw it, or the next
-		// load restores the provisional subject.
 		writeStoredVendorChoice(
 			{ confirmedAt: NOW - 1, denied: ['meta-pixel'], version: 1 },
 			undefined,
@@ -250,7 +228,6 @@ describe('vendor persistence', () => {
 			configurable: true,
 			get: () => frozen,
 			set: () => {
-				// Accepted and dropped.
 			},
 		});
 		try {
@@ -278,9 +255,6 @@ describe('vendor persistence', () => {
 	});
 
 	it('a prefetch seed still yields to a newer localStorage vendor record', () => {
-		// The cookie carries the older list a server render prefetched; only
-		// localStorage holds the list this browser saved last, because the
-		// cookie write was dropped.
 		writeStoredVendorChoice(
 			{ confirmedAt: NOW - 1000, denied: [], version: 1 },
 			undefined,
@@ -295,7 +269,6 @@ describe('vendor persistence', () => {
 			configurable: true,
 			get: () => frozen,
 			set: () => {
-				// Accepted and dropped.
 			},
 		});
 		try {
@@ -304,7 +277,6 @@ describe('vendor persistence', () => {
 				undefined,
 				NOW
 			);
-			// Seeded from the prefetched cookie, so hydration is skipped.
 			const kernel = createConsentKernel({
 				initialPolicyResolution: matchedResolution(
 					optInRule({ categories: ['marketing'] })
@@ -326,7 +298,6 @@ describe('vendor persistence', () => {
 				denied: ['meta-pixel'],
 				version: 1,
 			});
-			// The category records stay as the server seeded them.
 			expect(
 				kernel.getSnapshot().explicitChoice?.categories.marketing?.value
 			).toBe(true);
@@ -438,10 +409,6 @@ describe('vendor-only subject through a server render', () => {
 		seeded.kernel.dispose();
 	});
 
-	// The vendor reader keeps the local subject on an equal time, as if the
-	// cookie missed a rewrite. A sibling subdomain's rewrite at the same
-	// time looks the same from here. A seeded start resolves it as a
-	// hydrating load does, and leaves the shared subject cookie alone.
 	it('a sibling vendor rewrite at the same time leaves the shared subject cookie alone, and a later vendor save republishes the local ID', async () => {
 		const { handle, kernel } = await savedVisitor();
 		const local = kernel.getSnapshot().subject?.subjectId;
@@ -468,9 +435,6 @@ describe('vendor-only subject through a server render', () => {
 			hydrating.getSnapshot().subject?.subjectId
 		);
 		expect(cookieValue('c15t-sid')).toBe('sub_sibling');
-		// Focus and a storage event check the subject cookie again. The record
-		// cookies name the sibling's ID too, so neither runtime writes its own
-		// ID over it.
 		window.dispatchEvent(new Event('focus'));
 		window.dispatchEvent(new StorageEvent('storage', { key: 'c15t-sid' }));
 		await vi.runAllTimersAsync();
@@ -481,10 +445,6 @@ describe('vendor-only subject through a server render', () => {
 		hydratingHandle.dispose();
 		hydrating.dispose();
 
-		// Accepted limit: equal receipt times keep the local copy's ID, so this
-		// origin runs on it, and its next explicit vendor save stores it in the
-		// shared vendor cookie. The save records no category choice and grants
-		// no category.
 		expect(seeded.kernel.getSnapshot().subject?.subjectId).toBe(local);
 		await seeded.kernel.commands.save({}, { vendors: { 'meta-pixel': true } });
 		await vi.runAllTimersAsync();
@@ -500,9 +460,6 @@ describe('vendor-only subject through a server render', () => {
 	});
 });
 
-// A save under a notice prompt acknowledges the notice, and a save that
-// confirms no category records only the vendor decision. The acknowledgement
-// it records is stored with that decision.
 describe('a vendor-only save under a notice', () => {
 	const recorded = (kernel: ReturnType<typeof createConsentKernel>) => {
 		const events: string[] = [];
@@ -519,7 +476,6 @@ describe('a vendor-only save under a notice', () => {
 		const notice = readStoredNoticeDismissal(undefined, Date.now());
 		return notice?.ok ? notice.record.dismissedAt : null;
 	};
-	// Counts the notice record's localStorage writes from now on.
 	const countNoticeWrites = () => {
 		const key = resolveStorageKeys().notice;
 		const setItem = vi.spyOn(window.localStorage, 'setItem');
@@ -529,7 +485,6 @@ describe('a vendor-only save under a notice', () => {
 				.map(([, value]) => value);
 		return {
 			count: () => values().length,
-			// Times of the acknowledgements written.
 			dismissedAts: () =>
 				values().map(
 					(value) => (JSON.parse(value) as { dismissedAt: number }).dismissedAt
@@ -553,7 +508,6 @@ describe('a vendor-only save under a notice', () => {
 		});
 		const handle = createPersistence({ kernel });
 		const events = recorded(kernel);
-		// Switching off a granted vendor reloads the page once saves settle.
 		const reloads: (number | null)[] = [];
 		const stopReload = watchRevocationReload({
 			kernel,
@@ -572,7 +526,6 @@ describe('a vendor-only save under a notice', () => {
 		const actionAt = saved.vendorChoice?.confirmedAt;
 		expect(saved.noticeDismissal?.dismissedAt).toBe(actionAt);
 		await vi.waitFor(() => expect(reloads).toHaveLength(1));
-		// The acknowledgement is stored before the reload runs.
 		expect(reloads).toEqual([actionAt]);
 		const notice = readStoredNoticeDismissal(undefined, Date.now());
 		expect(notice?.ok && notice.record.subject?.subjectId).toBe(
@@ -609,14 +562,12 @@ describe('a vendor-only save under a notice', () => {
 		const dismissedAt = storedDismissedAt();
 		expect(dismissedAt).toBe(kernel.getSnapshot().noticeDismissal?.dismissedAt);
 		vi.advanceTimersByTime(1000);
-		// Only what the save writes counts.
 		const events = recorded(kernel);
 		const writes = countNoticeWrites();
 		await settle(
 			kernel.commands.save({}, { vendors: { 'meta-pixel': false } })
 		);
 		expect(events).toEqual(['vendors:recorded']);
-		// The save records no new acknowledgement.
 		expect(writes.dismissedAts().filter((at) => at !== dismissedAt)).toEqual(
 			[]
 		);
@@ -627,8 +578,6 @@ describe('a vendor-only save under a notice', () => {
 		kernel.dispose();
 	});
 
-	// Each of these saves already writes its acknowledgement through its own
-	// event; the vendor decision adds no second write.
 	it.each([
 		{
 			events: ['choice:recorded', 'vendors:recorded'],

@@ -157,8 +157,6 @@ describe('resolveRequestOrigin', () => {
 		).toBe('https://app.example.com');
 	});
 
-	// Header names are case-insensitive, and some runtimes keep the casing
-	// the client sent.
 	test('reads a Node header record in any casing, forwarding headers only when trusted', () => {
 		expect(
 			resolveRequestOrigin({

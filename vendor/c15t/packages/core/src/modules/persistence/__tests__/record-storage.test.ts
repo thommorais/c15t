@@ -1,8 +1,3 @@
-/**
- * Storage boundary: raw candidates keep their provenance, selection is
- * structural only, reads never write, and v3 writes round-trip through
- * both stores. See c15t/c15t#1025.
- */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { makePolicy } from '../../../consent-record/__tests__/fixtures';
@@ -89,7 +84,6 @@ describe('raw candidate reading', () => {
 		const [cookie, local] = candidates;
 		expect(cookie?.status === 'parsed' && cookie.encoding).toBe('compact');
 		expect(local?.status === 'parsed' && local.encoding).toBe('json');
-		// The raw compact value is exposed before any false is restored.
 		expect(
 			cookie?.status === 'parsed' &&
 				(cookie.value as { consents: Record<string, boolean> }).consents
@@ -316,7 +310,6 @@ describe('raw candidate reading', () => {
 			confirmedAt: NOW - DAY,
 			value: true,
 		});
-		// A non-boolean flag or non-integer time still rejects the record.
 		document.cookie = `${STORAGE_KEY_V2}=c.marketing:yes,i.t:${NOW - DAY}`;
 		expect(readStoredConsentRecord(undefined, NOW).candidates[0]?.status).toBe(
 			'invalid'
@@ -358,12 +351,9 @@ describe('raw candidate reading', () => {
 			confirmedAt: NOW - DAY,
 			value: true,
 		});
-		// The v2 writer omits false, so the compact record restores it for
-		// the legacy universe and drops the false vendor flag entirely.
 		expect(selected?.choice.categories.measurement?.value).toBe(false);
 		expect(selected?.iab).toEqual({ customVendorConsents: { '42': true } });
 
-		// The JSON mirror the v2 writer also wrote agrees on identity.
 		const [, local] = candidates;
 		expect(local?.status).toBe('valid');
 		expect(local?.status === 'valid' && local.record.subject).toEqual(
@@ -407,7 +397,6 @@ describe('raw candidate reading', () => {
 			expect(selected?.subject).toEqual(envelope.subject);
 			expect(selected?.iab).toEqual(envelope.iab);
 		}
-		// A second layer is not unwrapped: the bytes are simply not a record.
 		document.cookie = `${STORAGE_KEY_V2}=${encodeURIComponent(outer)}`;
 		expect(readStoredConsentRecord(undefined, NOW).candidates[0]?.status).toBe(
 			'unparseable'
@@ -528,23 +517,18 @@ describe('v3 writes', () => {
 			version: 3,
 		});
 
-		// Simulate the cookie being evicted: localStorage JSON must agree.
 		document.cookie = '';
 		const fromLocal = readStoredConsentRecord(undefined, NOW).selected;
 		expect(fromLocal?.source).toBe('local-storage');
 		expect(fromLocal?.choice).toEqual(afterFirst?.choice);
 		expect(fromLocal?.subject).toEqual({ subjectId: SUBJECT_ID });
 
-		// A second save with an untouched envelope writes identical bytes.
 		const localBefore = window.localStorage.getItem(STORAGE_KEY_V2);
 		writeStoredConsentEnvelope(envelope, { now: NOW + DAY });
 		expect(window.localStorage.getItem(STORAGE_KEY_V2)).toBe(localBefore);
 	});
 
 	it('reports a thrown cookie write honestly while the old cookie stays authoritative', () => {
-		// An older, still valid cookie is in place and the browser now
-		// refuses cookie writes. localStorage must take the new envelope and
-		// the report must not claim the cookie changed.
 		const oldCookie = `${STORAGE_KEY_V2}=c.marketing:1,c.necessary:1,i.t:${NOW - 30 * DAY},i.sid:${SUBJECT_ID}`;
 		const descriptor = Object.getOwnPropertyDescriptor(document, 'cookie');
 		Object.defineProperty(document, 'cookie', {
@@ -578,9 +562,6 @@ describe('v3 writes', () => {
 				'"version":3'
 			);
 
-			// The untouched old cookie still wins, but the newer denial that
-			// only reached localStorage is applied on top of it, so the old
-			// grant is not kept in force.
 			const { selected } = readStoredConsentRecord(undefined, NOW);
 			expect(selected?.source).toBe('cookie');
 			expect(selected?.format).toBe('legacy-v2');
@@ -602,7 +583,6 @@ describe('v3 writes', () => {
 			configurable: true,
 			get: () => '',
 			set: () => {
-				// Browser accepted the assignment and kept nothing.
 			},
 		});
 		try {
@@ -725,7 +705,6 @@ describe('notice dismissal', () => {
 			config,
 			NOW
 		);
-		// An earlier v3 alpha stored standing GPC directives here.
 		window.localStorage.setItem(
 			'custom-key-privacy',
 			'{"directives":[],"version":1}'
@@ -737,8 +716,6 @@ describe('notice dismissal', () => {
 		expect(window.localStorage.getItem('custom-key-notice')).toBeNull();
 		expect(window.localStorage.getItem('custom-key-privacy')).toBeNull();
 		expect(window.localStorage.getItem(STORAGE_KEY)).toBeNull();
-		// The stubbed document holds only the last cookie write; the consent
-		// cookie must not survive it.
 		expect(document.cookie).not.toContain('custom-key=v=3');
 		expect(readStoredConsentRecord(config, NOW).selected).toBeNull();
 		expect(readStoredNoticeDismissal(config, NOW)).toBeNull();
@@ -795,8 +772,6 @@ describe('cookie and local copies from different clear epochs', () => {
 		);
 
 		const { selected } = readStoredConsentRecord(undefined, NOW);
-		// The cookie grant predates the later clear; the local grant is not
-		// applied over the cookie, the local denial is.
 		expect(selected?.choice.categories.marketing).toBeUndefined();
 		expect(selected?.choice.categories.measurement?.value).toBe(false);
 		expect(selected?.epoch).toBe(NOW - 800);

@@ -16,7 +16,6 @@ import {
 } from './policy-records';
 import type { PolicyRecordId } from './policy-records';
 
-/** Semantic policy input; adapters build the real validated policy from it. */
 export const POLICY_CHOICE: ScenarioPolicy = {
 	choice: { fingerprint: CHOICE_FINGERPRINT, maxAgeMs: POLICY_MAX_AGE },
 	gpcDenyCategories: [],
@@ -35,7 +34,6 @@ export const POLICY_NOTICE: ScenarioPolicy = {
 	prompt: 'notice',
 };
 
-/** A `none` regime: everything in scope granted, no prompt, no rights. */
 export const POLICY_NONE: ScenarioPolicy = {
 	...POLICY_CHOICE,
 	gpcDenyCategories: [],
@@ -66,11 +64,6 @@ const openGates: PolicyObservation['gates'] = {
 	script: 'loaded',
 };
 
-/**
- * A `none` regime owes nothing: permissions are granted by default, no
- * surface renders, nothing is stored, and a save records no choice. Listing
- * `preferences` as a right restores the settings route without a prompt.
- */
 const noneRegime: readonly PolicyScenario[] = [
 	{
 		covers: ['A'],
@@ -264,13 +257,11 @@ const gpc = (
 				gates: blockedGates,
 				permissions: denied,
 				prompt: { kind: 'notice', reason: 'missing' },
-				// GPC is a live signal: nothing about it is written.
 				storage: 'unchanged',
 			},
 			operation: { kind: 'hydrate' },
 		},
 		{
-			// The restriction ends with the signal; the stored grant applies again.
 			expect: {
 				...quiet,
 				choice: POLICY_RECORDS[record].expected.choice,
@@ -297,7 +288,6 @@ const gpc = (
 					POLICY_NOW
 				),
 				consentCallbacks: 1,
-				// The choice acknowledges the notice; no separate dismissal event.
 				events: { 'choice-recorded': 1, 'notice-dismissed': 0 },
 				gates: blockedGates,
 				noticeDismissal: 'current',
@@ -398,10 +388,6 @@ const ssr = (
 	storage: { cookie: record },
 }));
 
-/**
- * No F4x exception flow. Failed init keeps the existing hidden display while
- * permission fallback and resolution status remain independently asserted.
- */
 export const POLICY_SCENARIOS: readonly PolicyScenario[] = [
 	...noneRegime,
 	{
@@ -635,8 +621,6 @@ export const POLICY_SCENARIOS: readonly PolicyScenario[] = [
 				expect: {
 					choice: policyChoice({ marketing: false }, POLICY_NOW),
 					consentCallbacks: 1,
-					// A choice made while the notice is owed acknowledges it: one
-					// outcome, one `choice-recorded`, no `notice-dismissed`.
 					events: {
 						'choice-recorded': 1,
 						'notice-dismissed': 0,
@@ -651,8 +635,6 @@ export const POLICY_SCENARIOS: readonly PolicyScenario[] = [
 				operation: { kind: 'save', values: { marketing: false } },
 			},
 			{
-				// The acknowledgement the save recorded survives a fresh mount:
-				// the notice does not return for this visitor.
 				expect: {
 					...quiet,
 					choice: policyChoice({ marketing: false }, POLICY_NOW),

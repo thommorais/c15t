@@ -9,15 +9,6 @@ import {
 } from '../shared/rslib-modules';
 import { getRsdoctorPlugins } from '../shared/rslib-utils';
 
-/**
- * Chunks `clientMode()` loads with `import()`, and the server start a
- * framework root imports on the server from a component the browser also
- * builds. Each is bundled with every module it imports, so a page's lazy
- * chunk shares no module with its first-load graph: Rolldown (Vite 8)
- * splits shared modules out of the page's chunk into many small ones.
- * Per-language translations stay external, so a resolver loads only the
- * language it needs.
- */
 const selfContainedEntries = {
 	'runtime/lazy-hosted': './src/runtime/lazy-hosted.ts',
 	'runtime/lazy-manifest-browser': './src/runtime/lazy-manifest-browser.ts',
@@ -25,10 +16,6 @@ const selfContainedEntries = {
 	'runtime/script-server-start': './src/runtime/script-server-start.ts',
 };
 
-// `tsconfig.json` maps these packages to their type declarations for the
-// bundleless build, which leaves them external. A bundle needs the code.
-// Resolved when a bundle builds, so loading this config doesn't need the
-// packages built.
 const require = createRequire(import.meta.url);
 const bundledPackages = function bundledPackages(
 	alias: Record<string, string | false | (string | false)[]>
@@ -42,10 +29,6 @@ const bundledPackages = function bundledPackages(
 	};
 };
 
-/**
- * One entry, bundled into one file: a lib per entry, so no two share a
- * chunk, and `import()` inside the bundle stays in the same file.
- */
 const selfContainedLib = function selfContainedLib(
 	name: string,
 	entry: string
@@ -56,8 +39,6 @@ const selfContainedLib = function selfContainedLib(
 		dts: false,
 		format: 'esm' as const,
 		output: {
-			// The bundleless build owns `dist`; cleaning it here races that
-			// build's output.
 			cleanDistPath: false,
 			distPath: { root: './dist' },
 			externals: [/^@c15t\/translations\/(?!en$)[a-z]{2}$/u],
@@ -123,7 +104,6 @@ export default defineConfig({
 		target: 'web',
 	},
 	performance: {
-		// Temporary workaround for rspack persistent-cache panics in local builds.
 		buildCache: false,
 	},
 	plugins: [pluginReact()],

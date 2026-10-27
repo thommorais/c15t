@@ -81,13 +81,11 @@ describe('IAB styles without CSS imports', () => {
 		document.body.append(container);
 		try {
 			expect(getComputedStyle(root).visibility).toBe('hidden');
-			// A descendant with the same attribute cannot complete the root.
 			root.firstElementChild?.append(marker);
 			expect(getComputedStyle(root).visibility).toBe('hidden');
 			root.append(marker);
 			expect(getComputedStyle(root).visibility).toBe('visible');
 			marker.remove();
-			// Other adapters use these classes without a React stream marker.
 			root.removeAttribute('data-c15t-streamed');
 			expect(getComputedStyle(root).visibility).toBe('visible');
 		} finally {

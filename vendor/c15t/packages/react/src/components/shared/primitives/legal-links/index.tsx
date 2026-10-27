@@ -41,23 +41,15 @@ const useLegalLinkTranslations = function useLegalLinkTranslations():
 	}, [kernelTranslations]);
 };
 
-/**
- * Hook to filter legal links based on the provided links prop.
- *
- * @param links - Controls which legal links to display
- * @returns Filtered legal links object or null
- */
 export const useFilteredLegalLinks = function useFilteredLegalLinks(
 	links?: (keyof LegalLinksType)[] | null
 ): LegalLinksType | null {
 	const legalLinks = useLegalLinksConfig();
 
-	// Show no links by default or if explicitly null
 	if (links === undefined || links === null) {
 		return null;
 	}
 
-	// Show only specified links
 	const entries = Object.entries(legalLinks ?? {});
 	const filtered = entries.filter(([key]) =>
 		links.includes(key as keyof LegalLinksType)
@@ -65,41 +57,14 @@ export const useFilteredLegalLinks = function useFilteredLegalLinks(
 	return Object.fromEntries(filtered) as LegalLinksType;
 };
 
-/**
- * Props for the InlineLegalLinks component.
- */
 export interface InlineLegalLinksProps {
-	/**
-	 * Controls which legal links to display.
-	 *
-	 * - `undefined` (default): Shows no legal links
-	 * - `null`: Shows no legal links
-	 * - Array of keys: Shows only the specified legal links
-	 */
 	links?: (keyof LegalLinksType)[] | null;
 
 	context: LegalLinksContext;
 
-	/**
-	 * Optional test ID prefix for the links.
-	 * Links will have test IDs like `${testIdPrefix}-${type}`
-	 */
 	testIdPrefix?: string;
 }
 
-/**
- * Renders legal links inline with commas and spaces.
- * The comma is part of the link (styled), but the space after is not.
- *
- * @example
- * ```tsx
- * <InlineLegalLinks
- *   links={['privacyPolicy', 'cookiePolicy']}
- *   context="dialog"
- *   testIdPrefix="consent-manager-dialog-legal-link"
- * />
- * ```
- */
 export const InlineLegalLinks = ({
 	links,
 	context,
@@ -152,7 +117,4 @@ export const InlineLegalLinks = ({
 	);
 };
 
-/**
- * Valid link slot contexts for inline legal links.
- */
 type LegalLinksContext = 'banner' | 'dialog' | 'manager';

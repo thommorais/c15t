@@ -69,7 +69,6 @@ describe('validateBackendURL', () => {
 		const testCases = [
 			{ expected: '/api/c15t', input: '/api/c15t/' },
 			{ expected: '/path/to/api', input: '/path/to/api/' },
-			// Root path should be preserved
 			{ expected: '/', input: '/' },
 		];
 

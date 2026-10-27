@@ -1,24 +1,13 @@
-/**
- * The one supersession rule of the save outbox: which part of a save newer
- * state already covers. Loaded with the kernel; the stored queue's code
- * loads on demand (`queue.ts`).
- */
-
 import { OPTIONAL_CONSENT_CATEGORIES } from '../../consent-record/types';
 import type { OptionalConsentCategory } from '../../consent-record/types';
 import type { ConsentSnapshot, SavePayload } from '../../types';
 
-/** A save waiting for a replay. */
 export interface PendingSaveEntry {
 	payload: SavePayload;
 	queuedAt: number;
 	attempts: number;
 }
 
-/**
- * What newer state covers of an older save: the categories decided again
- * since, and whether a newer vendor map replaced the save's own.
- */
 export interface Supersession {
 	category: (category: OptionalConsentCategory) => boolean;
 	vendors: boolean;
@@ -29,20 +18,6 @@ const NOTHING_SUPERSEDED: Supersession = {
 	vendors: false,
 };
 
-/**
- * The part of a save nothing newer covers, or `null` when nothing is left.
- *
- * Surviving categories keep their receipts and action time, so a replay
- * records when the visitor decided. A narrowed save is a `custom` action
- * and cannot replay the full TC string. The vendor map is a whole decision
- * of its own: narrowing the categories says nothing about it, and it goes
- * only when a newer map replaced it, taking with it a save that has no
- * category left.
- *
- * Every caller that asks "is this save superseded?" asks it here: the
- * outbox for a send in flight ({@link liveSupersession}) and the queue for
- * stored entries ({@link supersededBy}).
- */
 export const withoutSuperseded = function withoutSuperseded(
 	payload: SavePayload,
 	by: Supersession
@@ -73,8 +48,6 @@ export const withoutSuperseded = function withoutSuperseded(
 				consents[category] = payload.consents[category];
 			}
 		}
-		// A narrowed save no longer matches the TC string, so neither it nor
-		// the AC string beside it goes with the replay.
 		const { addtlConsent: _addtlConsent, ...rest } = payload;
 		selected = {
 			...rest,
@@ -94,11 +67,6 @@ export const withoutSuperseded = function withoutSuperseded(
 		: null;
 };
 
-/**
- * What `newer` covers of `older`: the categories it confirmed and, when it
- * carried one, the vendor map. Nothing when it belongs to another subject
- * or acted before `older`.
- */
 export const supersededBy = function supersededBy(
 	older: SavePayload,
 	newer: SavePayload
@@ -115,11 +83,6 @@ export const supersededBy = function supersededBy(
 	};
 };
 
-/**
- * What the live state covers of a save sent from `action`, the snapshot the
- * save committed: every category whose receipt changed since, and the
- * vendor map once another one replaced it.
- */
 export const liveSupersession = function liveSupersession(
 	action: ConsentSnapshot,
 	current: ConsentSnapshot
@@ -132,11 +95,6 @@ export const liveSupersession = function liveSupersession(
 	};
 };
 
-/**
- * The same save under another subject id. Keys keep their positions, so a
- * queued entry moved by a reassignment still serializes identically to one
- * rebuilt from the original payload.
- */
 export const withSubjectId = function withSubjectId(
 	payload: SavePayload,
 	subjectId: string

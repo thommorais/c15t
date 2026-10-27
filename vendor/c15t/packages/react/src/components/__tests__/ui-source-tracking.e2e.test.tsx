@@ -1,12 +1,4 @@
 import { readStoredRecords } from '@c15t/core/modules/persistence';
-/**
- * E2E tests for uiSource tracking through the consent flow.
- *
- * Verifies that the ConsentTrackingContext correctly propagates
- * the uiSource identifier from each UI component to saveConsents.
- *
- * @packageDocumentation
- */
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { render } from 'vitest-browser-react';
 import { userEvent } from 'vitest/browser';
@@ -32,7 +24,6 @@ const getDefined = <Value,>(
 	return value;
 };
 
-// Mock localStorage
 const localStorageMock = (() => {
 	let store: Record<string, string> = {};
 	return {
@@ -75,7 +66,6 @@ const defaultOptions: ConsentProviderOptions = {
 		prompt: 'choice',
 		scopeMode: 'permissive',
 	}),
-	// These tests seed or read records under the default key.
 	storageConfig: DEFAULT_KEY_STORAGE,
 };
 
@@ -115,7 +105,6 @@ describe('UI Source Tracking E2E Tests', () => {
 			);
 			await userEvent.click(getDefined(acceptButton));
 
-			// Verify consent is saved
 			await vi.waitFor(
 				() => {
 					const stored = readStoredRecords(undefined, Date.now()).records
@@ -165,7 +154,6 @@ describe('UI Source Tracking E2E Tests', () => {
 				{ timeout: 3000 }
 			);
 
-			// The dialog contains a widget with accept all button
 			const acceptButton = document.querySelector(
 				'[data-testid="consent-widget-footer-accept-all-button"]'
 			);
@@ -232,7 +220,6 @@ describe('UI Source Tracking E2E Tests', () => {
 				</ConsentProvider>
 			);
 
-			// Wait for banner
 			await vi.waitFor(
 				() => {
 					const banner = document.querySelector(
@@ -243,13 +230,11 @@ describe('UI Source Tracking E2E Tests', () => {
 				{ timeout: 3000 }
 			);
 
-			// Click customize to open dialog
 			const customizeButton = document.querySelector(
 				'[data-testid="consent-banner-customize-button"]'
 			);
 			await userEvent.click(getDefined(customizeButton));
 
-			// Wait for dialog
 			await vi.waitFor(
 				() => {
 					const dialog = document.querySelector(
@@ -260,13 +245,11 @@ describe('UI Source Tracking E2E Tests', () => {
 				{ timeout: 3000 }
 			);
 
-			// Save from dialog - the uiSource should be 'dialog' not 'banner'
 			const saveButton = document.querySelector(
 				'[data-testid="consent-widget-footer-save-button"]'
 			);
 			await userEvent.click(getDefined(saveButton));
 
-			// Verify consent was saved
 			await vi.waitFor(
 				() => {
 					const stored = readStoredRecords(undefined, Date.now()).records

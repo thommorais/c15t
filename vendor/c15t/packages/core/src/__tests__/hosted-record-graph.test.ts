@@ -1,11 +1,4 @@
 /// <reference types="node" />
-/**
- * The hosted record transport ships to every Next.js page that renders
- * `ConsentRoot`, because saves go through it. Init never runs on those pages
- * when the server resolved the visitor's state, and a subject record is only
- * read back after a user switch. A static import of the init path or the
- * subject-record reviver would put their bytes back into every first load.
- */
 import { readFileSync } from 'node:fs';
 import { dirname, join, normalize } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -29,13 +22,11 @@ const resolveRelative = function resolveRelative(
 			readFileSync(candidate);
 			return candidate;
 		} catch {
-			// Try the next candidate.
 		}
 	}
 	throw new Error(`Cannot resolve ${specifier} from ${from}`);
 };
 
-/** Source files and bare-specifier imports reachable through value imports. */
 const staticGraph = function staticGraph(entry: string): {
 	files: string[];
 	packageImports: string[];

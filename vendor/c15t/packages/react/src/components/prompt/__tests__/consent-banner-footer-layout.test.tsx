@@ -1,9 +1,3 @@
-/**
- * The banner footer lays out its actions by the card's width, not the
- * viewport's. A host that narrows the card with `--consent-banner-max-width`
- * on a wide screen must get the narrow layout, with every action inside the
- * card, and the default card must keep its single row.
- */
 import '@c15t/ui/styles.css';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import { render } from 'vitest-browser-react';
@@ -70,7 +64,6 @@ describe('ConsentBanner footer layout', () => {
 			expect(button.left).toBeGreaterThanOrEqual(card.left);
 			expect(button.right).toBeLessThanOrEqual(card.right);
 		}
-		// Reject and accept share a row; customize takes the row below.
 		expect(accept.top).toBe(reject.top);
 		expect(customize.top).toBeGreaterThanOrEqual(reject.bottom);
 		expect(customize.left).toBe(reject.left);

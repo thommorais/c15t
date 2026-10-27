@@ -89,8 +89,6 @@ describe('installFetchPatch', () => {
 		});
 		uninstall();
 
-		// After uninstall, blocked URLs should pass through to the
-		// original (no longer 451-rejected by our patched fn).
 		const response = await window.fetch('https://tracker.example/');
 		expect(response.status).toBe(200);
 		expect(original).toHaveBeenCalledOnce();

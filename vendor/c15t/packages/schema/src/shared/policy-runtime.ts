@@ -5,7 +5,6 @@ export type PolicyScopeMode = 'strict' | 'permissive';
 export interface PolicyMatch {
 	regions?: { country: string; region: string }[];
 	countries?: string[];
-	/** Countries whose missing region uses this rule, after country matches. */
 	regionFallbacks?: string[];
 	isDefault?: boolean;
 	fallback?: boolean;
@@ -16,12 +15,9 @@ export interface PolicyValidationResult {
 	warnings: string[];
 }
 
-// Manual matcher-data revision marker. Update this whenever the built-in
-// country or region matcher tables change.
 export const POLICY_MATCH_DATASET_VERSION = '2026-09-08';
 
 export const EU_COUNTRY_CODES = [
-	// EU territories that GeoIP providers can return separately from FI/FR.
 	'AX',
 	'GF',
 	'GP',
@@ -147,15 +143,6 @@ const applyPolicyMatchFragment = function applyPolicyMatchFragment(
 	}
 };
 
-/**
- * Matcher helpers for composing {@link PolicyMatch} objects.
- *
- * @remarks
- * These helpers normalize country and region casing and make intent explicit in
- * both backend config and tests.
- *
- * @see {@link https://c15t.com/docs/self-host/guides/policy-packs#understand-rule-selection}
- */
 export const policyMatchers = {
 	countries(countries: string[]): PolicyMatch {
 		return {
@@ -200,15 +187,6 @@ export const policyMatchers = {
 		return merged;
 	},
 
-	/**
-	 * Match a known country only when its region is missing.
-	 * @param countries - Country codes whose missing regions use this rule.
-	 * @returns A normalized matcher, evaluated after explicit country rules.
-	 * @example
-	 * ```ts
-	 * policyMatchers.regionFallback(['US']);
-	 * ```
-	 */
 	regionFallback(countries: string[]): PolicyMatch {
 		return { regionFallbacks: mergeCountries([], countries) };
 	},

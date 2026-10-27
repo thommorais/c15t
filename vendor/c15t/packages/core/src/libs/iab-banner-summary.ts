@@ -1,53 +1,25 @@
-/**
- * Framework-agnostic IAB banner summary logic.
- *
- * Extracted from the React useHeadlessIABConsentUI hook to be
- * shared across React, Svelte, Vue, Solid, and Astro.
- *
- * @packageDocumentation
- */
-
 import { AD_TECH_PROVIDER_PURPOSES } from '@c15t/schema/types';
 
 import type { KernelIABState } from '../types';
 
 type HeadlessIABStateInput = Pick<KernelIABState, 'gvl'> &
 	Partial<Pick<KernelIABState, 'customVendors' | 'adTechProviders'>> & {
-		/** Server summary and list location, used while gvl is absent. */
 		gvlReference?: KernelIABState['gvlReference'];
 		nonIABVendors?: KernelIABState['customVendors'];
 	};
 
-/** Banner copy derived from a full list or a deferred server summary. */
 export interface HeadlessIABBannerState {
-	/** Whether sufficient vendor data is available to display the summary. */
 	isReady: boolean;
-	/**
-	 * Number of registered vendors, custom vendors and Google ad tech
-	 * providers disclosed by the banner.
-	 */
 	vendorCount: number;
-	/** Names of applicable purposes, stacks and special features. */
 	displayItems: string[];
-	/** Number of disclosure items omitted by the display limit. */
 	remainingCount: number;
 }
 
-/**
- * How many summary items the banner lists before it collapses the rest
- * into "and {count} more". Exported so an adapter that wants to say how
- * many it dropped does not re-guess the number.
- */
 export const IAB_BANNER_MAX_DISPLAY_ITEMS = 5;
 
 const STANDALONE_PURPOSE_ID = 1;
 
-/** Options for {@link resolveIABBannerSummary}. */
 export interface ResolveIABBannerSummaryOptions {
-	/**
-	 * How many items to list before collapsing the rest into the
-	 * "and {count} more" line. Defaults to {@link IAB_BANNER_MAX_DISPLAY_ITEMS}.
-	 */
 	maxItems?: number;
 }
 
@@ -75,10 +47,6 @@ const referencedSummary = (
 	};
 };
 
-/**
- * Purposes some registered vendor declares, plus the purposes listed ad tech
- * providers need, which Accept All grants for them.
- */
 const declaredPurposes = (
 	gvl: NonNullable<HeadlessIABStateInput['gvl']>,
 	adTechProviders: HeadlessIABStateInput['adTechProviders']
@@ -99,17 +67,6 @@ const declaredPurposes = (
 		.map(([id, purpose]) => ({ id: Number(id), name: purpose.name }));
 };
 
-/**
- * Resolves the IAB banner summary from the current IAB state.
- *
- * Pure function — no framework reactivity. Each framework package
- * wraps this in its own reactive primitive (useMemo, $derived, computed, etc.).
- *
- * @param iab - IAB state carrying the GVL and any custom vendors.
- * @param options - The item cap, when a caller wants its own.
- * @returns The names the banner lists, how many it left out, and the
- * vendor count.
- */
 export const resolveIABBannerSummary = function resolveIABBannerSummary(
 	iab: HeadlessIABStateInput | null,
 	options: ResolveIABBannerSummaryOptions = {}

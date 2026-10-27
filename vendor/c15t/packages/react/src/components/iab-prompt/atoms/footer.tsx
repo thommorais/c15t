@@ -13,14 +13,6 @@ interface IABConsentBannerFooterProps extends HTMLAttributes<HTMLDivElement> {
 	'data-testid'?: string;
 }
 
-/**
- * Footer component for the IAB Consent Banner.
- *
- * @remarks
- * Container for action buttons (Accept, Reject, Customize).
- *
- * @public
- */
 const IABConsentBannerFooter = createForwardRef<
 	HTMLDivElement,
 	IABConsentBannerFooterProps

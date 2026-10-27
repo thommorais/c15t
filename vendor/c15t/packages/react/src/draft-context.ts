@@ -16,16 +16,10 @@ import { KernelContext, ProviderServicesContext } from './context';
 import { useResolvedPresentation } from './hooks';
 import { useCommittedRef } from './hooks/use-committed-ref';
 
-/**
- * The draft a `ConsentDraftProvider` shares. Here, apart from the draft
- * module, so the banner's buttons can read it without loading the draft:
- * the draft only runs once a preference surface renders.
- */
 export const DraftContext = createContext<PreferenceDraft | null>(null);
 
 export const REFUSED: SaveResult = { ok: false };
 
-/** The kernel in context; throws outside a provider. */
 export const useDraftKernel = function useDraftKernel(): ConsentKernel {
 	const kernel = useContext(KernelContext);
 	if (!kernel) {
@@ -34,15 +28,6 @@ export const useDraftKernel = function useDraftKernel(): ConsentKernel {
 	return kernel;
 };
 
-/**
- * Whether `owner` is still the kernel this component last committed.
- *
- * A handle or save action kept across a runtime switch, by an async submit
- * or a descendant's layout effect in the switch commit, calls through this,
- * so it records nothing into the previous runtime. The committed kernel is
- * read at call time (see `useCommittedRef`). A component that only unmounts
- * keeps its last kernel, so a submit that outlives its dialog still saves.
- */
 export const useKernelGuard = function useKernelGuard(
 	owner: ConsentKernel
 ): () => boolean {
@@ -53,11 +38,6 @@ export const useKernelGuard = function useKernelGuard(
 	);
 };
 
-/**
- * Save the preferences a surface would show without a draft: what a fresh
- * draft seeds. Loaded on demand; only a "save" outside a preference
- * surface needs it.
- */
 const saveFreshDraft = async function saveFreshDraft(
 	kernel: ConsentKernel,
 	defaults: Partial<ConsentState> | undefined,
@@ -71,26 +51,15 @@ const saveFreshDraft = async function saveFreshDraft(
 	});
 };
 
-/**
- * Internal UI save path shared by stock controls and headless actions.
- *
- * Inside a `ConsentDraftProvider` an omitted input saves the shared draft.
- * Bulk and explicit inputs go straight to the kernel; a bulk one also
- * discards the draft's staged edits.
- *
- * @internal
- */
 export const useConsentSaveAction = function useConsentSaveAction() {
 	const kernel = useDraftKernel();
 	const services = useContext(ProviderServicesContext);
 	const shared = useContext(DraftContext);
-	// A shared draft bound to another kernel belongs to an outer provider.
 	const draft = shared?.kernel === kernel ? shared : null;
 	const defaults = useResolvedPresentation()?.preferences?.defaults;
 	const isCurrent = useKernelGuard(kernel);
 	return useCallback(
 		(input?: SaveInput, uiSource?: SaveUISource): Promise<SaveResult> => {
-			// Refuse before touching the previous runtime's UI state.
 			if (!isCurrent()) {
 				return Promise.resolve(REFUSED);
 			}
@@ -108,8 +77,6 @@ export const useConsentSaveAction = function useConsentSaveAction() {
 					...(uiSource !== undefined && { uiSource }),
 				});
 			};
-			// A draft save that left edits staged (made while it ran, or a
-			// stale draft it refused) keeps the dialog open.
 			return saveConsentSurface(
 				kernel,
 				save,

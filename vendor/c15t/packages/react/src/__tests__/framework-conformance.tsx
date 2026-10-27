@@ -48,7 +48,6 @@ import { describe, expect, test, vi } from 'vitest';
 import type { FrameworkRoot } from './framework-root';
 import type { policyFixture as PolicyFixture } from './policy-fixture';
 
-/** Runs the same assertions against each framework's own boundary. */
 export const runFrameworkConformance = ({
 	Root: ConsentRoot,
 	framework,
@@ -241,7 +240,6 @@ export const runFrameworkConformance = ({
 		const authoritative =
 			(opts.initMode ?? 'authoritative') === 'authoritative';
 		return {
-			// A real reload restarts the browser test page.
 			reloadOnConsentRevoked: false,
 			...provided,
 			disableAnimation: true,
@@ -250,8 +248,6 @@ export const runFrameworkConformance = ({
 			prefetch: {
 				...prepared,
 				...provided.prefetch,
-				// A server that resolved an IAB policy ships the vendor list in
-				// the state, which is what lets the IAB banner server-render.
 				initialIab:
 					isIabComponent(opts.component) && authoritative
 						? {
@@ -503,9 +499,6 @@ export const runFrameworkConformance = ({
 			);
 			await settled;
 			await flushScheduler();
-			// The widget renders only once a policy is resolved, so a pending or
-			// failing init has no widget root to wait for; the suite drives
-			// `resolveInit` and asserts the appearance itself.
 			if (
 				opts.component === 'consent-widget' &&
 				(opts.initMode ?? 'authoritative') === 'authoritative'
@@ -552,7 +545,6 @@ export const runFrameworkConformance = ({
 			return Promise.resolve(
 				renderToString(
 					renderTree(opts, options, () => {
-						// Server render does not expose a live store to the conformance suite.
 					})
 				)
 			);

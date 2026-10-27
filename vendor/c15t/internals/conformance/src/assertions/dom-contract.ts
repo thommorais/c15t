@@ -2,10 +2,6 @@ import { expect } from 'storybook/test';
 
 import { DOM_CONTRACT } from '../contract/dom-contract';
 
-/**
- * Implicit ARIA role for common elements (narrow — extend as needed).
- * Reference: https://www.w3.org/TR/html-aria/
- */
 const implicitRole = function implicitRole(el: Element): string | undefined {
 	const tag = el.tagName.toLowerCase();
 	switch (tag) {
@@ -39,10 +35,6 @@ const resolveRole = function resolveRole(el: Element): string | undefined {
 	return el.getAttribute('role') ?? implicitRole(el);
 };
 
-/**
- * Assert that every element declared in the DOM contract for `componentKey`
- * is present in `root` with the declared role and attributes.
- */
 export const assertDomContract = function assertDomContract(
 	root: ParentNode,
 	componentKey: keyof typeof DOM_CONTRACT
@@ -79,11 +71,6 @@ export const assertDomContract = function assertDomContract(
 	}
 };
 
-/**
- * Assert the subset of stable elements are present — used when a component
- * may omit optional elements (e.g., branding when disabled) but must always
- * render the core set.
- */
 export const assertStableElements = function assertStableElements(
 	root: ParentNode,
 	componentKey: keyof typeof DOM_CONTRACT

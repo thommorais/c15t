@@ -25,7 +25,6 @@ test('fetches the default vendor list from Inth', async () => {
 	);
 });
 
-/** A vendor list minimal enough to pass the response validation. */
 const gvlPayload = function gvlPayload(
 	overrides: Record<string, unknown> = {}
 ): Response {
@@ -79,8 +78,6 @@ test('keeps a filtered list when the scope sits exactly on the cap', async () =>
 	expect(url.searchParams.get('vendorIds')?.split(',')).toHaveLength(500);
 });
 
-// Each value needs its own fetch stub and a cleared cache, so these are separate
-// tests rather than a loop the linter is right to distrust.
 test.each([undefined, null, 0, -1, 1.5, Number.NaN])(
 	'rejects a vendor list with policy version %p',
 	async (policyVersion) => {

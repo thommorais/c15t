@@ -5,32 +5,17 @@ import { useContext, useEffect, useSyncExternalStore, version } from 'react';
 import { GlobalThemeContext } from '~/context/theme-context';
 import { useUIConfig } from '~/ui-config-context';
 
-/** A stylesheet from `@c15t/ui/styles/sheets/*`. */
 export interface SurfaceStyleSheet {
-	/** Dedupes the stylesheet: a page renders each `id` once. */
 	id: string;
-	/** The stylesheet text. Empty for a deferred sheet. */
 	css: string;
-	/**
-	 * Loads the text of a deferred sheet. A browser bundle gets one in place
-	 * of `css` when the framework already put the sheet in the server HTML,
-	 * as the Next.js adapter does, so the text ships once.
-	 */
 	load?: () => Promise<string>;
 }
 
-/** Deferred sheets' text, by `id`, once loaded or read from the page. */
 const loadedCss = new Map<string, string>();
-/** Deferred sheets the server put in `<head>`, where React keeps them. */
 const hoistedInPage = new Set<string>();
 const pendingLoads = new Map<string, Promise<void>>();
-/**
- * Deferred sheets whose last load failed. Their surfaces show without them:
- * an unstyled consent banner beats a hidden one.
- */
 const failedLoads = new Set<string>();
 const listeners = new Set<() => void>();
-/** Bumped on each change, so a mounted `SurfaceStyles` renders new text. */
 let sheetsVersion = 0;
 const getSheetsVersion = (): number => sheetsVersion;
 const getServerSheetsVersion = (): number => 0;
@@ -49,12 +34,6 @@ const subscribe = function subscribe(listener: () => void): () => void {
 	};
 };
 
-/**
- * Whether the page already holds a deferred sheet's rules: a hoisted
- * `<style data-href>` (React adopts it and ignores the text it is given), or
- * an in-place `<style data-c15t-styles>`, whose text is kept so a later
- * surface can render it after this one unmounts.
- */
 const findInPage = function findInPage(id: string): boolean {
 	if (hoistedInPage.has(id) || loadedCss.has(id)) {
 		return true;
@@ -93,13 +72,6 @@ const loadSheet = async function loadSheet(
 	}
 };
 
-/**
- * Starts loading the deferred sheets the page does not hold yet. Safe to
- * call often: each sheet loads once, and the next call retries a failed
- * load.
- *
- * @internal
- */
 export const preloadSurfaceSheets = async function preloadSurfaceSheets(
 	sheets: readonly SurfaceStyleSheet[]
 ): Promise<void> {
@@ -119,18 +91,11 @@ export const preloadSurfaceSheets = async function preloadSurfaceSheets(
 	try {
 		await Promise.all(loads);
 	} catch {
-		// Its surfaces show without the failed sheet, and the next preload,
-		// such as the next surface that mounts, retries it.
 	}
 };
 
-/**
- * React 19 hoists a `<style>` with `href` and `precedence` into `<head>`,
- * on the server and in the browser, and renders each `href` once.
- */
 const HOISTS_STYLES = Number.parseInt(version, 10) >= 19;
 
-/** Groups c15t's `<style>` elements in `<head>`, in the order they render. */
 const PRECEDENCE = 'c15t';
 
 const useStylesDisabled = function useStylesDisabled(
@@ -141,15 +106,6 @@ const useStylesDisabled = function useStylesDisabled(
 	return styles === false || Boolean(noStyle) || Boolean(globalTheme.noStyle);
 };
 
-/**
- * Whether a surface can show: its deferred sheets are in the page or
- * loaded. Starts loading the missing ones after mount, so a surface that
- * renders later, like a banner waiting on the browser's consent fetch,
- * finds them ready. Hydration reads `true`: the server rendered the sheets
- * it rendered the surface with.
- *
- * @internal
- */
 export const useSurfaceSheetsReady = function useSurfaceSheetsReady(
 	sheets: readonly SurfaceStyleSheet[],
 	noStyle?: boolean
@@ -168,31 +124,6 @@ export const useSurfaceSheetsReady = function useSurfaceSheetsReady(
 	return ready;
 };
 
-/**
- * Renders the stylesheets a stock surface needs as `<style>` elements.
- *
- * The banner, trigger, ConsentGate, dialog and widget each render the
- * sheets they use, so an app that imports no c15t stylesheet still gets
- * styled surfaces, and no stylesheet `<link>` holds back the first paint.
- * A server-rendered surface puts its rules in the HTML. A surface that
- * renders in the browser, like the dialog, inserts them with its own code.
- *
- * In React 19 the elements move to `<head>` and each `id` renders once per
- * page; later sheets follow earlier ones, which keeps the cascade order of
- * `styles.css`. React 18 renders them in place, next to the surface, and
- * so does React 19 when the provider sets a `nonce`: React drops the nonce
- * from a style it moves to `<head>` unless the app passed the same nonce to
- * React's server renderer, and a style without it would break a
- * nonce-based policy.
- *
- * Renders nothing when the provider sets `styles: false` (the app imports
- * `styles.css` itself) or `noStyle`.
- *
- * @param props.sheets - The stylesheets, in cascade order.
- * @param props.noStyle - The surface's own `noStyle` prop.
- * @returns The `<style>` elements, or `null`.
- * @internal
- */
 export const SurfaceStyles = ({
 	sheets,
 	noStyle,
@@ -201,8 +132,6 @@ export const SurfaceStyles = ({
 	noStyle?: boolean;
 }) => {
 	const { nonce } = useUIConfig();
-	// A sheet that failed to load can arrive later, under a surface that is
-	// already showing.
 	useSyncExternalStore(subscribe, getSheetsVersion, getServerSheetsVersion);
 	if (useStylesDisabled(noStyle)) {
 		return null;
@@ -212,11 +141,8 @@ export const SurfaceStyles = ({
 		let { css } = sheet;
 		if (sheet.load) {
 			if (!findInPage(sheet.id)) {
-				// Not loaded yet. A hoisted style keeps the text it is created
-				// with, so render it once the text is here.
 				return null;
 			}
-			// A hoisted style already in `<head>` is adopted as it is.
 			css = loadedCss.get(sheet.id) ?? '';
 		}
 		return hoist ? (
@@ -228,8 +154,6 @@ export const SurfaceStyles = ({
 				{css}
 			</style>
 		) : (
-			// Text children would be escaped, turning `>` in a selector
-			// into `&gt;`.
 			<style
 				key={sheet.id}
 				data-c15t-styles={sheet.id}

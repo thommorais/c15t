@@ -386,7 +386,6 @@ it.each(
 		});
 		const snapshot = () => (kernel as ConsentKernel | null)?.getSnapshot();
 		button()?.click();
-		// Closed in the click task, before the TC string or the request.
 		expect(snapshot()?.activeUI).toBe('none');
 		await vi.waitFor(() => expect(card(surface)).toBeNull());
 		await vi.waitFor(() => expect(save).toHaveBeenCalledOnce());

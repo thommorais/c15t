@@ -27,7 +27,6 @@ const makeIframe = (attrs: Record<string, string>) => {
 	return iframe;
 };
 
-/** The slugs these tests deny, declared so the gate honors the denial. */
 const declaredVendors = (ids: readonly string[]) => ({
 	declared: ids.map((id) => ({
 		category: 'marketing' as const,
@@ -97,9 +96,6 @@ describe('iframe data-vendor', () => {
 	});
 
 	test('a vendor-only iframe follows a disabled declaration over a stale denial', () => {
-		// The denial predates the vendor being declared `disabled`. Every
-		// other gate ignores that denial once the declaration says the vendor
-		// cannot be toggled; a frame with no category must agree.
 		const kernel = createConsentKernel({
 			initialRecords: {
 				...choiceRecords({ marketing: true }),
@@ -129,9 +125,6 @@ describe('iframe data-vendor', () => {
 	});
 
 	test('a vendor-only iframe holds a stored denial for a slug nothing declares yet', () => {
-		// Cold start: the denial was stored on an earlier visit, the backend
-		// declares the vendor, and its init has not arrived. The frame has no
-		// category to fall back to, so the denial holds until it does.
 		const kernel = createConsentKernel({
 			initialRecords: {
 				...choiceRecords({ marketing: true }),
@@ -149,8 +142,6 @@ describe('iframe data-vendor', () => {
 		expect(iframe.getAttribute('data-src')).toBe(
 			'https://www.youtube.com/embed/x'
 		);
-		// Lifting the denial restores it, so the hold is the denial and not
-		// the missing declaration.
 		kernel.hydrate({ now: NOW, vendorChoice: null });
 		expect(iframe.getAttribute('src')).toBe('https://www.youtube.com/embed/x');
 		blocker.dispose();
@@ -185,8 +176,6 @@ describe('iframe data-vendor', () => {
 		const pass = buildReconcilePass(kernelFor(['youtube']).getSnapshot());
 		reconcileIframe(iframe, pass);
 		iframe.removeAttribute('data-vendor');
-		// The author adds their own lazy source after the gate is gone. The
-		// blocker never moved anything, so it must not promote it.
 		iframe.setAttribute('data-src', 'https://www.youtube.com/embed/late');
 		reconcileIframe(iframe, pass);
 		expect(iframe.getAttribute('src')).toBeNull();
@@ -201,13 +190,10 @@ describe('iframe data-vendor', () => {
 		reconcileIframe(iframe, pass);
 		iframe.removeAttribute('data-vendor');
 		reconcileIframe(iframe, pass);
-		// The blocker never moved a source, so removing the gate starts nothing.
 		expect(iframe.getAttribute('src')).toBeNull();
 	});
 
 	test('the blocker declares the slug a frame names so a stored denial gates it before init', () => {
-		// The backend declares youtube, but its init has not arrived yet: only
-		// the stored denial and the frame exist.
 		const kernel = createConsentKernel({
 			initialRecords: {
 				...choiceRecords({ marketing: true }),
@@ -244,15 +230,12 @@ describe('iframe data-vendor', () => {
 			kernel.getSnapshot().vendors?.declared.map((v) => [v.id, v.category]) ??
 			[];
 		expect(declared()).toEqual([['youtube', 'marketing']]);
-		// The SPA repoints the frame: the old pair must not linger as an
-		// owner that a narrowed bulk save would still reason about.
 		iframe.setAttribute('data-vendor', 'vimeo');
 		blocker.processAllIframes();
 		expect(declared()).toEqual([['vimeo', 'marketing']]);
 		iframe.setAttribute('data-category', 'measurement');
 		blocker.processAllIframes();
 		expect(declared()).toEqual([['vimeo', 'measurement']]);
-		// Gone from the page, gone from the declaration.
 		iframe.remove();
 		blocker.processAllIframes();
 		expect(kernel.getSnapshot().vendors).toBeNull();
@@ -274,8 +257,6 @@ describe('iframe data-vendor', () => {
 		expect(kernel.getSnapshot().vendors?.declared.map((v) => v.id)).toEqual([
 			'youtube',
 		]);
-		// Nothing shows the frame left or changed its gate, so the pass must
-		// not drop the slug it owns.
 		Object.defineProperty(iframe, 'getAttribute', {
 			value() {
 				throw new Error('Permission denied to access property "getAttribute"');
@@ -290,9 +271,6 @@ describe('iframe data-vendor', () => {
 	});
 
 	test('a manual pass drops a connected frame that lost its gate attributes', () => {
-		// No observer under `disableAutomaticBlocking`, so the manual pass is
-		// the only sweep. Its selector skips a frame with neither attribute,
-		// and the frame is still on the page; the declaration must go anyway.
 		const kernel = createConsentKernel({
 			initialRecords: choiceRecords({ marketing: true }),
 			now: NOW,
@@ -338,7 +316,6 @@ describe('iframe data-vendor', () => {
 			kernel.getSnapshot().vendors?.declared.map((v) => v.id) ?? [];
 		expect(ids()).toEqual(['vimeo', 'youtube']);
 		first.remove();
-		// jsdom delivers mutation records on a microtask.
 		await new Promise((resolve) => {
 			setTimeout(resolve, 0);
 		});
@@ -382,7 +359,6 @@ describe('iframe data-vendor', () => {
 		});
 		const blocker = createIframeBlocker({ kernel });
 		expect(iframe.getAttribute('src')).toBeNull();
-		// Declaring the vendor `disabled` lifts its stored denial at the gate.
 		kernel.set.vendors({
 			declared: [
 				{

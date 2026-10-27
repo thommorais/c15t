@@ -20,7 +20,6 @@ import {
 	filterAdTechProviders,
 } from './ad-tech-provider-section';
 
-/** Custom vendor not registered with IAB */
 const EMPTY_CUSTOM_VENDORS: CustomVendor[] = [];
 const EMPTY_VENDOR_INTERESTS: Record<string, boolean> = {};
 const EMPTY_AD_TECH_PROVIDERS: AdTechProvider[] = [];
@@ -47,18 +46,13 @@ interface VendorListProps {
 	selectedVendorId: VendorId | null;
 	onClearSelection: () => void;
 	customVendors?: CustomVendor[];
-	/** Legitimate interest state - true means user has NOT objected (allowed) */
 	vendorLegitimateInterests?: Record<string, boolean>;
-	/** Handler for legitimate interest objection toggle */
 	onVendorLegitimateInterestToggle?: (
 		vendorId: VendorId,
 		value: boolean
 	) => void;
-	/** Google ad tech providers disclosed for Additional Consent. */
 	adTechProviders?: AdTechProvider[];
-	/** Consent switches for those providers, keyed by provider ID. */
 	adTechProviderConsents?: Record<string, boolean>;
-	/** Handler for an ad tech provider consent switch. */
 	onAdTechProviderToggle?: (providerId: number, value: boolean) => void;
 }
 
@@ -85,7 +79,6 @@ export const VendorList: FC<VendorListProps> = ({
 	const iab = useIABTranslations();
 	const language = useKernelTranslations()?.language;
 
-	// Map IAB vendors
 	const iabVendors: ProcessedVendor[] = vendorData
 		? Object.entries(vendorData.vendors).map(([id, vendor]) => ({
 				cookieMaxAgeSeconds: vendor.cookieMaxAgeSeconds,
@@ -109,7 +102,6 @@ export const VendorList: FC<VendorListProps> = ({
 			}))
 		: [];
 
-	// Map custom/non-IAB vendors
 	const mappedCustomVendors: ProcessedVendor[] = customVendors.map((cv) => ({
 		cookieMaxAgeSeconds: cv.cookieMaxAgeSeconds ?? null,
 		cookieRefresh: undefined,
@@ -130,7 +122,6 @@ export const VendorList: FC<VendorListProps> = ({
 		usesNonCookieAccess: cv.usesNonCookieAccess ?? false,
 	}));
 
-	// Combine and sort all vendors
 	const vendors: ProcessedVendor[] = [
 		...iabVendors,
 		...mappedCustomVendors,
@@ -163,7 +154,6 @@ export const VendorList: FC<VendorListProps> = ({
 				)
 			: vendors.filter((v) => String(v.id) === String(selectedVendorId));
 
-	// Separate IAB and custom vendors for display
 	const filteredIABVendors = filteredVendors.filter((v) => !v.isCustom);
 	const filteredCustomVendors = filteredVendors.filter((v) => v.isCustom);
 	const filteredAdTechProviders = filterAdTechProviders(
@@ -467,7 +457,6 @@ export const VendorList: FC<VendorListProps> = ({
 					</div>
 				)}
 
-				{/* Legitimate Interest Objection */}
 				{hasLegitimateInterest && onVendorLegitimateInterestToggle && (
 					<div className={styles.vendorLiSection}>
 						<div className={styles.vendorLiSectionHeader}>
@@ -813,7 +802,6 @@ export const VendorList: FC<VendorListProps> = ({
 				</div>
 			)}
 
-			{/* IAB Registered Vendors */}
 			{filteredIABVendors.length > 0 && (
 				<div className={styles.vendorSection}>
 					<div className={styles.iabVendorSectionHeader}>
@@ -842,7 +830,6 @@ export const VendorList: FC<VendorListProps> = ({
 				</div>
 			)}
 
-			{/* Custom/Non-IAB Vendors */}
 			{filteredCustomVendors.length > 0 && (
 				<div className={styles.vendorSection}>
 					<div className={styles.customVendorSectionHeader}>

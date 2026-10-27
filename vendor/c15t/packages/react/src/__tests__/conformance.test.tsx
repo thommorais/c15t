@@ -4,12 +4,6 @@ import {
 	MINIMAL_GVL,
 	runConformanceSuite,
 } from '@c15t/conformance';
-/**
- * React conformance entry point.
- *
- * This driver targets the kernel adapter: `ConsentProvider` plus the
- * useSyncExternalStore-backed selector hooks.
- */
 import type {
 	MountableComponent,
 	MountOptions,
@@ -227,8 +221,6 @@ const buildProviderOptions = (opts: MountOptions): ConsentProviderOptions => {
 		prefetch: {
 			...prepared,
 			...provided.prefetch,
-			// A server that resolved an IAB policy ships the vendor list in the
-			// state, which is what lets the IAB banner server-render.
 			initialIab:
 				isIabComponent(opts.component) && authoritative
 					? {
@@ -506,7 +498,6 @@ const driver: TestDriver = {
 		return Promise.resolve(
 			renderToString(
 				renderTree(opts, options, () => {
-					// Server render does not expose a live store to the conformance suite.
 				})
 			)
 		);

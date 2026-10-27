@@ -1,15 +1,3 @@
-/**
- * Storage writes for every c15t record: the v3 envelope, the notice
- * dismissal and the vendor denials. The reads that pair with them are in
- * `../record-storage.ts`; clearing them all is first-load code, in
- * `../clear.ts`.
- *
- * Each record is validated with the reader's own validator before it is
- * written, so nothing is stored that the next read would reject. Writes
- * run only when the kernel explicitly asks; hydration never writes.
- *
- * @internal
- */
 import type { CookieOptions, CookieWriteReport } from '../../../libs/cookie';
 import type {
 	DecodeResult,
@@ -31,21 +19,13 @@ import {
 import type { PersistenceTools } from './types';
 
 export interface WriteStoredConsentOptions {
-	/** Current time. Rejects envelopes carrying future timestamps. */
 	now: number;
-	/** Cookie attributes; defaults derive from `config`. */
 	cookie?: CookieOptions;
 	config?: StorageConfig;
 }
 
 export interface WriteReport {
-	/** localStorage accepted the JSON envelope. */
 	localStorage: boolean;
-	/**
-	 * The cookie assignment ran and the value read back matches. `false`
-	 * covers both a thrown assignment and a silent browser drop; see
-	 * `cookieDetail` to tell them apart.
-	 */
 	cookie: boolean;
 	cookieDetail: CookieWriteReport;
 }
@@ -54,36 +34,13 @@ export type WriteStoredConsentResult =
 	| { ok: true; written: WriteReport; envelope: StoredConsentEnvelope }
 	| { ok: false; issues: StorageIssue[] };
 
-/** Report of one auxiliary write. */
 export type AuxiliaryWriteReport = WriteReport;
 
-/** The record writes, bound to the first-load functions they call. */
 export interface RecordStore {
-	/**
-	 * Writes one v3 envelope to localStorage (JSON) and the cookie (compact)
-	 * under the configured key. The envelope is validated first and nothing
-	 * is written when it is malformed. Category times are written exactly
-	 * as given; this function never stamps the clock. The legacy
-	 * localStorage key is left untouched. When localStorage rejects the
-	 * write but the cookie takes it, the older localStorage copy is removed.
-	 * When only localStorage takes it, the cookie as it stands is stored
-	 * under `<key>-cookie-miss`, so a read can tell that the local copy is
-	 * newer until the cookie changes; a write that reaches the cookie
-	 * removes that marker. `written.cookie` is true only when the cookie
-	 * assignment ran and the value read back equals what was written;
-	 * `written.cookieDetail` separates a thrown assignment (`attempted:
-	 * false`, with the error) from a silent browser drop (`attempted: true,
-	 * verified: false`).
-	 */
 	writeStoredConsentEnvelope: (
 		envelope: StoredConsentEnvelope,
 		options: WriteStoredConsentOptions
 	) => WriteStoredConsentResult;
-	/**
-	 * Writes the local notice dismissal to localStorage and its compact
-	 * cookie projection. The consent record and its cookie are never
-	 * touched.
-	 */
 	writeStoredNoticeDismissal: (
 		record: StoredNoticeDismissal,
 		config: StorageConfig | undefined,
@@ -92,10 +49,6 @@ export interface RecordStore {
 	) => DecodeResult<StoredNoticeDismissal> & {
 		written?: AuxiliaryWriteReport;
 	};
-	/**
-	 * Writes the vendor denial list to localStorage and its compact cookie
-	 * projection. The consent record and its cookie are never touched.
-	 */
 	writeStoredVendorChoice: (
 		record: StoredVendorChoice,
 		config: StorageConfig | undefined,
@@ -139,12 +92,6 @@ const removeLocalStorageKey = function removeLocalStorageKey(
 	}
 };
 
-/**
- * The cookie text for a record, or `null` when a value in it has no URI
- * encoding, such as an opaque subject ID with a lone surrogate. Like
- * `<key>-sid`, such a record has no cookie copy: the write counts as one
- * the cookie refused, and localStorage keeps the record.
- */
 const cookieText = function cookieText(encode: () => string): string | null {
 	try {
 		return encode();
@@ -156,19 +103,11 @@ const cookieText = function cookieText(encode: () => string): string | null {
 	}
 };
 
-/** A cookie write that did not run: the record has no cookie text. */
 const NO_COOKIE_TEXT: CookieWriteReport = { attempted: false, verified: false };
 
-/**
- * Bind the record writes to the first-load functions they call.
- *
- * @param tools - Storage keys, validators, cookie reads and writes.
- * @returns The record writes.
- */
 export const createRecordStore = function createRecordStore(
 	tools: PersistenceTools
 ): RecordStore {
-	/** Write a cookie, unless the record has no cookie text. */
 	const writeCookieText = function writeCookieText(
 		key: string,
 		text: string | null,
@@ -180,7 +119,6 @@ export const createRecordStore = function createRecordStore(
 			: tools.writeCookie(key, text, cookie, config);
 	};
 
-	/** Write one record's localStorage copy and cookie projection. */
 	const writeBoth = function writeBoth(
 		key: string,
 		local: string,
@@ -237,7 +175,6 @@ export const createRecordStore = function createRecordStore(
 			const cookieWritten = cookieDetail.attempted && cookieDetail.verified;
 			if (cookieWritten) {
 				removeLocalStorageKey(keys.cookieMiss);
-				// The local copy is now older than the cookie.
 				if (!localStorageWritten) {
 					removeLocalStorageKey(keys.consent);
 				}
@@ -272,8 +209,6 @@ export const createRecordStore = function createRecordStore(
 				config,
 				cookie
 			);
-			// Keep the original cookie readable by older runtimes. The companion is
-			// usable only with the same acknowledgement, never as a record on its own.
 			let subjectWritten = true;
 			if (validated.record.subject) {
 				const subjectDetail = writeCookieText(

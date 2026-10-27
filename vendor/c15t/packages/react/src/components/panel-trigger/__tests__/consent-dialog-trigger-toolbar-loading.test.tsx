@@ -9,8 +9,6 @@ import { offline } from '~/transports/offline';
 
 import { ConsentDialogTrigger } from '../index';
 
-// This file never imports `~/devtools`, so nothing registers the toolbar
-// ahead of time: the trigger has to load it on demand.
 const PublishLauncher = () => {
 	const kernel = useContext(KernelContext);
 	useEffect(() => {

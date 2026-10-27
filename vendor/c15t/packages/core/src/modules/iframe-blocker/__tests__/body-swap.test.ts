@@ -14,17 +14,12 @@ afterEach(() => {
 	document.body.innerHTML = '';
 });
 
-/** Resolves after pending MutationObserver callbacks have run. */
 const flushMutations = function flushMutations(): Promise<void> {
 	return new Promise((resolve) => {
 		setTimeout(resolve, 0);
 	});
 };
 
-/**
- * Replace `<body>` with a new element, the way client routers such as
- * Astro's ClientRouter and Turbo swap in the next page.
- */
 const swapBody = function swapBody(html: string): void {
 	const incoming = document.implementation.createHTMLDocument();
 	incoming.body.innerHTML = html;
@@ -50,7 +45,6 @@ test('gates iframes in a <body> that replaced the original', async () => {
 	expect(granted?.getAttribute('src')).toBe('https://embed.example/granted');
 	expect(denied?.hasAttribute('src')).toBe(false);
 
-	// Frames added to the new body later are gated too.
 	document.body.insertAdjacentHTML(
 		'beforeend',
 		'<iframe data-category="measurement" src="https://embed.example/late"></iframe>'

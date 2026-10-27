@@ -1,11 +1,6 @@
 'use client';
 
 import styles from '@c15t/ui/styles/components/consent-manager';
-/**
- * @packageDocumentation
- * Provides the root component for the consent management interface.
- * Implements context provider pattern with theme support and state management.
- */
 import { useMemo } from 'react';
 import type { FC, ReactNode } from 'react';
 
@@ -26,85 +21,16 @@ import { useHasConsentUI } from '~/hooks';
 import { useTextDirection } from '~/hooks/use-text-direction';
 import { useTranslationLanguage } from '~/kernel-selector';
 
-/**
- * Props for the ConsentWidgetRoot component.
- *
- * @remarks
- * Extends ThemeContextValue to provide comprehensive theming support
- * while maintaining type safety for consent management specific features.
- *
- * @public
- */
 export interface ConsentWidgetRootProps extends ThemeContextValue {
-	/**
-	 * Child components to be rendered within the consent manager context.
-	 *
-	 * @remarks
-	 * - Should include ConsentWidget.Content and related components
-	 * - Receives context and theming from the root provider
-	 */
 	children: ReactNode;
 
-	/**
-	 * Determines whether to use the context provider.
-	 * If false, the component will not wrap children in a context provider.
-	 *
-	 * @defaultValue true
-	 */
 	useProvider?: boolean;
 
-	/**
-	 * @remarks
-	 * When true, removes all default styling from the banner and its children.
-	 * Useful when implementing completely custom styles.
-	 */
 	noStyle?: boolean;
 
-	/**
-	 * Override the UI source identifier sent with consent API calls.
-	 * @default 'widget'
-	 */
 	uiSource?: string;
 }
 
-/**
- * Root component of the ConsentWidget that provides context and styling.
- *
- * @remarks
- * Key features:
- * - Provides the ConsentWidget context to all child components
- * - Manages consent state through the consent manager
- * - Handles theme distribution to child components
- * - Supports animation toggling
- * - Allows complete style customization
- *
- * @example
- * Basic usage:
- * ```tsx
- * <ConsentWidget.Root>
- *   <ConsentWidget.Content>
- *     {Banner content}
- *   </ConsentWidget.Content>
- * </ConsentWidget.Root>
- * ```
- *
- * @example
- * With custom styling:
- * ```tsx
- * <ConsentWidget.Root
- *   styles={{
- *     root: "fixed bottom-0 w-full bg-white",
- *     content: "max-w-4xl mx-auto p-4",
- *     title: "text-xl font-bold",
- *     description: "mt-2 text-gray-600"
- *   }}
- * >
- *   {Banner content}
- * </ConsentWidget.Root>
- * ```
- *
- * @public
- */
 const ConsentWidgetRoot: FC<ConsentWidgetRootProps> = ({
 	children,
 	noStyle = false,
@@ -116,10 +42,6 @@ const ConsentWidgetRoot: FC<ConsentWidgetRootProps> = ({
 	const textDirection = useTextDirection(language);
 	const parentTracking = useConsentTracking();
 
-	/**
-	 * Combine consent manager state with styling configuration
-	 * to create the context value for child components
-	 */
 	const contextValue = useMemo<ThemeContextValue>(
 		() => ({
 			disableAnimation,
@@ -128,9 +50,6 @@ const ConsentWidgetRoot: FC<ConsentWidgetRootProps> = ({
 		[disableAnimation, noStyle]
 	);
 
-	// If an explicit uiSource prop is given, always use it.
-	// Otherwise, inherit from a parent context (e.g. dialog wrapping this widget).
-	// Only fall back to 'widget' when used standalone with no parent context.
 	const resolvedUiSource = uiSource ?? parentTracking.uiSource ?? 'widget';
 	const trackingContextValue = useMemo(
 		() => ({ uiSource: resolvedUiSource }),
@@ -139,8 +58,6 @@ const ConsentWidgetRoot: FC<ConsentWidgetRootProps> = ({
 	const hasConsentUI = useHasConsentUI();
 	const sheetsReady = useSurfaceSheetsReady(DIALOG_SHEETS, noStyle);
 	if (!(hasConsentUI && sheetsReady)) {
-		// No resolved policy, or a `none` rule with no right to exercise: there
-		// is nothing to manage, so render nothing.
 		return null;
 	}
 

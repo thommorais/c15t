@@ -1,32 +1,3 @@
-/**
- * Every visual value a theme can set has to reach the component through a
- * variable.
- *
- * A literal colour, font stack, shadow or radius in a component rule is a
- * value no theme and no host stylesheet can change without out-specifying
- * the rule. A component variable whose default is a literal instead of a
- * `--c15t-*` token is subtler: it can be overridden, but a `theme` never
- * reaches it, so one surface keeps c15t's defaults while the rest of the UI
- * follows the site's palette. The "Secured by" tag and the preference list's
- * font both shipped that way. So does a literal fallback on a component
- * variable nothing declares, like `var(--accordion-focus-ring, hsl(...))`:
- * the fallback is what renders.
- *
- * The categories are the ones the theme has a scale for: colours, shadows,
- * font family, font size and weight, line height, radius, spacing and motion.
- * A value passes when it comes from `var()` or is structural (`0`, `1px`
- * borders, `inherit`, `currentColor`, `transparent`). A `color-mix()` that
- * names a variable, or a `calc()` built on a theme token, follows that token,
- * so it passes too. A component variable's default is held to the rule for
- * the property its name says it stands in for (`--legal-links-gap` is
- * spacing). A theme token's own fallback is ignored: the tokens ship with the
- * stylesheet.
- *
- * Literals that predate this check are listed in
- * `design-token-baseline.json`. New ones fail. Fixing one fails the stale
- * baseline entry too, so the list only shrinks. After an intentional change,
- * regenerate it with `UPDATE_TOKEN_BASELINE=1` and review the diff.
- */
 import { readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join, relative } from 'node:path';
 
@@ -35,7 +6,6 @@ import { describe, expect, test } from 'vitest';
 const STYLES_DIR = join(__dirname, '..');
 const BASELINE_PATH = join(__dirname, 'design-token-baseline.json');
 
-/** Every `.css` file under `src/styles`, however deeply nested. */
 const sourceFiles = function sourceFiles(dir: string): string[] {
 	return readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
 		const path = join(dir, entry.name);
@@ -48,7 +18,6 @@ const sourceFiles = function sourceFiles(dir: string): string[] {
 	});
 };
 
-/** The index just past the parenthesis that closes the one at `open`. */
 const closingIndex = function closingIndex(
 	value: string,
 	open: number
@@ -66,7 +35,6 @@ const closingIndex = function closingIndex(
 	return index;
 };
 
-/** Replace each `name(...)` call, arguments included, with a placeholder. */
 const withoutCalls = function withoutCalls(
 	value: string,
 	name: string,
@@ -94,28 +62,16 @@ const withoutCalls = function withoutCalls(
 	return output;
 };
 
-/** Replace each `var(...)`, fallback included, with a placeholder. */
 const withoutVariables = function withoutVariables(value: string): string {
 	return withoutCalls(value, 'var');
 };
 
-/**
- * `withoutVariables`, with each `calc()` built on a theme token also
- * replaced: `calc(var(--c15t-radius-md) - 0.25rem)` follows the theme.
- * `calc(1.5rem * var(--space-y-reverse))` does not, so it stays.
- */
 const withoutDerived = function withoutDerived(value: string): string {
 	return withoutVariables(
 		withoutCalls(value, 'calc', (call) => !call.includes('var(--c15t-'))
 	);
 };
 
-/**
- * The fallbacks of component variables. A fallback renders whenever nothing
- * sets its variable, so it is a literal like any other. A theme token's
- * fallback is left out: the tokens ship with the stylesheet, so it never
- * applies.
- */
 const componentFallbacks = function componentFallbacks(
 	value: string
 ): string[] {
@@ -125,7 +81,6 @@ const componentFallbacks = function componentFallbacks(
 	while (index !== -1) {
 		const end = closingIndex(value, index + 'var'.length);
 		const inner = value.slice(index + 'var('.length, end - 1).trim();
-		// The first comma outside parentheses ends the variable's name.
 		let depth = 0;
 		let split = -1;
 		for (let at = 0; at < inner.length; at += 1) {
@@ -148,8 +103,6 @@ const componentFallbacks = function componentFallbacks(
 	return found.filter(Boolean);
 };
 
-/** Every CSS named colour. System colours (`Canvas`, `LinkText`) are left
- * out: forced-colours rules need them. */
 const NAMED_COLORS = `aliceblue antiquewhite aqua aquamarine azure beige bisque
 black blanchedalmond blue blueviolet brown burlywood cadetblue chartreuse
 chocolate coral cornflowerblue cornsilk crimson cyan darkblue darkcyan
@@ -179,13 +132,11 @@ const LITERAL_COLOR = new RegExp(
 	'iu'
 );
 
-/** A literal colour that is not a shade derived from a variable. */
 const hasLiteralColor = function hasLiteralColor(value: string): boolean {
 	const stripped = withoutVariables(value);
 	if (!LITERAL_COLOR.test(stripped)) {
 		return false;
 	}
-	// `color-mix(in srgb, var(--x) 85%, black)` follows the token it mixes.
 	return !(/color-mix\(/iu.test(value) && stripped.includes('VAR'));
 };
 
@@ -219,10 +170,6 @@ const COLOR_PROPERTIES = new Set([
 const SPACING_PROPERTY =
 	/^(?:padding|margin|gap|row-gap|column-gap)(?:-(?:top|right|bottom|left|inline|block|inline-start|inline-end|block-start|block-end))?$/u;
 
-/**
- * A number outside `var()` and token arithmetic that is design rather than
- * structure. Structure is 0, hairlines, 1 and the full-round values.
- */
 const hasDesignNumber = function hasDesignNumber(value: string): boolean {
 	return withoutDerived(value)
 		.split(/[\s,/()]+/u)
@@ -238,20 +185,17 @@ const hasDesignNumber = function hasDesignNumber(value: string): boolean {
 		);
 };
 
-/** Keywords that pick a size or weight the theme's scale does not set. */
 const FONT_KEYWORDS: Record<string, RegExp> = {
 	'font-size':
 		/(?<![\w-])(?:(?:xx?x?-)?(?:small|large)|medium|smaller|larger)(?![\w-])/u,
 	'font-weight': /(?<![\w-])(?:bold|bolder|lighter)(?![\w-])/u,
 };
 
-/** Why a typography declaration bypasses the theme, or `undefined`. */
 const fontViolation = function fontViolation(
 	property: string,
 	value: string
 ): string | undefined {
 	const bare = withoutVariables(value).trim();
-	// `font` sets family, size, weight and line height at once.
 	if (property === 'font-family' || property === 'font') {
 		return bare === 'VAR' || bare === 'inherit' ? undefined : property;
 	}
@@ -269,10 +213,6 @@ const FONT_PROPERTIES = new Set([
 	'line-height',
 ]);
 
-/**
- * Why a declaration in a component rule is a literal the theme cannot reach,
- * or `undefined` when it is fine.
- */
 const ruleViolation = function ruleViolation(
 	property: string,
 	value: string
@@ -295,8 +235,6 @@ const ruleViolation = function ruleViolation(
 	if (SPACING_PROPERTY.test(property) && hasDesignNumber(value)) {
 		return 'spacing';
 	}
-	// The theme has an easing token for each of these keywords; `linear` and
-	// `steps()` are left alone, since no token stands for them.
 	if (
 		/^(?:transition|animation)(?:-duration|-timing-function)?$/u.test(
 			property
@@ -310,10 +248,6 @@ const ruleViolation = function ruleViolation(
 	return undefined;
 };
 
-/**
- * The property a component variable stands in for, read from its name:
- * `--legal-links-gap` is spacing, `--iab-cd-title-font-size` a font size.
- */
 const VARIABLE_PROPERTIES: readonly (readonly [RegExp, string])[] = [
 	[/font-family/u, 'font-family'],
 	[/font-size/u, 'font-size'],
@@ -327,11 +261,6 @@ const VARIABLE_PROPERTIES: readonly (readonly [RegExp, string])[] = [
 	],
 ];
 
-/**
- * Why a component variable's default bypasses the theme, or `undefined`.
- * A literal colour is caught whatever the variable is for; anything else is
- * held to the rule for the property its name says it stands in for.
- */
 const variableViolation = function variableViolation(
 	name: string,
 	value: string
@@ -352,7 +281,6 @@ interface Declaration {
 	value: string;
 }
 
-/** Declarations outside `@keyframes`, with the innermost selector. */
 const declarations = function declarations(path: string): Declaration[] {
 	const file = relative(STYLES_DIR, path);
 	const source = readFileSync(path, 'utf8').replace(/\/\*[\s\S]*?\*\//gu, '');
@@ -399,10 +327,6 @@ const declarations = function declarations(path: string): Declaration[] {
 	return found;
 };
 
-/**
- * Every reason one declaration bypasses the theme: the value itself, then
- * each component-variable fallback inside it.
- */
 const declarationViolations = function declarationViolations(
 	property: string,
 	value: string
@@ -425,21 +349,14 @@ const declarationViolations = function declarationViolations(
 	return [...new Set(reasons)];
 };
 
-/** A `px` length: `14px`, `0.5px`, `-2px`. */
 const PX_LENGTH = /(?<![\w.-])-?(?:\d+\.?\d*|\.\d+)px(?![\w-])/u;
 
-/** Every custom property a value reads, fallbacks included. */
 const variableReferences = function variableReferences(value: string) {
 	return [...value.matchAll(/var\(\s*(?<name>--[\w-]+)/gu)].map(
 		(match) => match.groups?.name ?? ''
 	);
 };
 
-/**
- * Whether a property sizes text. `sizeVariables` holds the variables text
- * sizes read whatever their name, such as
- * `--consent-dialog-branding-label-size`.
- */
 const sizesText = function sizesText(
 	property: string,
 	sizeVariables: ReadonlySet<string>
@@ -452,12 +369,6 @@ const sizesText = function sizesText(
 	);
 };
 
-/**
- * Whether a declaration sizes text in `px`, which ignores the visitor's
- * text-size setting while the rest of the UI follows it. Every `var()`
- * fallback counts, a theme token's included: `--c15t-font-size-xs` is an
- * override hook no theme declares, so its fallback is what renders.
- */
 const setsPxFontSize = function setsPxFontSize(
 	property: string,
 	value: string,
@@ -466,10 +377,6 @@ const setsPxFontSize = function setsPxFontSize(
 	return sizesText(property, sizeVariables) && PX_LENGTH.test(value);
 };
 
-/**
- * The variables a text size reads, followed through each variable that
- * reads another, so an alias of an alias still counts.
- */
 const textSizeVariables = function textSizeVariables(
 	found: readonly Declaration[]
 ): Set<string> {
@@ -548,7 +455,6 @@ describe('design token literals', () => {
 });
 
 describe('text sizes', () => {
-	// No baseline: every font size in the stylesheet is already in rem.
 	test('use rem, not px, so they follow the visitor text size', () => {
 		expect(
 			findPxFontSizes(),
@@ -676,12 +582,10 @@ describe('the literal detector', () => {
 				'calc(var(--c15t-radius-lg) * 5 / 3)'
 			)
 		).toEqual([]);
-		// Named for a property the theme has no scale for.
 		expect(declarationViolations('--switch-width', '2rem')).toEqual([]);
 	});
 
 	test("flags a component variable's literal fallback", () => {
-		// Nothing declares `--accordion-focus-ring`, so the fallback renders.
 		expect(
 			declarationViolations(
 				'outline',
@@ -700,7 +604,6 @@ describe('the literal detector', () => {
 	});
 
 	test("accepts a theme token's fallback and a fallback to a token", () => {
-		// The tokens ship with the stylesheet, so their fallback never renders.
 		expect(declarationViolations('color', 'var(--c15t-text, #171717)')).toEqual(
 			[]
 		);

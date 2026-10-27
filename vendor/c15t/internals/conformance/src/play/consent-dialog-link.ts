@@ -1,9 +1,6 @@
 import { expect, userEvent, within } from 'storybook/test';
 import type { PlayFunction } from 'storybook/types';
 
-/**
- * Tabs to the consent link, presses Enter, and verifies the dialog opens.
- */
 export const linkOpensDialog: PlayFunction = async ({ canvasElement }) => {
 	const canvas = within(canvasElement);
 	await userEvent.tab();

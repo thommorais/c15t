@@ -1,7 +1,3 @@
-/**
- * Google ad tech providers can be the only partners of a purpose they need,
- * so a purpose row counts and lists them with its vendors.
- */
 import styles from '@c15t/ui/styles/components/iab-consent-dialog';
 import { describe, expect, test, vi } from 'vitest';
 import { render } from 'vitest-browser-react';

@@ -1,21 +1,5 @@
-/**
- * Canonical consent request-input extraction.
- *
- * THE single source of truth for which HTTP headers carry consent-relevant
- * request context (geo, language, GPC) and in which precedence order.
- * Framework packages must not re-declare these lists or re-implement the
- * extraction — they use their framework-native API to OBTAIN the raw
- * headers, then call into here to INTERPRET them. (An audit
- * found four diverged hand-rolled copies of these rules.)
- *
- * Precedence rule: the explicit `x-c15t-*` override headers ALWAYS win
- * over infrastructure-derived headers (Cloudflare, Vercel, CloudFront,
- * generic proxies). Infra order after that: Cloudflare → Vercel →
- * CloudFront → generic.
- */
 import { parseAcceptLanguage } from '@c15t/translations';
 
-/** Country headers, highest priority first. `x-c15t-country` always wins. */
 export const COUNTRY_HEADERS = [
 	'x-c15t-country',
 	'cf-ipcountry',
@@ -25,7 +9,6 @@ export const COUNTRY_HEADERS = [
 	'x-country',
 ] as const;
 
-/** Region headers, highest priority first. `x-c15t-region` always wins. */
 export const REGION_HEADERS = [
 	'x-c15t-region',
 	'cf-region-code',
@@ -33,18 +16,6 @@ export const REGION_HEADERS = [
 	'x-region-code',
 ] as const;
 
-/**
- * Every header name that carries a consent request input. This is the
- * canonical allowlist for forwarding to a c15t backend and for cache-key
- * derivation. Framework adapters may append transport-specific extras
- * (e.g. `user-agent`, prefetch hints) but must include all of these.
- */
-/**
- * GPC headers, highest priority first. `x-c15t-gpc` is the application
- * override: browsers refuse to let scripts set `Sec-*` request headers, so a
- * client that needs to assert a GPC value on its own init request sends it
- * here, and the user agent's `Sec-GPC` remains the browser-provided signal.
- */
 export const GPC_HEADERS = ['x-c15t-gpc', 'sec-gpc'] as const;
 
 export const CONSENT_REQUEST_HEADER_NAMES = [
@@ -54,16 +25,9 @@ export const CONSENT_REQUEST_HEADER_NAMES = [
 	...GPC_HEADERS,
 ] as const;
 
-/** Consent-relevant context extracted from request headers. */
 export interface ConsentRequestHeaderInputs {
 	country?: string;
 	region?: string;
-	/**
-	 * Primary language subtag, lowercase (`de`, not `de-DE`) — the shape
-	 * translation selection and the backend resolver operate on. Derived
-	 * from the full q-value-aware Accept-Language negotiation in
-	 * `@c15t/translations`, not a naive first-token split.
-	 */
 	language?: string;
 	gpc?: boolean;
 }
@@ -94,7 +58,6 @@ const pickHeader = function pickHeader(
 	return undefined;
 };
 
-/** Parse a `Sec-GPC` header value. Only `'1'`/`'0'` are meaningful. */
 export const parseGlobalPrivacyControl = function parseGlobalPrivacyControl(
 	value: string | null | undefined
 ): boolean | undefined {
@@ -107,13 +70,6 @@ export const parseGlobalPrivacyControl = function parseGlobalPrivacyControl(
 	return undefined;
 };
 
-/**
- * Extract the consent request inputs from request headers.
- *
- * Accepts either a `Headers` instance or a plain lowercase-keyed record so
- * every server runtime (Next.js, SvelteKit, Nitro/H3, edge, Node) can feed
- * whatever its native API returns.
- */
 export const extractConsentRequestInputs = function extractConsentRequestInputs(
 	headers: HeaderSource,
 	overrides: Partial<ConsentRequestHeaderInputs> = {}
@@ -129,10 +85,6 @@ export const extractConsentRequestInputs = function extractConsentRequestInputs(
 	};
 };
 
-/**
- * Inputs → kernel-overrides record, dropping absent fields. Shared by the
- * server helpers that seed `KernelConfig.initialOverrides`.
- */
 export const consentInputsToOverrides = function consentInputsToOverrides(
 	inputs: ConsentRequestHeaderInputs
 ): Record<string, string | boolean> {
@@ -162,12 +114,6 @@ export const headersToRecord = function headersToRecord(
 	return record;
 };
 
-/**
- * Resolves country and region from common geo IP headers.
- *
- * @deprecated Use {@link extractConsentRequestInputs} — same precedence,
- * plus language and GPC. Kept for the backend's existing call sites.
- */
 export const getRegionFromHeaders = function getRegionFromHeaders(
 	headers: Record<string, string | undefined>
 ): {
@@ -183,8 +129,6 @@ export const getRegionFromHeaders = function getRegionFromHeaders(
 	};
 };
 
-// Client IP derivation lives alongside geo: both recover request metadata
-// from proxy headers, and both are shared so two backends cannot disagree.
 export {
 	DEFAULT_IP_HEADERS_LIST,
 	getIpAddress,
@@ -192,8 +136,6 @@ export {
 	maskIpAddress,
 } from './client-ip';
 
-// Origin allowlisting: shared for the same reason as the rest of this
-// module — a security decision that two live backends must not disagree on.
 export { getAppScheme } from './app-scheme';
 export {
 	isOriginTrusted,

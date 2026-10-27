@@ -41,9 +41,6 @@ interface QueuedEntry {
 
 let store: SaveOutboxStore;
 
-// The outbox loads its queue code on first use. Under a loaded, instrumented
-// run that first import can outlast a test's one-second `vi.waitFor`, and the
-// replay then lands in the next test. Load it once up front.
 await import('../save-outbox/queue');
 
 beforeEach(() => {
@@ -55,7 +52,6 @@ afterEach(() => {
 	vi.restoreAllMocks();
 });
 
-/** A kernel whose outbox keeps its queue in `outboxStore`. */
 const kernelOn = function kernelOn(
 	config: KernelConfig,
 	outboxStore: SaveOutboxStore = store
@@ -75,7 +71,6 @@ const editQueue = function editQueue(
 	});
 };
 
-/** The clear every adapter runs: records nulled, then announced. */
 const clearRecords = function clearRecords(kernel: InternalKernel): void {
 	kernel.hydrate({
 		choice: null,
@@ -93,7 +88,6 @@ const refused = (code: string) =>
 		status: 409,
 	});
 
-/** A save the backend accepts, echoing the subject it was sent under. */
 const accepted = ({ subjectId }: { subjectId: string }) =>
 	Promise.resolve({ ok: true, subjectId });
 
@@ -177,7 +171,6 @@ describe('save outbox: queue and replay', () => {
 
 		const initResult = await kernel.commands.init();
 		expect(initResult.ok).toBe(true);
-		// The replay reads the store first, so it starts after init resolved.
 		await vi.waitFor(() => {
 			expect(saveSpy).toHaveBeenCalledTimes(2);
 		});
@@ -232,7 +225,6 @@ describe('save outbox: queue and replay', () => {
 		await kernel.commands.save('none');
 		expect(await queued()).toEqual([]);
 
-		// The stale 'all' must never reach the backend after 'none' did.
 		await kernel.commands.init();
 		await new Promise((resolve) => {
 			setTimeout(resolve, 0);
@@ -279,7 +271,6 @@ describe('save outbox: queue and replay', () => {
 			transport: { save: saveSpy },
 		});
 
-		// Init marks the kernel live, so the visible banner is an impression.
 		await kernel.commands.init();
 		expect(kernel.getSnapshot().surfaceShownAt.banner).toBe(1_700_000_000_000);
 
@@ -355,9 +346,6 @@ describe('save outbox: queue and replay', () => {
 	});
 
 	test('replay skips an entry another tab already replayed', async () => {
-		// Transactions, in order: enqueue, the replay's "anything queued?"
-		// read, its listing, the per-entry check. Another tab drains the
-		// queue right before the per-entry check.
 		let transactions = 0;
 		const racing: SaveOutboxStore = {
 			clear: store.clear,
@@ -500,8 +488,6 @@ describe('save outbox: queue and replay', () => {
 		tabA.dispose();
 		tabB.dispose();
 
-		// A fresh kernel replays the shared queue: sub_a succeeds, sub_b fails
-		// and must survive the bookkeeping for sub_a's success.
 		const replaySave = vi.fn(({ subjectId }: { subjectId: string }) =>
 			subjectId === 'sub_b'
 				? Promise.reject(new Error('still offline'))
@@ -672,7 +658,6 @@ describe('save outbox: online retry', () => {
 			await vi.waitFor(() => expect(save).toHaveBeenCalledTimes(2));
 			window.dispatchEvent(new Event('online'));
 			await vi.waitFor(() => expect(delivered).toHaveLength(1));
-			// Let the replay finish traversing the queue after the older receipt.
 			await new Promise((resolve) => {
 				setTimeout(resolve, 0);
 			});
@@ -805,7 +790,6 @@ describe('save outbox: refusals', () => {
 		expect(await queued()).toEqual([]);
 		expect(errors).toHaveLength(1);
 		expect(isConsentSaveRejection(errors[0])).toBe(true);
-		// The choice is still recorded in the browser.
 		expect(kernel.getSnapshot().explicitChoice).not.toBeNull();
 		kernel.dispose();
 	});
@@ -820,14 +804,11 @@ describe('save outbox: refusals', () => {
 			transport: { init: vi.fn().mockResolvedValue({}), save: saveSpy },
 		});
 
-		// An offline grant is queued, then the visitor rejects everything and
-		// the backend refuses that newer choice for good.
 		await kernel.commands.save('all');
 		expect(await queued()).toHaveLength(1);
 		await kernel.commands.save('none');
 
 		expect(await queued()).toEqual([]);
-		// The stale grant never replays on the next load.
 		await kernel.commands.init();
 		await new Promise((resolve) => {
 			setTimeout(resolve, 20);
@@ -853,7 +834,6 @@ describe('save outbox: refusals', () => {
 		await kernel.commands.save('all');
 		expect(await queued()).toHaveLength(1);
 
-		// Back online two hours later; the backend refuses the replay.
 		vi.setSystemTime(1_800_000_000_000 + 2 * 60 * 60 * 1000);
 		await kernel.commands.init();
 		await vi.waitFor(() => {
@@ -861,7 +841,6 @@ describe('save outbox: refusals', () => {
 		});
 		expect(await queued()).toEqual([]);
 
-		// Nothing is left to replay on the next load.
 		await kernel.commands.init();
 		await new Promise((resolve) => {
 			setTimeout(resolve, 20);
@@ -897,9 +876,6 @@ describe('save outbox: refusals', () => {
 
 describe('save outbox: subject reassignment', () => {
 	test('a subject id another tenant owns is replaced and the choice sent again', async () => {
-		// On a shared database, `subject.id` is unique across tenants. A
-		// visitor whose id another tenant holds is refused on every save; a
-		// new id is the only way their choice is ever recorded.
 		const saveSpy = vi
 			.fn()
 			.mockRejectedValueOnce(refused('SUBJECT_CONFLICT'))
@@ -922,7 +898,6 @@ describe('save outbox: subject reassignment', () => {
 		expect(retried.subjectId).not.toBe(refusedId);
 		expect(retried.subjectId).toMatch(/^sub_/u);
 		expect(retried.subject.subjectId).toBe(retried.subjectId);
-		// The same act, only under the new id.
 		expect({ ...retried, subject: null, subjectId: null }).toEqual({
 			...saveSpy.mock.calls[0]?.[0],
 			subject: null,
@@ -930,7 +905,6 @@ describe('save outbox: subject reassignment', () => {
 		});
 		expect(result).toMatchObject({ ok: true, subjectId: retried.subjectId });
 		expect(kernel.getSnapshot().subject?.subjectId).toBe(retried.subjectId);
-		// Persistence writes the new id on `subject:resolved`.
 		expect(resolved).toEqual([retried.subjectId]);
 		expect(errors).toEqual([]);
 		expect(await queued()).toEqual([]);
@@ -951,7 +925,6 @@ describe('save outbox: subject reassignment', () => {
 
 		expect(saveSpy).toHaveBeenCalledTimes(2);
 		expect(errors).toHaveLength(1);
-		// Refused for good, so nothing is queued to replay.
 		expect(await queued()).toEqual([]);
 		kernel.dispose();
 	});
@@ -993,8 +966,6 @@ describe('save outbox: subject reassignment', () => {
 	});
 
 	test('a queued save for a subject the visitor no longer has is dropped, not moved', async () => {
-		// Moving it would record the old subject's choice under whoever holds
-		// the snapshot now.
 		const saveSpy = vi
 			.fn()
 			.mockRejectedValueOnce(new Error('save offline'))
@@ -1022,8 +993,6 @@ describe('save outbox: subject reassignment', () => {
 	});
 
 	test('queued saves under a replaced subject id move with it', async () => {
-		// An earlier choice still waiting to replay would otherwise be sent
-		// under the refused id and dropped.
 		const saveSpy = vi
 			.fn()
 			.mockRejectedValueOnce(new Error('save offline'))
@@ -1031,8 +1000,6 @@ describe('save outbox: subject reassignment', () => {
 			.mockImplementation(accepted);
 		const kernel = kernelOn({ transport: { save: saveSpy } });
 
-		// Disjoint categories, so the second act does not supersede the first
-		// and the queued one is still owed a replay.
 		await kernel.commands.save({ marketing: true });
 		const queuedId = kernel.getSnapshot().subject?.subjectId;
 		await kernel.commands.save({ measurement: false });
@@ -1050,8 +1017,6 @@ describe('save outbox: subject reassignment', () => {
 	});
 
 	test('every queued save for a reassigned subject replays in the same run', async () => {
-		// The queue moves all of them at once. Skipping the rest until the next
-		// page load would leave an online visitor's choices unrecorded.
 		const saveSpy = vi
 			.fn()
 			.mockRejectedValueOnce(new Error('save offline'))
@@ -1099,7 +1064,6 @@ describe('save outbox: subject reassignment', () => {
 	});
 
 	test('a visitor set back to the refused id moves to the same new one', async () => {
-		// Returning null here would drop a choice the kernel knows how to save.
 		const saveSpy = vi.fn(({ subjectId }: { subjectId: string }) =>
 			subjectId === 'sub_taken'
 				? Promise.reject(refused('SUBJECT_CONFLICT'))
@@ -1125,8 +1089,6 @@ describe('save outbox: subject reassignment', () => {
 	});
 
 	test('a visitor refused again after a reset gets a new id, not the old replacement', async () => {
-		// Reusing the pre-reset replacement would tie the visitor's new history
-		// to the subject they reset away from.
 		const saveSpy = vi.fn(({ subjectId }: { subjectId: string }) =>
 			subjectId === 'sub_taken'
 				? Promise.reject(refused('SUBJECT_CONFLICT'))
@@ -1153,10 +1115,6 @@ describe('save outbox: subject reassignment', () => {
 	});
 
 	test('a save queued under an id another tab already replaced follows it after a reload', async () => {
-		// Tab A moves the visitor off `sub_s1`. Tab B, still on it, queues a
-		// save while offline, then reloads onto the new subject. The replay is
-		// refused for `sub_s1`; dropping it would lose a choice the recorded
-		// reassignment says belongs to the current subject.
 		const conflictUnlessMoved = vi.fn(({ subjectId }: { subjectId: string }) =>
 			subjectId === 'sub_s1'
 				? Promise.reject(refused('SUBJECT_CONFLICT'))
@@ -1203,9 +1161,6 @@ describe('save outbox: subject reassignment', () => {
 	});
 
 	test('a visitor switched while the claim waits for the store keeps their queued saves', async () => {
-		// The claim runs in a store transaction, and waiting for it can take
-		// long enough for the subject to change. Moving the queue then would
-		// hand the previous subject's saves to a replacement nobody holds.
 		let openGate: () => void = () => {};
 		let gate: Promise<void> = Promise.resolve();
 		const gated: SaveOutboxStore = {
@@ -1254,9 +1209,6 @@ describe('save outbox: subject reassignment', () => {
 	});
 
 	test('a reassignment outlives its age limit while a save for the old id still waits', async () => {
-		// Recorded on day 0; a stale tab queues a save under the old id on day
-		// 6, and that save may wait until day 13. Expiring the record on day 7
-		// would leave the replay nothing to follow, and the save would drop.
 		const DAY = 24 * 60 * 60 * 1000;
 		const start = 1_800_000_000_000;
 		vi.useFakeTimers({ now: start, toFake: ['Date'] });
@@ -1303,16 +1255,12 @@ describe('save outbox: subject reassignment', () => {
 	});
 
 	test("the same visitor's choice changing while a replay's claim waits does not drop the save", async () => {
-		// A server merge or another tab's save advances the records generation
-		// without moving the subject. A queued save does not belong to a
-		// generation, so only a subject change should stop its claim.
 		let conflictSeen = false;
 		let openGate: () => void = () => {};
 		const gate = new Promise<void>((resolve) => {
 			openGate = resolve;
 		});
 		let claimWaiting = false;
-		// Holds the first transaction after the refusal: the claim.
 		const gated: SaveOutboxStore = {
 			clear: store.clear,
 			async transact(run) {
@@ -1366,8 +1314,6 @@ describe('save outbox: subject reassignment', () => {
 	});
 
 	test('two tabs refused for the same subject move to one new id', async () => {
-		// Each tab picking its own id would leave one of them persisting a
-		// subject the backend holds no consent for.
 		const saveSpy = vi.fn(({ subjectId }: { subjectId: string }) =>
 			subjectId === 'sub_shared_tab'
 				? Promise.reject(refused('SUBJECT_CONFLICT'))
@@ -1401,9 +1347,6 @@ describe('save outbox: subject reassignment', () => {
 
 describe('save outbox: queue module loading', () => {
 	test('a failed save is kept when the queue module cannot load', async () => {
-		// The queue code loads on demand. When the network that failed the
-		// save also fails that load, the save is appended as is and the next
-		// replay normalizes and sends it.
 		const save = vi
 			.fn()
 			.mockRejectedValueOnce(new Error('save offline'))
@@ -1460,7 +1403,6 @@ describe('save outbox: queue module loading', () => {
 			});
 			await kernel.commands.init();
 			await kernel.commands.save('all');
-			// Confirms no category and no vendors, so no newer save supersedes it.
 			expect(save.mock.calls[0]?.[0].confirmed.categories).toEqual({});
 			expect(save.mock.calls[0]?.[0].vendorChoice).toBeUndefined();
 			expect(await queued()).toEqual([]);
@@ -1502,14 +1444,12 @@ describe('save outbox: queue module loading', () => {
 
 			const grant = kernel.commands.save('all');
 			await vi.waitFor(() => expect(save).toHaveBeenCalledOnce());
-			// Storage fills up before the visitor opts out of marketing.
 			full = true;
 			await kernel.commands.save({ marketing: false });
 			full = false;
 			answer();
 			await grant;
 
-			// The queued grant would replay marketing over the newer opt-out.
 			expect(await queued()).toEqual([]);
 			kernel.dispose();
 		}
@@ -1518,9 +1458,6 @@ describe('save outbox: queue module loading', () => {
 
 describe('save outbox: clearing records', () => {
 	test('clearing records without persistence drops the queued saves', async () => {
-		// Persistence used to be the only path that emptied the queue, so a
-		// runtime without it replayed the cleared subject's choice into the
-		// new history.
 		const saveSpy = vi
 			.fn()
 			.mockRejectedValueOnce(new Error('save offline'))
@@ -1544,13 +1481,8 @@ describe('save outbox: clearing records', () => {
 	});
 
 	test('a failed save waiting for the store when records are cleared is not queued', async () => {
-		// Another tab holds the store while this save fails; the visitor
-		// clears their records meanwhile. Queueing the save afterwards would
-		// bring the cleared choice back on the next replay.
 		let waiting = false;
 		let release: () => void = () => {};
-		// Holds the first transaction, the failed save's enqueue; later ones
-		// (the clear) go straight through.
 		const gated: SaveOutboxStore = {
 			clear: store.clear,
 			async transact(run) {
@@ -1818,8 +1750,6 @@ describe('save outbox: development warnings', () => {
 		'a save the transport %s does not warn when records are cleared before it is queued',
 		async (_label, save) => {
 			const warn = silencedWarn();
-			// Another tab holds the store while the save fails, and the visitor
-			// clears their records meanwhile, so the enqueue writes nothing.
 			let waiting = false;
 			let release: () => void = () => {};
 			const gated: SaveOutboxStore = {
@@ -1896,7 +1826,6 @@ describe('save outbox: development warnings', () => {
 describe('save outbox: replay failures and dropped saves', () => {
 	const offline = new Error('save offline');
 
-	/** A kernel whose first save failed, and what it reports from then on. */
 	const withQueuedSave = async function withQueuedSave(
 		save: KernelTransport['save'] = vi.fn().mockRejectedValue(offline),
 		outboxStore: SaveOutboxStore = store
@@ -1995,7 +1924,6 @@ describe('save outbox: replay failures and dropped saves', () => {
 			errors[0]
 		);
 
-		// Later reads find nothing left to drop.
 		await kernel.commands.init();
 		await new Promise((resolve) => {
 			setTimeout(resolve, 0);
@@ -2011,8 +1939,6 @@ describe('save outbox: replay failures and dropped saves', () => {
 	])(
 		'a save that %s is reported only once storage takes the removal',
 		async (_label, edit) => {
-			// Storage that refuses writes keeps the entry, so it is not dropped
-			// yet, and reporting it would report it again on the next replay.
 			let refuse = false;
 			let refusedWrites = 0;
 			const refusing: SaveOutboxStore = {

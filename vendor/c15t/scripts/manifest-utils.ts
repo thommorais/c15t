@@ -5,7 +5,6 @@ export interface PackageManifest {
 	name?: string;
 	private?: boolean;
 	scripts?: Record<string, string>;
-	/** The dependency sections an installer obeys. `devDependencies` is absent on purpose. */
 	dependencies?: Record<string, string>;
 	peerDependencies?: Record<string, string>;
 	optionalDependencies?: Record<string, string>;

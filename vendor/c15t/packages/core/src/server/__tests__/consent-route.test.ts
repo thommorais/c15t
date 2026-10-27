@@ -1,10 +1,3 @@
-/**
- * Contract suite for the consent route handler every server adapter mounts.
- *
- * Next.js, TanStack Start, SvelteKit, Astro and Nuxt each used to carry
- * their own copy of these routes, and the copies drifted. Each test here
- * pins one rule for all of them; the adapters only test their wiring.
- */
 import type {
 	ConsentManifest,
 	GlobalVendorList,
@@ -104,7 +97,6 @@ const json = function json(
 	});
 };
 
-/** A fetch that serves the manifest, the vendor list and session reports. */
 const upstream = function upstream(
 	manifest: ConsentManifest = MANIFEST,
 	manifestHeaders: Record<string, string> = {
@@ -334,7 +326,6 @@ describe('manifest route', () => {
 			'Tue, 01 Sep 2026 00:00:00 GMT'
 		);
 		expect(response.headers.get('content-language')).toBe('en');
-		// The body depends only on the URL.
 		expect(response.headers.get('vary')).toBeNull();
 		expect(await response.json()).toEqual(MANIFEST);
 
@@ -664,7 +655,6 @@ describe('init route', () => {
 				expect(body).not.toHaveProperty(field);
 			}
 			expect(body.translations.language).toBe('en');
-			// No vendor list for a client that cannot represent the policy.
 			expect(calledURLs(gvlFetch).some((url) => url.startsWith(GVL_URL))).toBe(
 				false
 			);
@@ -734,7 +724,6 @@ describe('Google Additional Consent providers', () => {
 		expect(calledURLs(optIn).some((url) => url.startsWith(AC_URL))).toBe(false);
 	});
 
-	/** The provider manifest with a relative endpoint, and its answer. */
 	const relativeEndpoint = (path: string) => {
 		const manifest = {
 			...IAB_MANIFEST,
@@ -800,8 +789,6 @@ describe('Google Additional Consent providers', () => {
 		await first(request('/api/c15t/init'), { localFetch: nextRequest });
 		expect(firstLocal).toHaveBeenCalledOnce();
 		expect(secondLocal).toHaveBeenCalledOnce();
-		// Adapters pass a new localFetch per request; the handler's cache
-		// still serves the list it loaded.
 		expect(nextRequest).not.toHaveBeenCalled();
 	});
 
@@ -883,7 +870,6 @@ describe('vendor list', () => {
 			'gvl is down'
 		);
 		await flush();
-		// No resolution was served, so none is reported.
 		expect(calledURLs(fetch).some((url) => url.endsWith('/sessions'))).toBe(
 			false
 		);
@@ -1055,8 +1041,6 @@ describe('request budget', () => {
 	test('fails within the budget header without falling back to /init', async () => {
 		const fetch = vi.fn<ManifestFetch>(hanging);
 		const startedAt = Date.now();
-		// The cache gets what is left of the header's 20 ms, which is less
-		// once a millisecond ticks before the read starts.
 		await expect(
 			route({ fetch })(
 				request('/api/c15t/init', {
@@ -1097,7 +1081,6 @@ describe('request budget', () => {
 			String(url).endsWith('/manifest')
 				? Promise.resolve(new Response('missing', { status: 404 }))
 				: new Promise(() => {
-						// Never answers.
 					})
 		);
 		const startedAt = Date.now();
@@ -1210,8 +1193,6 @@ describe('/init fallback for a backend without /manifest', () => {
 	});
 
 	test('forwards the browser query overrides to backend /init as headers', async () => {
-		// Server to server there is no CORS, and every backend version reads
-		// the headers.
 		const localFetch = backendInit({
 			location: { countryCode: null, regionCode: null },
 			translations: { language: 'en', translations: {} },
@@ -1242,17 +1223,14 @@ describe('/init fallback for a backend without /manifest', () => {
 				fetch.mock.calls.findLast(([url]) => String(url).includes('/init'))?.[1]
 					?.headers
 			).get('origin');
-		// A same-origin GET carries no Origin: the request URL is the page's.
 		await handle(request(`/api/c15t/init${query}`));
 		expect(lastInitOrigin()).toBe(APP);
-		// One the browser sent wins.
 		await handle(
 			request(`/api/c15t/init${query}`, {
 				headers: { origin: 'https://www.example.org' },
 			})
 		);
 		expect(lastInitOrigin()).toBe('https://www.example.org');
-		// Without a journey nothing is added.
 		await handle(request('/api/c15t/init'));
 		expect(lastInitOrigin()).toBeNull();
 	});
@@ -1265,7 +1243,6 @@ describe('/init fallback for a backend without /manifest', () => {
 			privacyPolicyUrl: 'https://acme.example/privacy',
 		};
 		const fetch = backendInit({
-			// A v2 backend still sends the jurisdiction label; v3 drops it.
 			jurisdiction: 'GDPR',
 			location: { countryCode: 'DE', regionCode: null },
 			resolvedPrivacySignals: { gpc: true },
@@ -1385,7 +1362,6 @@ describe('/init fallback for a backend without /manifest', () => {
 		const handle = route({ fetch });
 		await expect(handle(request('/api/c15t/init'))).rejects.toThrow(/503/u);
 		await expect(handle(request('/api/c15t/init'))).rejects.toThrow();
-		// The first request tried the manifest and fell back to /init once.
 		expect(fetch).toHaveBeenCalledTimes(2);
 	});
 

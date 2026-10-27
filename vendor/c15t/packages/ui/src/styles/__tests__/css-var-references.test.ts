@@ -1,18 +1,3 @@
-/**
- * A `var(--c15t-…)` with no fallback is only as good as the token behind it.
- *
- * The variable names are produced by the resolver table in `theme/utils.ts`, so
- * a stylesheet that reaches for a plausible-sounding neighbour of a real token
- * gets nothing: `--c15t-font-weight-regular` next to a real
- * `--c15t-font-weight-normal`, or `--c15t-shadow-xl` above the top of a scale
- * that ends at `lg`. CSS does not error on that. The declaration becomes
- * invalid at computed-value time, the property falls back to its inherited or
- * initial value, and a surface quietly loses a weight or its elevation while
- * every build and type check stays green.
- *
- * Both have happened. These read the built stylesheets, so
- * `bun run --cwd packages/ui build` (which `test` depends on) must have run.
- */
 import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 
@@ -33,7 +18,6 @@ const read = function read(path: string): string {
 	return readFileSync(path, 'utf8');
 };
 
-/** Every `.css` file under `src/styles`, however deeply nested. */
 const sourceFiles = function sourceFiles(dir: string): string[] {
 	return readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
 		const path = join(dir, entry.name);
@@ -46,12 +30,6 @@ const sourceFiles = function sourceFiles(dir: string): string[] {
 	});
 };
 
-/**
- * The name inside each `var()` that carries no fallback, so a nested
- * `var(--c15t-shadow-xl, 0 20px 25px -5px rgb(0 0 0 / 0.1))` is allowed to name
- * a token that does not exist: an override hook with a working default is the
- * pattern `panel-trigger.module.css` uses on purpose.
- */
 const fallbacklessReferences = function fallbacklessReferences(source: string) {
 	const names: string[] = [];
 
@@ -95,7 +73,6 @@ const fallbacklessReferences = function fallbacklessReferences(source: string) {
 	return names;
 };
 
-/** Variables the published sheets actually declare. */
 const declared = new Set(
 	ENTRYPOINTS.flatMap((entrypoint) => {
 		const sheet = read(join(DIST_DIR, entrypoint));
@@ -145,9 +122,6 @@ describe('stylesheet variable references', () => {
 		).toEqual([]);
 	});
 
-	// A motion variable with a fallback still has to be a real token: the
-	// fallback renders, so a theme's `motion` never reaches the part. The
-	// floating trigger read `--c15t-motion-duration` and friends that way.
 	test('every var(--c15t-*) motion reference names a declared token', () => {
 		const dangling = files.flatMap((file) =>
 			[

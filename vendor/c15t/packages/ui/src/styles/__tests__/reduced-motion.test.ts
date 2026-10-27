@@ -1,22 +1,3 @@
-/**
- * Under `prefers-reduced-motion: reduce`, every rule that animates a part
- * has to lose to one that stops it.
- *
- * A reduced-motion rule wins only on specificity and source order. The
- * banner's entry rules were written as `.bannerEnterActive:not(.headless)`
- * while their reduced-motion counterparts read `.bannerEnterActive`, one
- * class lighter, so the banner kept animating for visitors who asked the
- * system for less motion. Each adapter uses a different subset of these
- * classes (Vue's `<Transition>` classes, the visible/hidden toggles, the
- * dialog's `data-state` keyframes), so a gap showed up in some frameworks
- * and not others.
- *
- * The rule checked here: every selector that sets a `transition` or an
- * `animation` is repeated verbatim inside a later
- * `@media (prefers-reduced-motion: reduce)` block in the same file. Same
- * specificity, later in the source, so it wins wherever the adapter puts
- * the class.
- */
 import { readdirSync, readFileSync } from 'node:fs';
 import { join, relative } from 'node:path';
 
@@ -32,7 +13,6 @@ const MODULE_DIRS = ['components', 'primitives'].map((dir) =>
 
 const MOTION_PROPERTY = /^(?:transition|animation)(?:-name|-duration)?$/u;
 
-/** `none`, `0s` and friends switch motion off rather than on. */
 const STOPS_MOTION = /^(?:none|0m?s?)(?:\s|,|$)/u;
 
 const normalize = (selector: string): string =>
@@ -56,13 +36,11 @@ const isReducedMotion = (node: Container): boolean =>
 	'params' in node &&
 	/prefers-reduced-motion:\s*reduce/u.test(String(node.params));
 
-/** Rules inside these never animate a part on their own. */
 const isInert = (node: Container): boolean =>
 	node.type === 'atrule' &&
 	'name' in node &&
 	/keyframes|starting-style/u.test(String(node.name));
 
-/** Selectors that animate, each with the selectors that stop it later on. */
 const unguardedSelectors = function unguardedSelectors(
 	source: string
 ): string[] {

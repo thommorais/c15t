@@ -44,7 +44,6 @@ export function createSection(
 	action?: HTMLElement
 ): HTMLElement {
 	const section = createElement(document, 'section', 'c15t-dev-tools__section');
-	// Title and description sit closer to each other than to the content.
 	const heading = createElement(
 		document,
 		'div',
@@ -70,10 +69,6 @@ export function createSection(
 	return section;
 }
 
-/**
- * Status pill with a visually hidden prefix, so a row reads
- * "Effective: Allowed" to screen readers but shows "Allowed".
- */
 // oxlint-disable-next-line func-style -- Hoisted DOM helpers keep render functions readable.
 export function createState(
 	document: Document,

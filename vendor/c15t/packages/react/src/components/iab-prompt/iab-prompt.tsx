@@ -1,11 +1,6 @@
 'use client';
 
 import type * as C15tCoreTypes from '@c15t/core';
-/**
- * @packageDocumentation
- * Provides the IAB TCF 2.4 compliant cookie banner component.
- * Implements an accessible, pre-built banner following IAB requirements.
- */
 import actionStyles from '@c15t/ui/styles/components/consent-actions';
 import styles from '@c15t/ui/styles/components/iab-consent-banner';
 import type { FC } from 'react';
@@ -24,80 +19,22 @@ import { useIABTranslations } from '../iab-panel/use-iab-translations';
 import { IABConsentBannerCard } from './atoms/card';
 import { IABConsentBannerRoot } from './atoms/root';
 
-/**
- * Props for the IABConsentBanner component.
- * @public
- */
 export interface IABConsentBannerProps {
-	/**
-	 * When true, removes all default styling from the component.
-	 * @default false
-	 */
 	noStyle?: boolean;
 
-	/**
-	 * When true, disables entrance/exit animations.
-	 * @default false
-	 */
 	disableAnimation?: boolean;
 
-	/**
-	 * When true, locks page scroll when the banner is visible.
-	 * @default true
-	 */
 	scrollLock?: boolean;
 
-	/**
-	 * When true, traps keyboard focus within the banner.
-	 * @default true
-	 */
 	trapFocus?: boolean;
 
-	/**
-	 * Specifies which button should be highlighted as primary.
-	 * @default 'customize'
-	 */
 	primaryButton?: 'reject' | 'accept' | 'customize';
 
-	/**
-	 * Which consent models this banner responds to.
-	 * @default ['iab']
-	 */
 	models?: C15tCoreTypes.Model[];
 
-	/**
-	 * Override the UI source identifier sent with consent API calls.
-	 * @default 'iab_banner'
-	 */
 	uiSource?: string;
 }
 
-/**
- * IAB TCF 2.4 compliant cookie consent banner.
- *
- * @remarks
- * This component implements the required IAB TCF 2.4 UI elements:
- * - Partner count disclosure
- * - Purpose summary
- * - Legitimate interest notice
- * - Accept All / Reject All / Customize buttons
- *
- * The banner only renders when IAB mode is enabled in the consent manager.
- *
- * @example
- * ```tsx
- * <ConsentProvider
- *   options={{
- *     mode: hosted({ backendURL: '/api/c15t' }),
- *     iab: { cmpId: 123, vendors: [1, 2, 10] },
- *   }}
- * >
- *   <IABConsentBanner />
- * </ConsentProvider>
- * ```
- *
- * @public
- */
 // oxlint-disable-next-line complexity -- Preserve established branch order and control flow.
 export const IABConsentBanner: FC<IABConsentBannerProps> = ({
 	noStyle: localNoStyle,
@@ -121,7 +58,6 @@ export const IABConsentBanner: FC<IABConsentBannerProps> = ({
 	const { components } = useUIConfig();
 	const resolvedScrollLock = policyBanner.blocking;
 
-	// Merge local props with global theme context
 	const config = useComponentConfig({
 		disableAnimation: localDisableAnimation,
 		noStyle: localNoStyle,
@@ -129,12 +65,10 @@ export const IABConsentBanner: FC<IABConsentBannerProps> = ({
 		trapFocus: policyBanner.blocking,
 	});
 
-	// Handle button actions
 	const handleAcceptAll = async () => {
 		try {
 			await performBannerAction('accept');
 		} catch {
-			// Keep the banner available so a failed list load or save can be retried.
 		}
 	};
 
@@ -142,7 +76,6 @@ export const IABConsentBanner: FC<IABConsentBannerProps> = ({
 		try {
 			await performBannerAction('reject');
 		} catch {
-			// Keep the banner available so a failed list load or save can be retried.
 		}
 	};
 
@@ -157,18 +90,15 @@ export const IABConsentBanner: FC<IABConsentBannerProps> = ({
 	const isPrimary = (button: 'reject' | 'accept' | 'customize') =>
 		button === primaryButton;
 
-	// Don't render if IAB is disabled (e.g., server returned null GVL) or calculations not complete
 	if (!iabState?.config.enabled || !banner.isReady) {
 		return null;
 	}
 
-	// Replace {partnerCount} placeholder in description
 	const descriptionText = iabT.banner.description.replace(
 		'{partnerCount}',
 		String(banner.vendorCount)
 	);
 
-	// Replace {count} placeholder in partners link
 	const partnersLinkText = iabT.banner.partnersLink.replace(
 		'{count}',
 		String(banner.vendorCount)
@@ -246,7 +176,6 @@ export const IABConsentBanner: FC<IABConsentBannerProps> = ({
 					data-testid="iab-consent-banner-branding"
 				/>
 				<IABConsentBannerCard aria-label={iabT.banner.title}>
-					{/* Header */}
 					<Box
 						baseClassName={styles.header}
 						slotKey="iab-banner.header"
@@ -291,7 +220,6 @@ export const IABConsentBanner: FC<IABConsentBannerProps> = ({
 						</p>
 					</Box>
 
-					{/* Footer with buttons */}
 					<Box
 						baseClassName={styles.footer}
 						slotKey="iab-banner.footer"

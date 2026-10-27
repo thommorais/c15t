@@ -36,7 +36,6 @@ describe('banner variant stylesheet', () => {
 		"[data-variant='wall']",
 		"[data-position='bottom-center']",
 	])('built stylesheet targets %s', (selector) => {
-		// Minified output may switch attribute quotes; accept either form.
 		const unquoted = selector.replaceAll("'", '');
 		expect(builtCss.includes(selector) || builtCss.includes(unquoted)).toBe(
 			true

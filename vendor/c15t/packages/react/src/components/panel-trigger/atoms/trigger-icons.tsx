@@ -1,18 +1,10 @@
 import type { SVGProps } from 'react';
 
-/**
- * Dialog-trigger icons, kept apart from the branding logos: the banner renders
- * the logos on every page, while these only ship with the dialog trigger.
- */
 interface IconProps {
 	title?: string;
 	titleId?: string;
 }
 
-/**
- * Fingerprint icon for privacy/consent contexts.
- * A generic icon representing user identity and privacy.
- */
 export const FingerprintIcon = ({
 	title = 'Privacy',
 	titleId = 'fingerprint-icon',
@@ -42,10 +34,6 @@ export const FingerprintIcon = ({
 	</svg>
 );
 
-/**
- * Settings/gear icon for preference contexts.
- * A generic icon representing configuration and settings.
- */
 export const SettingsIcon = ({
 	title = 'Settings',
 	titleId = 'settings-icon',
@@ -72,10 +60,6 @@ export const SettingsIcon = ({
 	</svg>
 );
 
-/**
- * Code icon for the DevTools item a trigger shows while `<ConsentDevTools>`
- * is mounted. Decorative; the item carries the accessible name.
- */
 export const DevToolsIcon = (props: SVGProps<SVGSVGElement>) => (
 	<svg
 		xmlns="http://www.w3.org/2000/svg"

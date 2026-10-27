@@ -229,7 +229,6 @@ describe('initOutputSchema', () => {
 			location: { countryCode: 'DE', regionCode: null },
 			policyResolution: JSON.parse(JSON.stringify(matched)) as unknown,
 		};
-		// A complete bundle, as the backend serves it.
 		const complete = v.parse(initOutputSchema, {
 			...base,
 			translations: {
@@ -262,7 +261,6 @@ describe('initOutputSchema', () => {
 		expect(
 			complete.translations.translations.consentManagerDialog.vendors
 		).toEqual(vendors);
-		// A custom transport that only overrides the privacy link.
 		const partial = v.parse(initOutputSchema, {
 			...base,
 			translations: {

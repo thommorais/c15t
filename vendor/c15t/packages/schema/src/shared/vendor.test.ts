@@ -107,8 +107,6 @@ describe('consent manifest vendors', () => {
 	});
 
 	it('emits an empty vendor list and no version when the manifest declares none', async () => {
-		// The client keeps its current declarations when the list is omitted, so
-		// a backend that removed its last vendor has to send an empty list.
 		const manifest = await buildConsentManifestFromConfig({});
 		const output = resolveInitFromManifest(manifest, { language: 'en' });
 		expect(output.vendors).toEqual([]);

@@ -10,10 +10,6 @@ import type {
 	TranslationConfig,
 } from '@c15t/core';
 
-/**
- * State a component test turns into provider options: the policy, the
- * seeded choices, branding, translations and presentation.
- */
 export interface ConsentStateFixture {
 	activeUI: ActiveUI;
 	branding: KernelBranding;

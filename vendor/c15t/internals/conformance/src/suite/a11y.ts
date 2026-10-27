@@ -1,10 +1,3 @@
-/**
- * Accessibility behavior conformance suite.
- *
- * Covers cross-framework dialog semantics, focus management, and keyboard
- * dismissal behavior for the consent banner/dialog flow.
- */
-
 import { TEST_IDS } from '../contract/test-ids';
 import type { MountResult, TestDriver } from '../driver';
 import { conformanceTest } from './helpers';
@@ -96,8 +89,6 @@ const waitForElement = async function waitForElement(
 	testId: string
 ): Promise<HTMLElement> {
 	const started = Date.now();
-	// A loaded CI runner can take well over a second to mount the dialog's
-	// lazy chunk on first use; the budget only bounds a genuine failure.
 	while (Date.now() - started < 5000) {
 		const element = byTestId(root, testId);
 		if (element) {
@@ -124,11 +115,6 @@ const waitForElementRemoved = async function waitForElementRemoved(
 	throw new Error(`Timed out waiting for [data-testid="${testId}"] removal`);
 };
 
-/**
- * Polls until `document.activeElement` satisfies `predicate`, then returns it.
- * Focus moves asynchronously (setTimeout/rAF in the trap), so a fixed sleep is
- * flaky on slow CI — poll instead, matching `assertInitialFocus` in focus.ts.
- */
 const waitForActiveElement = async function waitForActiveElement(
 	doc: Document,
 	predicate: (active: Element | null) => boolean
@@ -144,10 +130,6 @@ const waitForActiveElement = async function waitForActiveElement(
 	return doc.activeElement;
 };
 
-/**
- * A banner the host makes blocking through the legacy `trapFocus` option.
- * The resolver maps it onto `blocking`, so the card is a modal dialog.
- */
 const mountBanner = function mountBanner(
 	driver: TestDriver
 ): Promise<MountResult> {
@@ -157,7 +139,6 @@ const mountBanner = function mountBanner(
 	});
 };
 
-/** The default banner: non-blocking, a labelled region. */
 const mountDefaultBanner = function mountDefaultBanner(
 	driver: TestDriver
 ): Promise<MountResult> {
@@ -194,8 +175,6 @@ export const runA11yConformance = function runA11yConformance(
 				try {
 					const body = ownerBody(mounted);
 					const card = await waitForElement(body, TEST_IDS.consentBanner.card);
-					// Give any deferred focus move a chance to run, then assert it
-					// never happened.
 					await wait(60);
 					api
 						.expect(card.contains(body.ownerDocument.activeElement))
@@ -282,9 +261,6 @@ export const runA11yConformance = function runA11yConformance(
 					);
 					api.expect(active).toBe(card);
 
-					// The element before the card in tab order is outside the
-					// trap; Shift+Tab must wrap to the last focusable instead
-					// of escaping behind the surface.
 					const focusable = getFocusableElements(card);
 					const last = focusable[focusable.length - 1];
 					keydown(body.ownerDocument, 'Tab', { shiftKey: true });
@@ -424,11 +400,6 @@ export const runA11yConformance = function runA11yConformance(
 				keydown(dialog, 'Escape');
 				await waitForElementRemoved(body, TEST_IDS.consentDialog.root);
 
-				// The visitor still owes a choice, so the banner comes back and
-				// focus returns to its Customize button, whether the adapter kept
-				// the banner mounted or rendered it again. Focus restore runs on
-				// a deferred (setTimeout 0) tick; poll for the expected target
-				// rather than a fixed sleep.
 				await waitForElement(body, TEST_IDS.consentBanner.root);
 				const expected = returnTarget.isConnected
 					? returnTarget

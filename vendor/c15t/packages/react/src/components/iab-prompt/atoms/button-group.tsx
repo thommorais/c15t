@@ -8,14 +8,6 @@ interface IABConsentBannerButtonGroupProps extends HTMLAttributes<HTMLDivElement
 	children: ReactNode;
 }
 
-/**
- * Button group component for the IAB Consent Banner footer.
- *
- * @remarks
- * Groups related buttons together (e.g., Reject and Accept).
- *
- * @public
- */
 const IABConsentBannerButtonGroup = createForwardRef<
 	HTMLDivElement,
 	IABConsentBannerButtonGroupProps
@@ -36,11 +28,6 @@ const IABConsentBannerButtonGroup = createForwardRef<
 
 IABConsentBannerButtonGroup.displayName = 'IABConsentBannerButtonGroup';
 
-/**
- * Spacer component for the IAB Consent Banner footer.
- *
- * @public
- */
 const IABConsentBannerFooterSpacer = createForwardRef<
 	HTMLDivElement,
 	HTMLAttributes<HTMLDivElement>

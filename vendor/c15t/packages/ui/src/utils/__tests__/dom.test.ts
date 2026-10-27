@@ -11,7 +11,6 @@ import {
 	setupTextDirection,
 } from '../dom';
 
-/** Flushes the trap's deferred (setTimeout 0) focus operations. */
 const flushFocusTimers = function flushFocusTimers(): Promise<void> {
 	return new Promise((resolve) => {
 		setTimeout(resolve, 0);
@@ -57,7 +56,6 @@ test('focus trapping follows controls inside a shadow root and restores the open
 });
 
 describe('setupColorScheme without matchMedia', () => {
-	// jsdom and a few embedded webviews have no `matchMedia`.
 	const root = document.documentElement;
 	afterEach(() => {
 		root.className = '';
@@ -115,26 +113,16 @@ describe('getTextDirection', () => {
 	});
 
 	test('returns rtl for other RTL languages', () => {
-		// Farsi/Persian
 		expect(getTextDirection('fa')).toBe('rtl');
-		// Urdu
 		expect(getTextDirection('ur')).toBe('rtl');
-		// Pashto
 		expect(getTextDirection('ps')).toBe('rtl');
-		// Sindhi
 		expect(getTextDirection('sd')).toBe('rtl');
-		// Divehi
 		expect(getTextDirection('dv')).toBe('rtl');
-		// Yiddish
 		expect(getTextDirection('yi')).toBe('rtl');
 		expect(getTextDirection('yi-US')).toBe('rtl');
-		// Central Kurdish (Sorani)
 		expect(getTextDirection('ckb')).toBe('rtl');
-		// Uyghur
 		expect(getTextDirection('ug')).toBe('rtl');
-		// Syriac
 		expect(getTextDirection('syr')).toBe('rtl');
-		// N'Ko
 		expect(getTextDirection('nqo')).toBe('rtl');
 	});
 
@@ -158,7 +146,6 @@ describe('getTextDirection', () => {
 	});
 
 	test('keeps RTL for script variants CLDR leaves out', () => {
-		// Urdu in Nastaliq
 		expect(getTextDirection('ur-Aran')).toBe('rtl');
 		expect(getTextDirection('syr-Syre')).toBe('rtl');
 		expect(getTextDirection('pal-Phlv')).toBe('rtl');
@@ -211,7 +198,6 @@ describe('setupScrollLock', () => {
 	const { body } = document;
 	let pageStyle: HTMLStyleElement | null = null;
 
-	/** jsdom has no layout; give the root a classic scrollbar of `width`. */
 	const showRootScrollbar = (width: number) => {
 		Object.defineProperty(root, 'clientWidth', {
 			configurable: true,
@@ -293,7 +279,6 @@ describe('setupScrollLock', () => {
 		const cleanup = setupScrollLock();
 		expect(root.style.scrollbarGutter).toBe('stable');
 		expect(body.style.paddingRight).toBe('10px');
-		// Fixed elements stay still, so there is no gap to report.
 		expect(root.style.getPropertyValue('--c15t-scroll-lock-gap')).toBe('');
 		cleanup();
 		expect(root.style.scrollbarGutter).toBe('');
@@ -331,8 +316,6 @@ describe('setupScrollLock', () => {
 	test('pads body by the width the page gained when the gutter does not hold', () => {
 		supportScrollbarGutter();
 		showRootScrollbar(15);
-		// A scrollbar styled with `::-webkit-scrollbar` on macOS Chromium: the
-		// gutter reserves nothing, so the page is wider once overflow is hidden.
 		const rootWidth = (width: number) => ({ width }) as DOMRect;
 		vi.spyOn(root, 'getBoundingClientRect')
 			.mockReturnValueOnce(rootWidth(1000))
@@ -553,8 +536,6 @@ describe('setupFocusTrap focus restore', () => {
 		const cleanup = setupFocusTrap(dialog);
 		await flushFocusTimers();
 
-		// The opener unmounts while the dialog is open (activeUI switches),
-		// then re-renders as a brand new node when the dialog closes.
 		trigger.remove();
 		const remounted = document.createElement('button');
 		remounted.setAttribute('data-testid', 'consent-dialog-trigger');

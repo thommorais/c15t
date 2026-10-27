@@ -1,11 +1,5 @@
 'use client';
 
-/**
- * Internal toolbar view for ConsentDialogTriggerToolbar.
- *
- * @packageDocumentation
- */
-
 import type { PolicyRight } from '@c15t/schema/types';
 import styles from '@c15t/ui/styles/components/consent-dialog-trigger';
 import { followDevToolsDock } from '@c15t/ui/utils/devtools-launcher';
@@ -38,7 +32,6 @@ const cornerClassMap = {
 	'top-right': styles.topRight,
 } as const satisfies Record<CornerPosition, string | undefined>;
 
-/** Stock classes for the toolbar in its layout and drag state. */
 const getToolbarBaseClassName = function getToolbarBaseClassName(
 	orientation: TriggerOrientation,
 	corner: CornerPosition,
@@ -70,7 +63,6 @@ interface ToolbarItemBase {
 	style?: ConsentDialogTriggerToolbarAction['style'];
 }
 
-/** Right the built-in action stands for; opt-out wins when the rule carries it. */
 export type ToolbarPreferencesRight = Extract<
 	PolicyRight,
 	'opt-out' | 'preferences'
@@ -105,11 +97,6 @@ const DEVTOOLS_ITEM: ToolbarDevToolsItem = {
 	label: 'c15t DevTools',
 };
 
-/**
- * The built-in action reflects the strongest persistent right the active
- * rule guarantees: the opt-out label under an opt-out rule, otherwise the
- * preferences label. A host label overrides both.
- */
 const resolvePreferencesRight = function resolvePreferencesRight(
 	rights: readonly PolicyRight[]
 ): ToolbarPreferencesRight {
@@ -117,15 +104,11 @@ const resolvePreferencesRight = function resolvePreferencesRight(
 };
 
 interface PreferencesActionDefaults {
-	/** Right the built-in action stands for. */
 	right: ToolbarPreferencesRight;
-	/** Translated default label for that right. */
 	label: string;
-	/** Every right on the active rule, space separated for `data-c15t-rights`. */
 	rights: string;
 }
 
-/** Default label and right for the built-in action, from the active rule. */
 const usePreferencesActionDefaults =
 	function usePreferencesActionDefaults(): PreferencesActionDefaults {
 		const policy = usePolicyRule();
@@ -193,8 +176,6 @@ const orderItemsForCorner = function orderItemsForCorner(
 		orientation === 'horizontal'
 			? corner.endsWith('left')
 			: corner.startsWith('top');
-	// Preferences sits in the corner; DevTools, a development aid, sits
-	// farthest from it.
 	const head = preferencesItem ? [preferencesItem] : [];
 	const tail = devToolsItem ? [devToolsItem] : [];
 
@@ -207,32 +188,19 @@ export interface TriggerToolbarProps extends Omit<
 	ClassNameStyle,
 	'baseClassName'
 > {
-	/** App-owned actions rendered alongside the preferences action. */
 	actions: readonly ConsentDialogTriggerToolbarAction[];
 
-	/** Customization for the built-in preferences action. */
 	preferences: ConsentDialogTriggerToolbarPreferences;
 
-	/** Size of each toolbar item. @default 'md' */
 	size?: TriggerSize;
 
-	/** Layout direction for the toolbar. @default 'horizontal' */
 	orientation?: TriggerOrientation;
 
-	/** Accessible name for the toolbar group. @default 'Privacy controls' */
 	ariaLabel?: string;
 
-	/**
-	 * Whether the built-in preferences action is rendered. App-owned
-	 * actions render regardless.
-	 * @default true
-	 */
 	showPreferences?: boolean;
 }
 
-/**
- * A draggable group of app-owned actions and one built-in preferences action.
- */
 export const TriggerToolbar = ({
 	actions,
 	preferences,
@@ -290,8 +258,6 @@ export const TriggerToolbar = ({
 		]
 	);
 
-	// Keep a docked DevTools panel beside the toolbar as it moves corners or
-	// changes size. Skip mid-drag; the drop re-runs this.
 	useLayoutEffect(() => {
 		const element = toolbarRef.current;
 		if (!dockDevTools || !element || isDragging) {

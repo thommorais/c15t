@@ -1,4 +1,3 @@
-/** Raw fixtures deliberately avoid importing private core codecs or evaluators. */
 import type {
 	PolicyCategory,
 	PolicyChoiceFixture,
@@ -10,7 +9,6 @@ type ValidPolicyRecordFixture = PolicyRecordFixture & {
 	expected: Extract<PolicyRecordFixture['expected'], { valid: true }>;
 };
 
-/** Frozen clock keeps semantic expiry independent of machine time and cookie TTL. */
 export const POLICY_NOW = 1_800_000_000_000;
 export const POLICY_MAX_AGE = 86_400_000;
 export const POLICY_RECENT = POLICY_NOW - 1_000;
@@ -23,7 +21,6 @@ export const POLICY_SCOPE: readonly PolicyCategory[] = [
 	'measurement',
 ];
 
-/** Build expected receipts without deriving any permission or prompt result. */
 export const policyChoice = function policyChoice(
 	values: Partial<Record<PolicyCategory, boolean>>,
 	confirmedAt = POLICY_RECENT,
@@ -113,10 +110,6 @@ const v3Choice = function v3Choice(
 	};
 };
 
-/**
- * v3 entries contain raw choice JSON, not a guessed persistence envelope.
- * Storage drivers wrap these using the versioned codec once it lands.
- */
 export const POLICY_RECORDS = {
 	'future-time': {
 		encoding: 'legacy-json',
@@ -215,5 +208,4 @@ export const POLICY_RECORDS = {
 	'v3-partial': v3Choice(policyChoice({ marketing: false })),
 } satisfies Record<string, PolicyRecordFixture>;
 
-/** All record identifiers accepted by fixture lookup. */
 export type PolicyRecordId = keyof typeof POLICY_RECORDS;

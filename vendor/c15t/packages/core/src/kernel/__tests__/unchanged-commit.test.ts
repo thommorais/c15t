@@ -1,9 +1,3 @@
-/**
- * Every way an input reaches the snapshot agrees with the full evaluator,
- * and an input that changes nothing keeps the snapshot reference and
- * notifies nobody. The kernel skips derivation for unchanged inputs; these
- * tests pin that the shortcut is never observable.
- */
 import { enTranslations } from '@c15t/translations';
 import { afterEach, beforeEach, expect, test, vi } from 'vitest';
 
@@ -28,7 +22,6 @@ beforeEach(() => {
 
 afterEach(() => vi.restoreAllMocks());
 
-/** Derived fields match a full evaluation of the snapshot's own inputs. */
 const expectFullDerivation = function expectFullDerivation(
 	snapshot: ConsentSnapshot
 ): void {
@@ -51,10 +44,6 @@ const expectFullDerivation = function expectFullDerivation(
 	expect(snapshot.nextDeadline).toBe(evaluation.nextDeadline);
 };
 
-/**
- * Run `operation` and check what subscribers saw: nothing when the
- * snapshot kept its reference, the resulting snapshot last otherwise.
- */
 const observe = async function observe(
 	kernel: InternalKernel,
 	operation: (kernel: InternalKernel) => unknown
@@ -77,16 +66,12 @@ const observe = async function observe(
 
 interface Operation {
 	config?: KernelConfig;
-	/** What the transport answers `init()` with. */
 	response?: InitResponse;
 	run: (kernel: InternalKernel) => unknown;
-	/** Whether running it twice must leave the second run a no-op. */
 	idempotent: boolean;
-	/** The input leaves every derived field as it was. */
 	unchanged?: true;
 }
 
-/** `init()` answered by `response`; the fold re-creates objects each time. */
 const initWith = (response: InitResponse): Operation => ({
 	idempotent: false,
 	response,
@@ -105,7 +90,6 @@ const VENDORS = {
 	listVersion: null,
 };
 
-/** One gate, so a repeated call is the same input. */
 const SHOW_ARM = () => true;
 
 const EXPERIMENT = {
@@ -117,7 +101,6 @@ const EXPERIMENT = {
 
 test('every snapshot input agrees with the full evaluator', async () => {
 	const resolution = matchedResolution(optOutRule());
-	// One operation per patchable input, so a new input cannot go untested.
 	const operations: Record<keyof SnapshotPatch, Operation> = {
 		activeUI: { idempotent: true, run: (k) => k.set.activeUI('dialog') },
 		branding: initWith({ branding: 'consent' }),
@@ -137,7 +120,6 @@ test('every snapshot input agrees with the full evaluator', async () => {
 			idempotent: true,
 			run: (k) => k.set.experiment(EXPERIMENT, SHOW_ARM),
 		},
-		// Hydration validates into fresh records, so a repeat is a new input.
 		explicitChoice: {
 			idempotent: false,
 			run: (k) => k.hydrate({ choice: explicitChoice({ marketing: true }) }),
@@ -162,7 +144,6 @@ test('every snapshot input agrees with the full evaluator', async () => {
 					},
 				}),
 		},
-		// Inside the current evaluation's interval: the snapshot is kept.
 		now: {
 			idempotent: true,
 			run: (k) => k.refresh(NOW + 1000),
@@ -222,7 +203,6 @@ test('every snapshot input agrees with the full evaluator', async () => {
 			);
 			// oxlint-disable-next-line no-await-in-loop -- one kernel at a time
 			const second = await observe(kernel, operation.run);
-			// A repeat of an idempotent input keeps the snapshot it produced.
 			expect(operation.idempotent ? second.after : second.before, input).toBe(
 				second.before
 			);
@@ -234,8 +214,6 @@ test('every snapshot input agrees with the full evaluator', async () => {
 
 test('no-op init retains the initial time and snapshot but emits lifecycle events', async () => {
 	vi.spyOn(Date, 'now').mockReturnValue(NOW + 1000);
-	// A rule without a prompt keeps every surface hidden, so init records no
-	// impression and the snapshot can stay identical.
 	const kernel = createConsentKernel({
 		initialPolicyResolution: matchedResolution(noneRule()),
 		now: NOW,
@@ -367,8 +345,6 @@ test('a live kernel stamps an unchanged snapshot like the full derivation', asyn
 
 	const { after } = await observe(kernel, (k) => k.markLive(NOW + 5));
 
-	// Only the clock, the revision and the stamp move; `observe` checked the
-	// derived fields against a full evaluation at the new time.
 	expect(after).toEqual({
 		...initial,
 		evaluatedAt: NOW + 5,
@@ -384,7 +360,6 @@ test('a live kernel stamps an unchanged snapshot like the full derivation', asyn
 		type: 'surface:shown',
 	});
 
-	// The impression is recorded; the same evaluation is a no-op afterwards.
 	const repeat = await observe(kernel, (k) => k.refresh(NOW + 5));
 	expect(repeat.after).toBe(after);
 });

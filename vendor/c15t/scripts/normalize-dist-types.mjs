@@ -5,7 +5,6 @@ import { parse } from '@babel/parser';
 
 const REPO_ROOT = path.resolve(import.meta.dirname, '..');
 const PACKAGES_ROOT = path.join(REPO_ROOT, 'packages');
-/** Collect actual module literals without matching examples or literal types. */
 const collectModuleSpecifiers = function collectModuleSpecifiers(source) {
 	const ast = parse(source, {
 		attachComment: false,
@@ -134,7 +133,6 @@ const toPackageSpecifier = function toPackageSpecifier(targetFilePath, target) {
 	return target.specifier;
 };
 
-/** Emit a runtime-compatible path for a declaration in the same package. */
 const toExplicitRelativeSpecifier = function toExplicitRelativeSpecifier(
 	fromFilePath,
 	targetFilePath
@@ -182,7 +180,6 @@ const collectDeclarationFiles = async function collectDeclarationFiles(
 	return files.flat();
 };
 
-/** Locate declarations for source and already-normalized JavaScript specifiers. */
 const resolveDeclarationTarget = async function resolveDeclarationTarget(
 	fromFilePath,
 	specifier
@@ -208,7 +205,6 @@ const resolveDeclarationTarget = async function resolveDeclarationTarget(
 	return null;
 };
 
-/** Rewrite module literals in a declaration while preserving all other text. */
 const normalizeDeclarationFile = async function normalizeDeclarationFile(
 	filePath,
 	currentTarget
@@ -256,8 +252,6 @@ const normalizeDeclarationFile = async function normalizeDeclarationFile(
 
 	let normalized = original;
 
-	// Replace from right to left so parser offsets stay valid. Keep every
-	// byte outside module literals, including comments and literal types.
 	for (const { start, end, value } of matches) {
 		const specifier = resolvedSpecifiers.get(value) ?? value;
 		if (specifier === value) {

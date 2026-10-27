@@ -1,16 +1,3 @@
-/**
- * Tests for the rich InitResponse + policy derivation + set.iab action.
- *
- * Verifies:
- * 1. commands.init applies all new fields (location, translations, branding,
- *    policyResolution, policySnapshotToken) to the snapshot.
- * 2. Policy drives derived state: model, activeUI and policyRule.
- * 3. Preselected consents do not become runtime grants before consent.
- * 4. IAB passthrough: gvl/customVendors/cmpId land on snapshot.iab.
- * 5. set.iab mutates snapshot.iab idempotently and re-derives model
- *    when enabled flips.
- * 6. SavePayload carries policySnapshotToken and tcString.
- */
 import { describe, expect, test, vi } from 'vitest';
 
 import { createConsentKernel } from '../index';
@@ -20,8 +7,6 @@ import {
 	matchedResolution,
 	optInRule,
 } from './fixtures/kernel-fixtures';
-
-// --- Fixture: a reasonable GDPR policy with all the fields we care about ---
 
 const GDPR_RESOLUTION = {
 	...matchedResolution(
@@ -81,16 +66,11 @@ describe('rich init: applies full response to snapshot', () => {
 		await kernel.commands.init();
 		const snap = kernel.getSnapshot();
 
-		// GDPR + no IAB → opt-in
 		expect(snap.model).toBe('opt-in');
-		// policy.ui.mode = banner
 		expect(snap.activeUI).toBe('banner');
-		// policy.consent.categories — order follows allConsentNames, not the
-		// input allowlist, so compare as a set.
 		expect(new Set(snap.policyRule.scope)).toEqual(
 			new Set(['functionality', 'marketing', 'measurement'])
 		);
-		// policy.consent.scopeMode
 		expect(snap.policyRule.scopeMode).toBe('permissive');
 		expect(snap.policyRule.actions.required).toEqual(['accept', 'reject']);
 	});
@@ -107,8 +87,6 @@ describe('rich init: applies full response to snapshot', () => {
 		await kernel.commands.init();
 		const snap = kernel.getSnapshot();
 
-		// preselectedCategories can seed UI drafts, but opt-in silence is denied
-		// in the kernel's runtime gating snapshot.
 		expect(snap.effectivePermissions.necessary).toBe(true);
 		expect(snap.effectivePermissions.functionality).toBe(false);
 		expect(snap.effectivePermissions.marketing).toBe(false);
@@ -120,7 +98,6 @@ describe('rich init: applies full response to snapshot', () => {
 				// oxlint-disable-next-line sort-keys -- Preserve declaration order, interface shape, and public compatibility.
 				return Promise.resolve({
 					policyResolution: GDPR_RESOLUTION,
-					// Bare server booleans do not establish a prior choice.
 					consents: { marketing: true },
 				});
 			},
@@ -130,8 +107,6 @@ describe('rich init: applies full response to snapshot', () => {
 		await kernel.commands.init();
 		const snap = kernel.getSnapshot();
 
-		// Booleans without receipts are a draft, not a choice: nothing is
-		// granted until an explicit save confirms them.
 		expect(snap.explicitChoice).toBeNull();
 		expect(snap.explicitChoice).toBeNull();
 		expect(snap.effectivePermissions.marketing).toBe(false);
@@ -220,7 +195,6 @@ describe('rich init: IAB passthrough', () => {
 			},
 		};
 		const kernel = createConsentKernel({
-			// consumer wanted IAB
 			initialIab: { enabled: true },
 			transport,
 		});
@@ -287,7 +261,6 @@ describe('set.iab: kernel action', () => {
 			initialPolicyResolution: matchedResolution(iabRule()),
 		});
 
-		// An IAB rule without the IAB module runs its categories as opt-in.
 		expect(kernel.getSnapshot().model).toBe('opt-in');
 
 		kernel.set.iab({ enabled: true });

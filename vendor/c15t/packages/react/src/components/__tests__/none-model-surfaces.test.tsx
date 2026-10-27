@@ -17,13 +17,6 @@ import { KernelContext } from '~/context';
 import { useHasConsentUI, useModel } from '~/hooks';
 import { offline } from '~/transports/offline';
 
-/**
- * A `none` rule grants everything in scope and owes nothing: no prompt, no
- * rights, no record. Without rights no consent surface renders. Listing
- * `preferences` restores the trigger, link and dialog as a settings route,
- * and saving from that dialog still records nothing.
- */
-
 const CONSENT_TEST_IDS = [
 	'consent-banner-root',
 	'consent-dialog-root',
@@ -127,8 +120,6 @@ describe('consent surfaces under a none rule', () => {
 	});
 
 	test('keeps a settings route when the rule lists the preferences right, and saving records nothing', async () => {
-		// Other test files in this browser context may have left consent keys
-		// behind; start clean so the storage assertion below is about this save.
 		localStorage.clear();
 		document.cookie = 'c15t=; Max-Age=0; Path=/';
 		render(
@@ -149,7 +140,6 @@ describe('consent surfaces under a none rule', () => {
 			expect(queryToolbarAction('preferences')).toBeInTheDocument();
 		});
 		expect(hasConsentUI).toBe(true);
-		// No prompt is owed, so no banner.
 		expect(queryTestId('consent-banner-root')).toBeNull();
 		expect(queryTestId('consent-dialog-root')).toBeNull();
 
@@ -167,16 +157,12 @@ describe('consent surfaces under a none rule', () => {
 		});
 		save.click();
 
-		// The kernel completes the save without writing a record, and the
-		// dialog closes because no prompt is owed.
 		await vi.waitFor(() => {
 			expect(queryTestId('consent-dialog-root')).toBeNull();
 		});
 		const snapshot = kernel?.getSnapshot();
 		expect(snapshot?.explicitChoice).toBeNull();
 		expect(snapshot?.effectivePermissions.marketing).toBe(true);
-		// Persistence is off for the fixture, and the kernel wrote no record
-		// either way: no consent key reaches storage.
 		const consentKeys = Object.keys(localStorage).filter((key) =>
 			key.startsWith('c15t')
 		);

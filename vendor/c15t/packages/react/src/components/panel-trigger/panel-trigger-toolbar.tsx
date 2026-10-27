@@ -1,12 +1,5 @@
 'use client';
 
-/**
- * Standalone configurable toolbar for resurfacing consent preferences alongside
- * app-owned controls.
- *
- * @packageDocumentation
- */
-
 import type { ReactNode } from 'react';
 
 import { useHasConsentPreferences, usePromptRequirement } from '~/hooks';
@@ -22,34 +15,6 @@ import type {
 const EMPTY_ACTIONS: readonly ConsentDialogTriggerToolbarAction[] = [];
 const DEFAULT_PREFERENCES: ConsentDialogTriggerToolbarPreferences = {};
 
-/**
- * A draggable toolbar for app-owned controls such as a theme toggle or
- * support chat, plus one built-in action for opening consent preferences.
- *
- * The toolbar itself does not depend on the consent policy: app-owned
- * actions always render. `showWhen` governs only the built-in preferences
- * action, so `after-prompt` hides that one item while a choice or notice is
- * owed and the rest of the toolbar stays put. The toolbar renders nothing
- * only when it has no visible item.
- *
- * @example
- * ```tsx
- * <ConsentDialogTriggerToolbar
- *   ariaLabel="Website controls"
- *   actions={[
- *     {
- *       id: 'theme',
- *       label: 'Switch to dark theme',
- *       icon: <MoonIcon />,
- *       pressed: isDark,
- *       onSelect: toggleTheme,
- *     },
- *   ]}
- * />
- * ```
- *
- * @returns The toolbar portal, or `null` while hidden or server-rendered.
- */
 export const ConsentDialogTriggerToolbar = ({
 	actions = EMPTY_ACTIONS,
 	preferences = DEFAULT_PREFERENCES,
@@ -68,9 +33,6 @@ export const ConsentDialogTriggerToolbar = ({
 	const hasConsentUI = useHasConsentPreferences();
 	const promptSettled =
 		showWhen !== 'after-prompt' || promptRequirement.kind === 'none';
-	// Without a resolved policy, or under a `none` rule that keeps no right
-	// reachable, there is nothing to manage, so the built-in item stays out
-	// regardless of `showWhen`; app-owned actions still render.
 	const showPreferences = hasConsentUI && showWhen !== 'never' && promptSettled;
 	const visible = actions.length > 0 || showPreferences;
 

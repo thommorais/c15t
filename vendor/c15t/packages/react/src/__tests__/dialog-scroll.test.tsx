@@ -1,10 +1,3 @@
-/**
- * The stock dialog caps its card at the viewport and scrolls the category
- * list. An expanded category with vendor cards must make that list
- * overflow and scroll, even when the app styles the list or its items with
- * `overflow: hidden`, a common way to clip them to rounded corners. App CSS
- * sits outside c15t's cascade layer, so it beats c15t's normal rules.
- */
 import '@c15t/ui/styles.css';
 import type { Vendor } from '@c15t/core';
 import { afterEach, expect, test, vi } from 'vitest';
@@ -95,14 +88,11 @@ test.each([
 		return;
 	}
 
-	// Once its expand transition ends, the category keeps the full height
-	// of its vendor cards instead of being shrunk to fit the list.
 	await vi.waitFor(() => {
 		expect(item.getBoundingClientRect().bottom).toBeGreaterThanOrEqual(
 			vendors.getBoundingClientRect().bottom
 		);
 	});
-	// The list overflows and stays a box the visitor can scroll.
 	expect(list.scrollHeight).toBeGreaterThan(list.clientHeight);
 	expect(getComputedStyle(list).overflowY).toBe('auto');
 });

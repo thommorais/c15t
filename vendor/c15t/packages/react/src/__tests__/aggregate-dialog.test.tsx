@@ -28,7 +28,6 @@ test('reveals a cold aggregate dialog as soon as its module is ready', async () 
 	const dialog = () =>
 		document.querySelector('[data-testid="consent-dialog-root"]');
 	try {
-		// Deliberately avoid act(): it bypasses React's Suspense retry throttle.
 		root.render(
 			<ConsentProvider
 				options={{
@@ -53,10 +52,8 @@ test('reveals a cold aggregate dialog as soon as its module is ready', async () 
 		const customize = document.querySelector<HTMLButtonElement>(
 			'[data-testid="consent-banner-customize-button"]'
 		);
-		// A DOM click runs the banner action without hover/focus chunk warming.
 		customize?.click();
 		await import('../components/panel');
-		// Allow effects and a browser paint, without waiting out Suspense's 300ms.
 		await new Promise(requestAnimationFrame);
 		await new Promise(requestAnimationFrame);
 		expect(dialog()).not.toBeNull();

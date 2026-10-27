@@ -1,8 +1,3 @@
-/**
- * The script loader, written against {@link ScriptLoaderTools}: it imports
- * nothing the first-load graph has, so it can load on demand as one chunk.
- * `index.ts` is the public entry and passes the shared implementations.
- */
 import type { ConsentSnapshot } from '../../types';
 import { buildCallbackInfo, invokeCallback } from './callbacks';
 import { createDebugEmitter } from './debug';
@@ -33,14 +28,6 @@ import type {
 
 const MAX_RECONCILE_PASSES = 100;
 
-/**
- * Create a script loader from the tools it calls.
- *
- * @param options - The kernel and the scripts.
- * @param tools - The shared consent and vendor functions.
- * @returns The loader handle.
- * @internal
- */
 export const createScriptLoaderWith = function createScriptLoaderWith(
 	options: ScriptLoaderOptions,
 	tools: ScriptLoaderTools
@@ -102,7 +89,6 @@ export const createScriptLoaderWith = function createScriptLoaderWith(
 	let reconcileRequested = false;
 	let forceReconcile = false;
 
-	// A callback can request changes while this pass is still mounting scripts.
 	const isCurrentPass = () =>
 		!disposed && pendingScripts === undefined && !reconcileRequested;
 
@@ -131,10 +117,6 @@ export const createScriptLoaderWith = function createScriptLoaderWith(
 		tools: callbackTools,
 	};
 
-	// Track the last-seen consent-relevant references so a kernel tick
-	// that didn't actually change consent state (e.g. only `overrides`
-	// flipped) skips the full reconcile. Hot-path optimization for pages
-	// with many scripts and many subscribers.
 	let lastConsents: unknown = null;
 	let lastPolicyCategories: unknown = null;
 	let lastScopeMode: unknown = null;
@@ -160,12 +142,6 @@ export const createScriptLoaderWith = function createScriptLoaderWith(
 		);
 	};
 
-	// Another source can sweep this loader's slugs out of the declared set: a
-	// provider replacing its own script entries, or a backend init dropping a
-	// vendor a script here still names. A mounted loader's scripts own their
-	// slugs for as long as they are configured, so put them back before the
-	// gate runs; a stored denial for one of them would otherwise be ignored
-	// for the pass. Idempotent: nothing missing means no commit.
 	const declareMissingVendors = (snapshot: ConsentSnapshot): void => {
 		const declared = new Set(
 			snapshot.vendors?.declared.map((vendor) => vendor.id)
@@ -216,8 +192,6 @@ export const createScriptLoaderWith = function createScriptLoaderWith(
 			eligibilityByScriptId.set(script.id, eligible);
 			consentByScriptId.set(script.id, hasConsent);
 
-			// Always-loaded integrations can map several categories (Google
-			// Consent Mode), so they need updates even when mounting is unchanged.
 			if (
 				!force &&
 				previousEligibility === eligible &&
@@ -320,8 +294,6 @@ export const createScriptLoaderWith = function createScriptLoaderWith(
 	};
 
 	const cleanup = (): void => {
-		// Clear registrations before user callbacks. Each object owns one cleanup
-		// per registration, even if it appears more than once in the input.
 		const scripts = new Set(normalized.map(({ script }) => script));
 		normalized = [];
 		pendingScripts = undefined;
@@ -359,9 +331,6 @@ export const createScriptLoaderWith = function createScriptLoaderWith(
 				continue;
 			}
 			const replacement = nextById.get(script.id);
-			// Existing vendor helpers are recreated on framework rerenders. Keep
-			// their resource mounted unless it changed. onDispose opts into an
-			// object-owned lifecycle, used by integrations with attached listeners.
 			if (
 				replacement &&
 				!script.onDispose &&
@@ -370,8 +339,6 @@ export const createScriptLoaderWith = function createScriptLoaderWith(
 			) {
 				continue;
 			}
-			// Resource replacement starts a fresh lifecycle, even for the same ID.
-			// Persistence applies to consent revocation, not config replacement.
 			const element =
 				loadedElements.get(script.id) ?? retainedElements.get(script.id);
 			unmountScript(mountDeps, script, snapshot, false, true);
@@ -390,8 +357,6 @@ export const createScriptLoaderWith = function createScriptLoaderWith(
 		}
 	};
 
-	// Serialize lifecycle changes. Callbacks can request another configuration
-	// or dispose the loader without recursively cleaning up the current one.
 	const drain = (): void => {
 		if (processing) {
 			return;
@@ -440,8 +405,6 @@ export const createScriptLoaderWith = function createScriptLoaderWith(
 		if (processing && isConsentStateUnchanged(kernel.getSnapshot())) {
 			return;
 		}
-		// Revisit mounts skipped when a callback interrupts the active pass,
-		// even if their eligibility is unchanged in the next snapshot.
 		forceReconcile ||= processing;
 		reconcileRequested = true;
 		drain();
@@ -468,7 +431,6 @@ export const createScriptLoaderWith = function createScriptLoaderWith(
 		},
 	};
 	try {
-		// Observe initial mounts too, including synchronous inline execution.
 		reconcileRequested = true;
 		forceReconcile = true;
 		drain();

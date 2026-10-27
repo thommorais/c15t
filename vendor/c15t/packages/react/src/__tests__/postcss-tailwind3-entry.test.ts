@@ -15,8 +15,6 @@ describe('@c15t/react/postcss-tailwind3', () => {
 		expect(Object.keys(expected)).toEqual(
 			expect.arrayContaining(['default', 'postcss'])
 		);
-		// Compare whole namespaces: lint resolves `@c15t/ui/postcss-tailwind3`
-		// only after a build, so reading `entry.postcss` fails on an unbuilt tree.
 		expect({ ...entry }).toStrictEqual({ ...expected });
 	});
 });

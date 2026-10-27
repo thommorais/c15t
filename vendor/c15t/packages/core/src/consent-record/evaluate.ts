@@ -1,16 +1,3 @@
-/**
- * Pure consent evaluator.
- *
- * Takes validated records, a resolved policy projection, privacy inputs
- * and an explicit `now`, and derives effective permissions, a separate
- * restriction map, the remaining prompt requirement and the next deadline.
- * No storage, hashing, identity, network, `Date.now`, callbacks or IAB
- * imports. Every caller (construction, hydration, init, actions, privacy
- * changes, expiry timers) is expected to run this same function.
- *
- * @internal
- */
-
 import { OPTIONAL_CONSENT_CATEGORIES } from './types';
 import type {
 	CategoryDecision,
@@ -29,21 +16,12 @@ import type {
 
 export interface ConsentEvaluationInput {
 	policy: EvaluationPolicy;
-	/** Validated explicit choice, or `null` when none is usable. */
 	choice: ExplicitChoice | null;
-	/** Validated notice dismissal, or `null`. */
 	noticeDismissal: NoticeDismissal | null;
-	/** Detected GPC signal. Only a strict `true` counts. */
 	gpc?: boolean;
-	/** Current time in epoch milliseconds. */
 	now: number;
 }
 
-/**
- * Whether a decision's basis is compatible with the current policy.
- * Legacy decisions without a material fingerprint are grandfathered, and
- * a legacy fingerprint is only compared to a legacy material fingerprint.
- */
 const isBasisCompatible = function isBasisCompatible(
 	decision: CategoryDecision,
 	policy: EvaluationPolicy
@@ -95,7 +73,6 @@ const defaultPermission = function defaultPermission(
 	if (!inScope) {
 		return policy.scopeMode === 'permissive';
 	}
-	// Opt-out and none both permit processing until something restricts it.
 	return policy.model === 'opt-out' || policy.model === 'none';
 };
 
@@ -153,7 +130,6 @@ const requirement = function requirement(
 	return { kind, reason };
 };
 
-/** An automatic Accept All prompt must not solicit reversal of a refusal. */
 const hasChoiceRefusal = function hasChoiceRefusal(
 	policy: EvaluationPolicy,
 	categories: Record<OptionalConsentCategory, CategoryEvaluation>
@@ -172,13 +148,6 @@ const acknowledgementExpiry = function acknowledgementExpiry(
 		: acknowledgement.dismissedAt + policy.choice.maxAgeMs;
 };
 
-/**
- * When the choice prompt with nothing to decide stops being answered, or
- * `undefined` when it is not answered now. A choice acknowledgement is a
- * dismissal record made against the choice fingerprint; any decision still
- * valid under the current choice contract answers it too. `null` means one
- * of them never expires.
- */
 const acknowledgedUntil = function acknowledgedUntil(
 	input: ConsentEvaluationInput,
 	categories: Record<OptionalConsentCategory, CategoryEvaluation>
@@ -204,13 +173,6 @@ const acknowledgedUntil = function acknowledgedUntil(
 	return expiries.includes(null) ? null : Math.max(...(expiries as number[]));
 };
 
-/**
- * A choice prompt with nothing to decide, because no displayed category is
- * in the policy scope, still asks once: the visitor acknowledges that only
- * strictly necessary processing runs. The acknowledgement lasts as long as
- * a choice would and binds to the choice fingerprint, so a policy edit asks
- * again. A stale acknowledgement or decision says why it is asked again.
- */
 const deriveAcknowledgementRequirement =
 	function deriveAcknowledgementRequirement(
 		input: ConsentEvaluationInput,
@@ -236,15 +198,6 @@ const deriveAcknowledgementRequirement =
 		return requirement('choice', 'missing');
 	};
 
-/**
- * Refusals suppress automatic choice prompts, including when another category
- * is new or a grant expires. Permissions still expire and users can open
- * preferences themselves. Otherwise aggregate: no usable record, then a
- * known material mismatch in the required scope, then any required
- * category without a decision, then any required positive decision past
- * its lifetime. Neither elapsed time nor a policy edit cancels a refusal.
- * An empty choice scope asks for an acknowledgement instead.
- */
 const deriveChoiceRequirement = function deriveChoiceRequirement(
 	input: ConsentEvaluationInput,
 	categories: Record<OptionalConsentCategory, CategoryEvaluation>
@@ -293,7 +246,6 @@ const noticeExpiry = function noticeExpiry(
 		: dismissal.dismissedAt + policy.notice.maxAgeMs;
 };
 
-/** Notice prompts depend only on the dismissal's fingerprint and lifetime. */
 const deriveNoticeRequirement = function deriveNoticeRequirement(
 	input: ConsentEvaluationInput
 ): PromptRequirement {
@@ -325,10 +277,6 @@ const derivePromptRequirement = function derivePromptRequirement(
 	}
 };
 
-/**
- * When an acknowledged empty choice scope asks again: once the last record
- * answering it runs out. Empty when it is not answered or never runs out.
- */
 const acknowledgementDeadline = function acknowledgementDeadline(
 	input: ConsentEvaluationInput,
 	categories: Record<OptionalConsentCategory, CategoryEvaluation>,
@@ -346,13 +294,6 @@ const acknowledgementDeadline = function acknowledgementDeadline(
 	return typeof until === 'number' ? [until] : [];
 };
 
-/**
- * Earliest future time at which permissions or the prompt can change.
- * A positive in-scope grant matters when its expiry changes a permission
- * (opt-in and IAB) or a choice prompt; a dismissal matters under a notice
- * prompt, and as an acknowledgement under a choice prompt with an empty
- * choice scope.
- */
 const deriveNextDeadline = function deriveNextDeadline(
 	input: ConsentEvaluationInput,
 	categories: Record<OptionalConsentCategory, CategoryEvaluation>,
@@ -361,8 +302,6 @@ const deriveNextDeadline = function deriveNextDeadline(
 	const { policy } = input;
 	const candidates: number[] = [];
 	const choiceScope = policy.choiceScope ?? policy.scope;
-	// Expiry can only change a choice prompt from satisfied to expired.
-	// Missing coverage or a mismatch keeps precedence over later expiry.
 	const choicePromptCanChange =
 		policy.prompt === 'choice' &&
 		promptRequirement.kind === 'none' &&
@@ -400,7 +339,6 @@ const deriveNextDeadline = function deriveNextDeadline(
 	return future.length === 0 ? null : Math.min(...future);
 };
 
-/** Evaluates one snapshot of records against one policy at `now`. */
 export const evaluateConsentRecord = function evaluateConsentRecord(
 	input: ConsentEvaluationInput
 ): ConsentEvaluation {

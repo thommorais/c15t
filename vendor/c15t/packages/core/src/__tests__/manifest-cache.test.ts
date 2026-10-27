@@ -1,13 +1,3 @@
-/**
- * The manifest-cache module, tested at its interface
- * (`@c15t/core/transports/manifest-cache`, re-exported by `@c15t/core/server`).
- *
- * Covers the caching contract every server adapter relies on: the cache key,
- * the shared process cache, TTL from `s-maxage`, ETag revalidation,
- * `no-store` opt-out, the dedupe floor, stale-while-revalidate, failure
- * backoff, the per-framework fetch hint, the size bound, and the shape of a
- * locally resolved init.
- */
 import type { ConsentManifest } from '@c15t/schema/types';
 import { createConsentManifestPolicyPack } from '@c15t/schema/types';
 import { afterEach, describe, expect, test, vi } from 'vitest';
@@ -430,14 +420,12 @@ describe('manifest source URLs', () => {
 		expect(
 			createManifestRequestURL({ query: '', sourceURL: `${SOURCE_URL}?` })
 		).toBe(SOURCE_URL);
-		// Repeated names keep their order; encodings converge.
 		expect(
 			createManifestRequestURL({
 				query: 'v=2&lang=de%20x&v=1',
 				sourceURL: SOURCE_URL,
 			})
 		).toBe(`${SOURCE_URL}?lang=de+x&v=2&v=1`);
-		// A relative source follows the same rule.
 		expect(
 			createManifestRequestURL({ query: 'b=2&a=1', sourceURL: '/manifest' })
 		).toBe('/manifest?a=1&b=2');
@@ -456,12 +444,10 @@ describe('manifest source URLs', () => {
 			query: 'language=de%20x',
 			sourceURL: `${SOURCE_URL}?v=2&sig=a%2Fb~c#fragment`,
 		});
-		// A URL signed over its exact query still verifies upstream.
 		expect(fetchMock.mock.calls[0]?.[0]).toBe(
 			`${SOURCE_URL}?v=2&sig=a%2Fb~c&language=de%20x`
 		);
 
-		// The same parameters in another order and encoding read that entry.
 		await fetchCachedManifest({
 			cache,
 			fetch: fetchMock,
@@ -595,7 +581,6 @@ describe('fetchCachedManifest: concurrency, explicit directives, headers', () =>
 
 		expect(fetchMock).toHaveBeenCalledTimes(1);
 		expect(b).toBe(a);
-		// The in-flight slot is released, so a later miss fetches again.
 		await fetchCachedManifest({
 			cache,
 			fetch: fetchMock,
@@ -721,7 +706,6 @@ describe('fetchCachedManifest: restrictive directives and credential scope', () 
 		});
 		expect(fetchMock).toHaveBeenCalledTimes(2);
 
-		// The plain, credential-less entry is separate from both.
 		await fetchCachedManifest({
 			cache,
 			fetch: fetchMock,
@@ -780,7 +764,6 @@ describe('clearManifestCache during an in-flight fill', () => {
 		});
 		await vi.waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
 		clearManifestCache(cache);
-		// A caller arriving after the clear starts a fresh fill.
 		const fresh = fetchCachedManifest({
 			cache,
 			fetch: fetchMock,
@@ -791,7 +774,6 @@ describe('clearManifestCache during an in-flight fill', () => {
 
 		gate.resolve(undefined);
 		await Promise.all([stale, fresh]);
-		// Only the post-clear fill is stored.
 		expect(cache.get(SOURCE_URL)).toBe(await fresh);
 	});
 });
@@ -860,8 +842,6 @@ describe('clearManifestCache during cache-key construction', () => {
 		const cache = createManifestCache();
 		const headers = { authorization: 'Bearer scope' };
 
-		// Credentialed keys are digested asynchronously, so the clear runs
-		// between capturing the generation and registering the fill.
 		const early = fetchCachedManifest({
 			cache,
 			fetch: fetchMock,
@@ -879,8 +859,6 @@ describe('clearManifestCache during cache-key construction', () => {
 			sourceURL: SOURCE_URL,
 		});
 
-		// The early fill restarted after the clear and stored under the new
-		// generation, so the later call is a cache hit on a post-clear entry.
 		expect(fetchMock).toHaveBeenCalledTimes(1);
 		expect(later).toBe(await early);
 	});
@@ -964,8 +942,6 @@ describe('fetchCachedManifest: stale-while-revalidate', () => {
 	const SWR_CACHE_CONTROL = 'public, s-maxage=60, stale-while-revalidate=120';
 
 	test('a fresh replacement is not held back by the dedupe floor', async () => {
-		// A backend with `s-maxage` under the five-second floor must still be
-		// revalidated on its own schedule once a refresh lands fresh.
 		const cache = createManifestCache();
 		const fetchMock = vi.fn(() =>
 			Promise.resolve(
@@ -982,7 +958,6 @@ describe('fetchCachedManifest: stale-while-revalidate', () => {
 			now: 0,
 			sourceURL: SOURCE_URL,
 		});
-		// Stale at 1.5 s: one background fill, answered fresh (expires 2.5 s).
 		await fetchCachedManifest({
 			cache,
 			fetch: fetchMock,
@@ -991,8 +966,6 @@ describe('fetchCachedManifest: stale-while-revalidate', () => {
 		});
 		await vi.waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
 		await vi.waitFor(() => expect(cache.get(SOURCE_URL)?.expiresAt).toBe(2500));
-		// Stale again at 3 s, well inside what would have been a 6.5 s floor:
-		// the refreshed entry's own expiry governs, so another fill starts.
 		await fetchCachedManifest({
 			cache,
 			fetch: fetchMock,
@@ -1003,8 +976,6 @@ describe('fetchCachedManifest: stale-while-revalidate', () => {
 	});
 
 	test('throttles revalidation per key even when the cache returns a fresh object on every read', async () => {
-		// A serialising cache (KV, structured clone) never returns the same
-		// object twice, so the floor cannot hang off entry identity.
 		const store = new Map<string, string>();
 		const cloning: ManifestCache = {
 			clear: () => store.clear(),
@@ -1066,8 +1037,6 @@ describe('fetchCachedManifest: stale-while-revalidate', () => {
 	});
 
 	test('grants no stale window without an explicit s-maxage', async () => {
-		// `max-age` alone never opted into shared caching; the 5 s dedupe floor
-		// is not a freshness lifetime to extend by a day.
 		const cache = createManifestCache();
 		const fetchMock = vi.fn(() =>
 			Promise.resolve(
@@ -1090,7 +1059,6 @@ describe('fetchCachedManifest: stale-while-revalidate', () => {
 			now: 7000,
 			sourceURL: SOURCE_URL,
 		});
-		// Past the floor the call blocked on a fresh fetch, as before.
 		expect(fetchMock).toHaveBeenCalledTimes(2);
 	});
 
@@ -1114,8 +1082,6 @@ describe('fetchCachedManifest: stale-while-revalidate', () => {
 		expect(first).toMatchObject({ expiresAt: 1000, staleUntil: 121_000 });
 		expect(cache.get(SOURCE_URL)).toBe(first);
 
-		// Stale on arrival, so the next read is served from memory with one
-		// background revalidation rather than a blocking fetch.
 		const served = await fetchCachedManifest({
 			cache,
 			fetch: fetchMock,
@@ -1224,14 +1190,12 @@ describe('fetchCachedManifest: stale-while-revalidate', () => {
 			now: 61_000,
 			sourceURL: SOURCE_URL,
 		});
-		// The request that triggered the refresh is over and cancelled.
 		controller.abort(new Error('request finished'));
 		await vi.waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
 		const backgroundInit = (fetchMock as unknown as ReturnType<typeof vi.fn>)
 			.mock.calls[1]?.[1] as RequestInit | undefined;
 		expect(backgroundInit?.signal).not.toBe(controller.signal);
 		expect(backgroundInit?.signal?.aborted).toBe(false);
-		// The refresh still lands.
 		await vi.waitFor(() =>
 			expect(cache.get(SOURCE_URL)?.fetchedAt).toBe(61_000)
 		);
@@ -1254,7 +1218,6 @@ describe('fetchCachedManifest: stale-while-revalidate', () => {
 						})
 					);
 				}
-				// Every revalidation takes 8 s of wall time and then fails.
 				return new Promise<Response>((_resolve, reject) => {
 					setTimeout(() => reject(new Error('upstream down')), 8000);
 				});
@@ -1275,8 +1238,6 @@ describe('fetchCachedManifest: stale-while-revalidate', () => {
 			expect(fetchMock).toHaveBeenCalledTimes(2);
 			await vi.advanceTimersByTimeAsync(8000);
 
-			// 8 s of wall time have passed since the fill started, but the floor
-			// began when it settled, so a read 1 s later must not refetch.
 			await fetchCachedManifest({
 				cache,
 				fetch: fetchMock,
@@ -1297,8 +1258,6 @@ describe('fetchCachedManifest: stale-while-revalidate', () => {
 	});
 
 	test('a revalidation answered already stale by a CDN does not revalidate again before the dedupe floor', async () => {
-		// A CDN whose origin is down keeps answering 304 with an Age past
-		// s-maxage, so every refreshed entry is stale on arrival.
 		let requests = 0;
 		const fetchMock = vi.fn(() => {
 			requests += 1;
@@ -1329,7 +1288,6 @@ describe('fetchCachedManifest: stale-while-revalidate', () => {
 			now: 0,
 			sourceURL: SOURCE_URL,
 		});
-		// Stale: one background revalidation, answered already stale.
 		await fetchCachedManifest({
 			cache,
 			fetch: fetchMock,
@@ -1340,7 +1298,6 @@ describe('fetchCachedManifest: stale-while-revalidate', () => {
 		const replaced = cache.get(SOURCE_URL);
 		expect(replaced?.expiresAt).toBe(61_000);
 
-		// Inside the floor: served from the replaced entry, no new request.
 		await fetchCachedManifest({
 			cache,
 			fetch: fetchMock,
@@ -1355,8 +1312,6 @@ describe('fetchCachedManifest: stale-while-revalidate', () => {
 		});
 		expect(fetchMock).toHaveBeenCalledTimes(2);
 
-		// Past the floor (which runs from settlement, a few real milliseconds
-		// after 61_000): exactly one more revalidation.
 		await fetchCachedManifest({
 			cache,
 			fetch: fetchMock,
@@ -1500,7 +1455,6 @@ describe('fetchCachedManifest: stale-while-revalidate', () => {
 		});
 		expect(served).toBe(first);
 		await vi.waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
-		// Release the failing fill and let its catch/finally set the floor.
 		gate.resolve(undefined);
 		await new Promise((resolve) => {
 			setTimeout(resolve, 0);
@@ -1516,8 +1470,6 @@ describe('fetchCachedManifest: stale-while-revalidate', () => {
 		expect(stillThrottled).toBe(first);
 		expect(fetchMock).toHaveBeenCalledTimes(2);
 
-		// The floor runs from when the fill settled, a few real milliseconds
-		// after `staleNow`, so probe with a second of slack.
 		const retried = await fetchCachedManifest({
 			cache,
 			fetch: fetchMock,
@@ -1572,8 +1524,6 @@ describe('fetchCachedManifest: stale-while-revalidate', () => {
 		expect(stillThrottled).toBe(first);
 		expect(fetchMock).toHaveBeenCalledTimes(2);
 
-		// The floor runs from when the fill settled, a few real milliseconds
-		// after `staleNow`, so probe with a second of slack.
 		const retried = await fetchCachedManifest({
 			cache,
 			fetch: fetchMock,
@@ -1804,8 +1754,6 @@ describe('fetchCachedManifest: stale-while-revalidate', () => {
 
 		clearManifestCache(cache);
 		gate.resolve(undefined);
-		// Give the background fill's continuation a turn; its result must not
-		// land in the cache the clear just emptied.
 		await new Promise((resolve) => {
 			setTimeout(resolve, 5);
 		});
@@ -1869,7 +1817,6 @@ describe('background revalidation lifetime', () => {
 			onBackgroundRevalidate,
 			sourceURL: URL_UNDER_TEST,
 		});
-		// Fresh read: nothing to keep alive.
 		expect(registered).toHaveLength(0);
 
 		await fetchCachedManifest({
@@ -1912,7 +1859,6 @@ describe('background revalidation lifetime: registration failures', () => {
 			sourceURL: URL_UNDER_TEST,
 		});
 		expect(served).toBe(first);
-		// The refresh itself still ran.
 		await vi.waitFor(() => expect(fetchSpy).toHaveBeenCalledTimes(2));
 	});
 });
@@ -1935,10 +1881,6 @@ describe('revalidation floor bookkeeping', () => {
 		const fetchSpy = vi.fn(staleOnArrival);
 		const junk = (index: number) => `${URL_UNDER_TEST}?language=x${index}`;
 
-		// Each minted key: fill, then a stale read that starts a background
-		// fill whose stale-on-arrival answer leaves a floor record. The
-		// 2-entry cap evicts the key soon after, which the runtime cannot
-		// observe, so the floor map has to bound itself.
 		for (let index = 0; index < 400; index += 1) {
 			const now = 1000 + index;
 			// oxlint-disable-next-line no-await-in-loop -- Sequential by design.
@@ -1959,7 +1901,6 @@ describe('revalidation floor bookkeeping', () => {
 		await flush();
 		const floors = readRevalidationFloors(cache);
 		expect(floors.size).toBeLessThanOrEqual(256);
-		// Oldest records went first; the most recent key is still tracked.
 		expect(floors.has(junk(399))).toBe(true);
 		expect(floors.has(junk(0))).toBe(false);
 	});
@@ -1968,7 +1909,6 @@ describe('revalidation floor bookkeeping', () => {
 		const cache = createManifestCache();
 		const fetchSpy = vi.fn(staleOnArrival);
 		const key = (index: number) => `${URL_UNDER_TEST}?language=t${index}`;
-		// 128 tenants (the default cache cap), each stale-served once.
 		for (let index = 0; index < 128; index += 1) {
 			const now = 1000 + index;
 			// oxlint-disable-next-line no-await-in-loop -- Sequential by design.
@@ -1991,7 +1931,6 @@ describe('revalidation floor bookkeeping', () => {
 		for (let index = 0; index < 128; index += 1) {
 			expect(floors.has(key(index))).toBe(true);
 		}
-		// Round-robin stale reads inside the floor start no new fills.
 		const before = fetchSpy.mock.calls.length;
 		for (let index = 0; index < 128; index += 1) {
 			// oxlint-disable-next-line no-await-in-loop -- Sequential by design.
@@ -2006,10 +1945,6 @@ describe('revalidation floor bookkeeping', () => {
 	});
 
 	test('a blocking fill that lands fresh clears a floor left by a failed refresh', async () => {
-		// `s-maxage=1, stale-while-revalidate=1`: the stale window closes
-		// before the five-second floor does, so the next read blocks. Its
-		// fresh result must not inherit the old floor, or the refreshed
-		// entry would go stale again and be served without a refresh.
 		const cache = createManifestCache();
 		let requests = 0;
 		const fetchSpy = vi.fn(() => {
@@ -2031,7 +1966,6 @@ describe('revalidation floor bookkeeping', () => {
 			now: 0,
 			sourceURL: URL_UNDER_TEST,
 		});
-		// Stale at 1.5 s: background refresh fails, floor set to about 6.5 s.
 		await fetchCachedManifest({
 			cache,
 			fetch: fetchSpy,
@@ -2041,7 +1975,6 @@ describe('revalidation floor bookkeeping', () => {
 		await flush();
 		expect(readRevalidationFloors(cache).has(URL_UNDER_TEST)).toBe(true);
 
-		// Past staleUntil (2 s): blocks, lands fresh (expires 4 s).
 		const fresh = await fetchCachedManifest({
 			cache,
 			fetch: fetchSpy,
@@ -2051,8 +1984,6 @@ describe('revalidation floor bookkeeping', () => {
 		expect(fresh.expiresAt).toBe(4000);
 		expect(readRevalidationFloors(cache).has(URL_UNDER_TEST)).toBe(false);
 
-		// Stale again at 4.5 s, still inside the old 6.5 s floor: a background
-		// refresh must start.
 		await fetchCachedManifest({
 			cache,
 			fetch: fetchSpy,
@@ -2069,8 +2000,6 @@ describe('revalidation floor bookkeeping', () => {
 			requests += 1;
 			return Promise.resolve(
 				jsonResponse({
-					// First fill and first refresh are fresh; the third answer is
-					// already stale (a CDN serving stale with a large Age).
 					age: requests === 3 ? '90' : '0',
 					'cache-control': 'public, s-maxage=60, stale-while-revalidate=600',
 					etag: '"r1"',
@@ -2116,8 +2045,6 @@ describe('failures on a cold cache', () => {
 	});
 
 	test('a failed fill is not retried until its floor passes, then backs off', async () => {
-		// A failure's floor counts from `now` plus the fill's real duration;
-		// a frozen clock keeps the exact floors below from drifting under load.
 		vi.useFakeTimers();
 		const cache = createManifestCache();
 		const fetchSpy = vi.fn(unavailable);
@@ -2130,7 +2057,6 @@ describe('failures on a cold cache', () => {
 			});
 
 		await expect(read(0)).rejects.toThrow('responded 503');
-		// Inside the floor every read answers from the failure record.
 		for (const now of [1, 500, MANIFEST_FAILURE_RETRY_MIN_MS - 1]) {
 			// oxlint-disable-next-line no-await-in-loop -- Sequential by design.
 			await expect(read(now)).rejects.toMatchObject({
@@ -2141,7 +2067,6 @@ describe('failures on a cold cache', () => {
 		}
 		expect(fetchSpy).toHaveBeenCalledTimes(1);
 
-		// Each consecutive failure doubles the floor, up to the maximum.
 		let now = MANIFEST_FAILURE_RETRY_MIN_MS;
 		const floors: number[] = [];
 		for (let attempt = 0; attempt < 5; attempt += 1) {
@@ -2224,17 +2149,12 @@ describe('failures on a cold cache', () => {
 			});
 
 		await read(0);
-		// Inside stale-while-revalidate the stale copy is served.
 		await expect(read(15_000)).resolves.toMatchObject({
 			manifest: minimalManifest,
 		});
-		// Let that read's background refresh settle, as it would in the 16 s
-		// before the next read.
 		await new Promise((resolve) => {
 			setTimeout(resolve, 0);
 		});
-		// Past it, the read waits on the upstream and its failure surfaces,
-		// then the floor holds without serving the expired copy either.
 		await expect(read(31_000)).rejects.toThrow('responded 503');
 		await expect(read(31_500)).rejects.toMatchObject({ reason: 'backoff' });
 	});
@@ -2319,7 +2239,6 @@ describe('timeoutMs', () => {
 		const fetchSpy = vi.fn(
 			() =>
 				new Promise<Response>(() => {
-					// Never answers.
 				})
 		);
 		const first = fetchCachedManifest({
@@ -2401,7 +2320,6 @@ describe('withResolutionBudget', () => {
 	test('rejects with a timeout once the budget runs out', async () => {
 		vi.useFakeTimers();
 		const never = new Promise<string>(() => {
-			// Never settles.
 		});
 		const bounded = withResolutionBudget(never, 250);
 		const rejected = expect(bounded).rejects.toBeInstanceOf(
@@ -2419,7 +2337,6 @@ describe('withResolutionBudget', () => {
 
 	test('reports a spent budget as 0 ms', async () => {
 		const never = new Promise<string>(() => {
-			// Never settles.
 		});
 		await expect(withResolutionBudget(never, -5)).rejects.toThrow(
 			'did not finish within 0 ms.'
@@ -2433,7 +2350,6 @@ describe('withResolutionBudget', () => {
 				fetch: vi.fn(
 					() =>
 						new Promise<Response>(() => {
-							// Never answers.
 						})
 				),
 				sourceURL: URL_UNDER_TEST,
@@ -2561,7 +2477,6 @@ describe('createManifestCache bounds', () => {
 		const cache = createManifestCache({ maxEntries: 2 });
 		cache.set('a', boundsEntry(BOUNDS_FUTURE));
 		cache.set('b', boundsEntry(BOUNDS_FUTURE));
-		// Touch `a` so `b` becomes the oldest.
 		cache.get('a');
 		cache.set('c', boundsEntry(BOUNDS_FUTURE));
 
@@ -2586,7 +2501,6 @@ describe('createManifestCache bounds', () => {
 		cache.set('stale-servable', boundsEntry(Date.now() - 1, BOUNDS_FUTURE));
 		cache.set('fresh', boundsEntry(BOUNDS_FUTURE));
 
-		// Nothing is past its stale window, so eviction falls back to LRU.
 		expect(cache.get('oldest-live')).toBeUndefined();
 		expect(cache.get('stale-servable')).toBeDefined();
 	});
@@ -2646,7 +2560,6 @@ describe('one cache key rule', () => {
 		});
 
 		expect(fetchMock).toHaveBeenCalledTimes(1);
-		// The one request keeps the first caller's query as written.
 		expect(String(fetchMock.mock.calls[0]?.[0])).toBe(
 			`${SOURCE_URL}?preview=1&language=de`
 		);

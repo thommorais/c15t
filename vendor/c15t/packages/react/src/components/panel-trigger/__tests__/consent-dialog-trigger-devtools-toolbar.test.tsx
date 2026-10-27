@@ -9,12 +9,6 @@ import { offline } from '~/transports/offline';
 
 import { ConsentDialogTrigger } from '../index';
 
-/**
- * Records, in the commit where the DevTools launcher first becomes
- * available, whether the trigger already renders as a toolbar. A trigger
- * that had to load the toolbar on demand would still show its single
- * button in that commit.
- */
 const LauncherProbe = ({ seen }: { seen: boolean[] }) => {
 	const available = useDevToolsLauncherAvailable();
 	useLayoutEffect(() => {
@@ -32,8 +26,6 @@ afterEach(() => {
 });
 
 describe('ConsentDialogTrigger with ConsentDevTools', () => {
-	// No retries: a failed attempt loads the toolbar for the whole page, so a
-	// retry would pass whether or not DevTools registered it.
 	test(
 		'shows the toolbar in the same commit as the launcher',
 		{ retry: 0 },

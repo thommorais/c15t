@@ -1,5 +1,3 @@
-// Layout assertions below need the documented app-level stylesheet: class
-// maps carry no CSS of their own.
 import '@c15t/ui/styles.css';
 import type { ConsentKernel, KernelConfig } from '@c15t/core';
 import { custom } from '@c15t/core';
@@ -246,7 +244,6 @@ describe('policy presentation reference behavior', () => {
 			.element(screen.getByTestId('consent-widget-footer-save-button'))
 			.toBeVisible();
 		await screen.getByTestId('consent-widget-footer-save-button').click();
-		// Saving from the preference center acknowledges the notice.
 		expect(kernel.getSnapshot().promptRequirement.kind).toBe('none');
 		expect(kernel.getSnapshot().noticeDismissal).not.toBeNull();
 	});
@@ -299,7 +296,6 @@ it('hydrates prepared server HTML without a prompt flash, callback, request or r
 	expect(onChoiceRecorded).not.toHaveBeenCalled();
 	expect(onPermissionsChanged).not.toHaveBeenCalled();
 	expect(init).not.toHaveBeenCalled();
-	// A first visit stores its new subject ID and nothing else.
 	expect(setItem.mock.calls.filter(([key]) => key !== 'c15t-sid')).toEqual([]);
 	expect(errors).not.toHaveBeenCalled();
 	root.unmount();
@@ -431,10 +427,6 @@ it.each([false, true])(
 );
 
 it('custom dialog content scrolls inside the capped card', async () => {
-	// `ConsentDialog.Content` supports custom children. The stock widget
-	// scrolls its own category list, but anything else has to scroll in the
-	// content area, or a long composition spills past the card while the
-	// blocking dialog locks the page behind it.
 	const screen = await render(
 		<ConsentProvider
 			options={{

@@ -1,17 +1,3 @@
-/**
- * `@c15t/core` — kernel-first consent engine.
- *
- * Design goals:
- * - Pure construction: `createConsentKernel()` has zero side effects.
- *   No window writes, no observers, no network, no DOM.
- * - Framework-neutral contract: `getSnapshot() / subscribe() / set.* / commands.* / events`.
- *   No store library types leaked. Adapters own reactivity.
- * - Isomorphic-safe: imports cleanly in Node, RSC, edge runtimes.
- * - Opt-in side effects: persistence, blockers, script loader, banner fetch
- *   live in `@c15t/core/modules/*` — adapters call them inside useEffect /
- *   onMounted / onMount. Never at kernel construction.
- */
-
 export type {
 	CategoryDecision,
 	ChoiceBasis,
@@ -179,7 +165,6 @@ export type {
 	VendorSource,
 } from './types';
 
-// -- Consent categories --------------------------------------------------------
 export type {
 	AllConsentNames,
 	ConsentInfo,
@@ -188,15 +173,12 @@ export type {
 export { allConsentNames, consentTypes } from './consent/consent-types';
 export type { NamespaceProps } from './consent/compliance';
 
-// -- Consent conditions --------------------------------------------------------
 export type { HasCondition } from './libs/has';
 export { has } from './libs/has';
 
-// -- Storage -------------------------------------------------------------------
 export type { CookieOptions, StorageConfig } from './libs/cookie';
 export { getRootDomain } from './libs/cookie';
 
-// -- Blockers ------------------------------------------------------------------
 export type {
 	BlockedRequestInfo,
 	NetworkBlockerConfig,
@@ -204,7 +186,6 @@ export type {
 } from './libs/network-blocker/types';
 export type { IframeBlockerOptions } from './modules/iframe-blocker';
 
-// -- Script loader -------------------------------------------------------------
 export type {
 	Script,
 	ScriptCallbackInfo,
@@ -224,7 +205,6 @@ export {
 	subscribeToScriptDebugEvents,
 } from './libs/script-loader/debug';
 
-// -- Provider option types -----------------------------------------------------
 export type {
 	AdditionalConsentConfig,
 	Callback,
@@ -256,7 +236,6 @@ export type {
 } from './options';
 export type { ActiveUI, Model } from './types';
 
-// -- Prefetch ------------------------------------------------------------------
 export type { PrefetchOptions } from './libs/prefetch';
 export {
 	buildPrefetchScript,
@@ -264,7 +243,6 @@ export {
 	primePrefetchedInitialData,
 } from './libs/prefetch';
 
-// -- Translations --------------------------------------------------------------
 export type {
 	CommonTranslations,
 	ConsentManagerDialogTranslations,
@@ -289,7 +267,6 @@ export {
 } from './translations';
 export type { TranslationOverrides } from './translations';
 
-// -- Schema re-exports ---------------------------------------------------------
 export type {
 	Branding,
 	InitOutput,

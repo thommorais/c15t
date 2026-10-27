@@ -32,7 +32,6 @@ const Provider = ({ children }: { children: ReactNode }) => (
 	</ConsentProvider>
 );
 
-/** The panel roots, which live inside each host's shadow root. */
 const mountedDevTools = (): HTMLElement[] =>
 	[...document.querySelectorAll<HTMLElement>('[data-c15t-dev-tools-host]')]
 		.map((host) =>
@@ -670,12 +669,10 @@ describe('v3 TanStack Devtools adapter', () => {
 			'[data-testid="c15t-tanstack-panel"]'
 		);
 		const devTools = getMountedDevTools();
-		// The panel sits in a shadow root; `contains` stops at the host.
 		const host = (devTools?.getRootNode() as ShadowRoot | undefined)?.host;
 		expect(container?.contains(host ?? null)).toBe(true);
 		expect(devTools?.classList.contains('c15t-dev-tools--embedded')).toBe(true);
 		expect(element.type).toBe(C15tTanStackDevtoolsPanel);
-		// The panel follows TanStack's theme, not the operating system.
 		expect(devTools ? getComputedStyle(devTools).colorScheme : undefined).toBe(
 			'dark'
 		);

@@ -41,7 +41,6 @@ describe('parseUrl', () => {
 	});
 
 	test('returns null for inputs the URL constructor cannot resolve', () => {
-		// Unbalanced bracket — invalid IPv6 → URL constructor throws.
 		expect(parseUrl('http://[::1')).toBeNull();
 	});
 });

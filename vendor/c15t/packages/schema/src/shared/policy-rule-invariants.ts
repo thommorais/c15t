@@ -1,12 +1,4 @@
 import { compareCanonical } from './canonical-order';
-/**
- * Invariants of a resolved v3 policy rule, without the authoring validator.
- *
- * The browser reads a resolved rule off the wire and checks it against these
- * invariants, but never validates, normalizes, matches or hashes an authored
- * pack. Keeping them apart from `policy-rule.ts` keeps that work, and the
- * fingerprint hashing it pulls in, out of client bundles.
- */
 import type {
 	PolicyActionConstraints,
 	PolicyChoiceAction,
@@ -27,7 +19,6 @@ export const POLICY_CONSENT_CATEGORIES = [
 	'marketing',
 ] as const satisfies readonly PolicyConsentCategory[];
 
-/** Optional categories in canonical (sorted) order. */
 export const POLICY_OPTIONAL_CATEGORIES = [
 	'experience',
 	'functionality',
@@ -61,7 +52,6 @@ export const POLICY_RIGHTS = [
 	'opt-out',
 ] as const satisfies readonly PolicyRight[];
 
-/** Valid prompt per model. Anything else fails validation. */
 export const POLICY_MODEL_PROMPTS: Readonly<
 	Record<PolicyRuleModel, readonly PolicyPrompt[]>
 > = {
@@ -107,7 +97,6 @@ export const isPolicyRight = function isPolicyRight(
 	return typeof value === 'string' && RIGHT_SET.has(value);
 };
 
-/** Whether the model permits the prompt. */
 export const isValidPolicyPromptForModel = function isValidPolicyPromptForModel(
 	model: PolicyRuleModel,
 	prompt: PolicyPrompt
@@ -115,18 +104,12 @@ export const isValidPolicyPromptForModel = function isValidPolicyPromptForModel(
 	return POLICY_MODEL_PROMPTS[model].includes(prompt);
 };
 
-/** Sorted, deduplicated copy of a string set. */
 export const canonicalizePolicySet = function canonicalizePolicySet<
 	ValueType extends string,
 >(values: readonly ValueType[]): ValueType[] {
 	return [...new Set(values)].sort(compareCanonical);
 };
 
-/**
- * Plain object with a plain or null prototype. Class instances and objects
- * with a custom prototype are rejected so inherited fields cannot pose as
- * rule data.
- */
 export const isPlainPolicyObject = function isPlainPolicyObject(
 	value: unknown
 ): value is Record<string, unknown> {
@@ -137,7 +120,6 @@ export const isPlainPolicyObject = function isPlainPolicyObject(
 	return prototype === Object.prototype || prototype === null;
 };
 
-/** Action constraints every prompt kind implies. */
 export const expectedPolicyActions = function expectedPolicyActions(
 	prompt: PolicyPrompt,
 	configured?: readonly PolicyChoiceAction[]
@@ -158,10 +140,6 @@ export const expectedPolicyActions = function expectedPolicyActions(
 	return { allowed: [], equivalent: [], required: [] };
 };
 
-/**
- * Rights every rule of a model must carry. `none` owes nothing; a host may
- * still add `preferences` or `disclosure` through `rights`.
- */
 export const requiredPolicyRights = function requiredPolicyRights(
 	model: PolicyRuleModel
 ): PolicyRight[] {
@@ -239,16 +217,6 @@ const isValidMs = function isValidMs(value: number): boolean {
 	);
 };
 
-/**
- * Semantic invariants every {@link ResolvedPolicyRule} must satisfy.
- *
- * @remarks
- * Shared by authored normalization, the client wire reader and the valibot
- * wire schema so no consumer accepts a weaker contract than the author
- * path. Structural typing is assumed; this checks meaning.
- *
- * @returns Human-readable issues; empty when the rule is sound.
- */
 export const collectResolvedPolicyRuleIssues =
 	function collectResolvedPolicyRuleIssues(rule: ResolvedPolicyRule): string[] {
 		const issues: string[] = [];

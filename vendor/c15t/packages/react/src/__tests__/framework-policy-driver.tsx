@@ -59,11 +59,9 @@ import type { IABHandle } from '../../../iab/src/index';
 import { gtag } from '../../../integrations/src/vendors/analytics/google-tag';
 import type { FrameworkRoot } from './framework-root';
 
-// Theme styles load after mount; compare the consent markup and track hydration warnings separately.
 const consentMarkup = (container: HTMLElement) => {
 	const copy = container.cloneNode(true) as HTMLElement;
 	copy.querySelectorAll('style#c15t-theme').forEach((style) => style.remove());
-	// Branding appends the browser hostname after mount, without affecting consent.
 	copy.querySelectorAll('a[data-branding]').forEach((link) => {
 		const href = link.getAttribute('href');
 		if (!href) {
@@ -208,7 +206,6 @@ const getDom = (kernel: ConsentKernel): PolicyDomEvidence => {
 	};
 };
 
-/** Shares policy exercises while each adapter supplies its real root component and server reader. */
 export const createFrameworkPolicyDriver = ({
 	Root: ConsentRoot,
 	readInitialConfig,
@@ -221,8 +218,6 @@ export const createFrameworkPolicyDriver = ({
 	}) => Promise<KernelConfig>;
 }) => {
 	const createPolicySession: CreatePolicySession = async (setup) => {
-		// Compare action styling without a pointer left over a previous
-		// control: a parked pointer gives that button its :hover tint.
 		await userEvent.hover(document.documentElement, {
 			position: { x: 1, y: 1 },
 		});
@@ -239,11 +234,6 @@ export const createFrameworkPolicyDriver = ({
 		let failTransport = false;
 		let presentation: ConsentPresentation | undefined;
 		let kernel: ConsentKernel;
-		/**
-		 * The provider publishes the kernel from an effect after render or
-		 * hydration; under load that effect can land after the first settle, so
-		 * every mount path waits for it before touching the kernel.
-		 */
 		const waitForKernel = () =>
 			vi.waitFor(
 				() => {
@@ -295,9 +285,7 @@ export const createFrameworkPolicyDriver = ({
 			keys.consent,
 			legacyKey,
 			`${keys.consent}-notice`,
-			// A clear's epoch outlives it and would void the next seed's records.
 			keys.epoch,
-			// A clear keeps the subject ID; the next scenario is a new visitor.
 			keys.subject,
 		]) {
 			localStorage.removeItem(key);
@@ -456,7 +444,6 @@ export const createFrameworkPolicyDriver = ({
 							onPermissionsChanged: (payload) =>
 								callbacks.push({ name: 'onPermissionsChanged', payload }),
 						},
-						// Shared scenarios review the full scope; gate probes only use marketing.
 						consentCategories: [
 							'necessary',
 							'functionality',
@@ -482,7 +469,6 @@ export const createFrameworkPolicyDriver = ({
 						}),
 
 						presentation,
-						// A real reload restarts the browser test page.
 						reloadOnConsentRevoked: false,
 					}}
 				>
@@ -601,8 +587,6 @@ export const createFrameworkPolicyDriver = ({
 					}
 					return control;
 				},
-				// Browser conformance runs share a machine with every other suite;
-				// controls can take more than the default second to appear.
 				{ interval: 50, timeout: 5000 }
 			);
 			button.click();
@@ -731,8 +715,6 @@ export const createFrameworkPolicyDriver = ({
 								? 'consent-dialog-trigger'
 								: 'consent-dialog-link'
 						);
-						// The framework boundary applies the surface change a tick after
-						// the click, later than a fixed settle covers under load.
 						await vi.waitFor(
 							() => {
 								if (
@@ -841,7 +823,6 @@ export const createFrameworkPolicyDriver = ({
 		};
 	};
 
-	/** Probe canonical schema and storage implementations, independently of lifecycle scenarios. */
 	const probePolicyContract: ProbePolicyContract = async (input) => {
 		const base = {
 			categories: ['marketing', 'measurement'],

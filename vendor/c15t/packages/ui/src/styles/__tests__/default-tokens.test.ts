@@ -1,16 +1,3 @@
-/**
- * Guards the default theme tokens that `generate-css-entrypoints.ts` bakes
- * into the render-blocking stylesheets (`styles.css`, `styles.tw3.css`). The
- * IAB and primitive sheets load next to one of those and carry no second
- * copy.
- *
- * Without them every component rule resolves `var(--c15t-surface)`,
- * `var(--c15t-radius-lg)` and friends against nothing, and an app that imports
- * the stylesheet without passing a `theme` renders the banner unstyled.
- *
- * These read the built artifacts, so `bun run --cwd packages/ui build` (or
- * `turbo run build --filter=@c15t/ui`, which `test` depends on) must have run.
- */
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
@@ -22,7 +9,6 @@ const DIST_DIR = join(__dirname, '..', '..', '..', 'dist');
 
 const ENTRYPOINTS = ['styles.css', 'styles.tw3.css'];
 
-/** Sheets that load next to `styles.css` and must not repeat its tokens. */
 const COMPANION_SHEETS = [
 	join('iab', 'styles.css'),
 	join('iab', 'styles.tw3.css'),
@@ -52,10 +38,6 @@ const findBlockStart = function findBlockStart(
 	return css.search(new RegExp(`${pattern}\\s*\\{`, 'u'));
 };
 
-/**
- * Slice out one `selector { ... }` block by brace matching, so nested blocks
- * inside the stylesheet do not truncate it early.
- */
 const readBlock = function readBlock(
 	css: string,
 	selector: string
@@ -126,8 +108,6 @@ describe.each(ENTRYPOINTS)('%s', (entrypoint) => {
 	});
 
 	test('scopes every :root block to :host too, for shadow-root hosts', () => {
-		// A bare `:root{` (component variables) or `:root.x{` without a
-		// `:host` twin would leave a shadow-root banner unstyled.
 		const bare =
 			css.match(/(?:^|[\s,}{;]):root(?:\.[A-Za-z0-9_-]+)?\s*\{/gu) ?? [];
 		expect(bare).toEqual([]);
@@ -135,15 +115,11 @@ describe.each(ENTRYPOINTS)('%s', (entrypoint) => {
 	});
 
 	test('emits the tokens first, so they read as the file preamble', () => {
-		// Only the layer order statement may precede them.
 		const preamble = css.replace(/^@layer [^;{]+;\s*/u, '');
 		expect(preamble.startsWith('/* default theme tokens')).toBe(true);
 	});
 
 	test('emits the tokens unlayered', () => {
-		// Unlayered, so a host's own unlayered `:root` overrides placed after
-		// the stylesheet still win by source order, as they always have. A
-		// `generateThemeCSS` theme wins by specificity wherever it lands.
 		const layerStart = css.indexOf('@layer components');
 		const tokensStart = findBlockStart(css, LIGHT_SELECTOR);
 		expect(tokensStart).toBeGreaterThanOrEqual(0);
@@ -170,12 +146,6 @@ describe.each(COMPANION_SHEETS)('%s', (entrypoint) => {
 });
 
 describe('surface font variables', () => {
-	/**
-	 * `typography.fontFamily` reaches the page as `--c15t-font-family`. A
-	 * surface whose own font variable hardcodes a stack instead ignores the
-	 * theme: the preference list did, so its category rows kept the system
-	 * font under a themed dialog title.
-	 */
 	const fontVariables = [
 		readEntrypoint('styles.css'),
 		readEntrypoint(join('iab', 'styles.css')),
@@ -212,13 +182,6 @@ describe('an app that imports the stylesheet without a theme', () => {
 		document.documentElement.className = '';
 	});
 
-	/**
-	 * jsdom's CSS parser rejects the whole stylesheet — it does not understand
-	 * `@layer`, `color-mix()` or range media queries — and a rejected sheet
-	 * contributes nothing to the cascade. Mount the real artifact's token
-	 * preamble instead: still the shipped bytes, minus the layer order
-	 * statement and the component rules jsdom could not apply anyway.
-	 */
 	const mountStylesheet = function mountStylesheet() {
 		const css = readEntrypoint('styles.css');
 		const tokensStart = css.indexOf('/* default theme tokens');

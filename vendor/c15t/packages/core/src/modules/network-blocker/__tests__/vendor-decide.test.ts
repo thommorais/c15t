@@ -9,7 +9,6 @@ import { evaluateConsent } from '../../has';
 import { evaluateBlock } from '../decide';
 import { createNetworkBlocker } from '../index';
 
-/** The slugs these tests deny, declared so the gate honors the denial. */
 const declaredVendors = (ids: readonly string[]) => ({
 	declared: ids.map((id) => ({
 		category: 'marketing' as const,

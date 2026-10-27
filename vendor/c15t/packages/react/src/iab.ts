@@ -1,29 +1,3 @@
-/**
- * IAB TCF 2.4 React components and hooks.
- *
- * This subpath export contains all IAB-specific React UI. It is only
- * loaded when explicitly imported from '@c15t/react/iab'.
- *
- * Requires `@c15t/iab` as a peer dependency.
- *
- * @example
- * ```tsx
- * import { ConsentProvider, hosted } from '@c15t/react';
- * import { IABProvider, IABConsentBanner, IABConsentDialog } from '@c15t/react/iab';
- *
- * <ConsentProvider
- *   options={{ mode: hosted({ backendURL: '/api/c15t' }) }}
- * >
- *   <IABProvider cmpId={28}>
- *     <IABConsentBanner />
- *     <IABConsentDialog />
- *   </IABProvider>
- * </ConsentProvider>
- * ```
- *
- * @packageDocumentation
- */
-
 export {
 	IABConsentBanner,
 	type IABConsentBannerProps,

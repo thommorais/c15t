@@ -1,18 +1,5 @@
 /* oxlint-disable no-inline-comments -- Bundlers require pure annotations immediately before the call. */
-/**
- * IAB TCF Global Vendor List (GVL) schemas and types.
- *
- * Based on IAB TCF v2.4 specification.
- *
- * Every object schema is loose: fields the IAB adds to the vendor list later
- * pass through validation instead of being stripped.
- *
- * @see https://github.com/InteractiveAdvertisingBureau/GDPR-Transparency-and-Consent-Framework
- */
 import * as v from 'valibot';
-
-// These factories only allocate schemas. Mark the complete construction pure
-// so consumers can discard unused GVL schemas, including nested validators.
 
 export const gvlPurposeSchema = /* @__PURE__ */ (() =>
 	v.looseObject({
@@ -105,13 +92,6 @@ export const gvlDataCategorySchema = /* @__PURE__ */ (() =>
 		name: v.string(),
 	}))();
 
-/**
- * Standard texts the IAB publishes with the vendor list.
- *
- * TCF Policies v5.0.b require CMPs to show `features` alongside the list of
- * Features. The other keys are reserved by `@iabtechlabtcf/core` and may be
- * absent.
- */
 export const gvlStandardTextsSchema = /* @__PURE__ */ (() =>
 	v.looseObject({
 		features: v.string(),
@@ -130,22 +110,12 @@ export const globalVendorListSchema = /* @__PURE__ */ (() =>
 		specialFeatures: v.record(v.string(), gvlSpecialFeatureSchema),
 		specialPurposes: v.record(v.string(), gvlSpecialPurposeSchema),
 		stacks: v.record(v.string(), gvlStackSchema),
-		/** Standard texts published with the vendor list (TCF 2.4+). */
 		standardTexts: v.optional(gvlStandardTextsSchema),
 		tcfPolicyVersion: v.number(),
 		vendorListVersion: v.number(),
 		vendors: v.record(v.string(), gvlVendorSchema),
 	}))();
 
-/**
- * Parsed output without the `[key: string]: unknown` index signature that
- * `v.looseObject` adds.
- *
- * Unknown fields still pass through at runtime. The types name only the
- * fields c15t knows, so a misspelt field stays a type error and `in` checks
- * still tell a GVL vendor from a custom vendor. `v.record` index signatures
- * have a concrete value type and are kept.
- */
 type KnownFields<Value> = Value extends readonly (infer Item)[]
 	? KnownFields<Item>[]
 	: Value extends object

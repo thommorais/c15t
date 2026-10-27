@@ -11,7 +11,6 @@ import type { GPPEventData, GPPPingData } from '../gpp';
 import { createGPPRuntime } from '../gpp/create-gpp';
 import { completeGVL } from './fixtures/gvl-sample';
 
-/** Decodes that finish only when the test resolves them. */
 const pending = new Map<string, (parsed: Record<string, unknown>[]) => void>();
 const parseTCFEUSection = (tcString: string) =>
 	new Promise<Record<string, unknown>[]>((resolve) => {
@@ -68,8 +67,6 @@ test('a slow decode of an older TC String never replaces the current one', async
 	});
 	disposers.push(kernel.dispose);
 	kernel.set.activeUI('none');
-	// The kernel only installs authority a TCF CMP validated. The race
-	// depends only on which TC String the snapshot holds, so substitute it.
 	let held: KernelIABAuthority | null = null;
 	const listeners = new Set<() => void>();
 	const holding = {

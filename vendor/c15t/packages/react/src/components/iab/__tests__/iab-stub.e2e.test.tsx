@@ -1,9 +1,3 @@
-/**
- * IAB Stub E2E Tests
- *
- * Browser-based tests for IAB stub and queue behavior.
- */
-
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { render } from 'vitest-browser-react';
 
@@ -57,7 +51,6 @@ describe('IAB Stub E2E Tests', () => {
 			const tcfapi = (window as { __tcfapi?: TcfApiTestFunction }).__tcfapi;
 			expect(tcfapi).toBeDefined();
 
-			// Should accept command, version, callback
 			await new Promise<void>((resolve) => {
 				tcfapi?.('ping', 2, () => {
 					resolve();
@@ -78,7 +71,6 @@ describe('IAB Stub E2E Tests', () => {
 
 			const tcfapi = (window as { __tcfapi?: TcfApiTestFunction }).__tcfapi;
 
-			// Should accept command, version, callback, parameter
 			const result = await new Promise<boolean>((resolve) => {
 				tcfapi?.(
 					'removeEventListener',
@@ -90,7 +82,6 @@ describe('IAB Stub E2E Tests', () => {
 				);
 			});
 
-			// Should return false for non-existent listener
 			expect(result).toBe(false);
 		});
 	});
@@ -157,7 +148,6 @@ describe('IAB Stub E2E Tests', () => {
 			await waitForElement('[data-testid="iab-consent-banner-card"]');
 			await waitForCMP();
 
-			// Make a call that requires CMP to be loaded
 			const result = await new Promise<{ tcString: string }>((resolve) => {
 				(window as { __tcfapi?: TcfApiTestFunction }).__tcfapi?.(
 					'getTCData',

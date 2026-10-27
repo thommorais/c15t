@@ -11,11 +11,6 @@ import {
 import type { HeadlessIABDisplayStackRow } from '../headless';
 import { completeGVL } from './fixtures/gvl-sample';
 
-/**
- * The conformance fixture is the same GVL the cross-framework drivers
- * mount, so a disagreement between this model and a rendered surface
- * shows up here first.
- */
 const conformanceGVL = MINIMAL_GVL as unknown as GlobalVendorList;
 
 describe('IAB dialog display model', () => {
@@ -50,8 +45,6 @@ describe('IAB dialog display model', () => {
 		expect(model.featureRows.map((row) => row.testId)).toEqual([
 			'feature-item-1',
 		]);
-		// TCF Policies v5.0.b: Features must not sit next to a control that
-		// cannot be disabled, so they are neither locked nor toggleable.
 		expect(model.featureRows.every((row) => !row.locked)).toBe(true);
 		expect(model.featureRows.every((row) => row.toggle === 'none')).toBe(true);
 		expect(model.featureRows[0]?.illustrations.length).toBeGreaterThan(0);
@@ -112,7 +105,6 @@ describe('IAB dialog display model', () => {
 				model.data.features.length
 		);
 		expect(model.vendorTabCount).toBe(model.data.totalVendors);
-		// A stack absorbs purposes without adding to the count.
 		expect(model.consentRows.length).toBeLessThan(model.purposeTabCount);
 	});
 

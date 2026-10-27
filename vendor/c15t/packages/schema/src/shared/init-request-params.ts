@@ -1,27 +1,3 @@
-/**
- * Query parameters that carry the `GET /init` request inputs.
- *
- * A browser on another origin can send `/init` as a CORS simple request,
- * with no `OPTIONS` preflight, only while every request header is
- * CORS-safelisted. The protocol version, the policy contract, the init
- * overrides and the experiment arm used to travel on `x-c15t-*` headers,
- * which cost every first visit an extra round trip before the banner could
- * show. They now travel in the query string, next to the journey
- * parameters.
- *
- * Each parameter replaces one legacy request header with the same value and
- * meaning. A backend reads the parameter first and falls back to the header,
- * so clients that still send headers keep working.
- * {@link applyInitParamsToHeaders} folds the parameters onto their header
- * names, so the code that reads those headers needs no second path.
- *
- * The names are short and unprefixed (`/init?v=3.0.0&country=GB`), so c15t
- * reserves them on an init URL. When c15t sends a parameter, its value
- * replaces any the URL already carried under that name, and the name
- * appears once. A parameter c15t does not send passes through, and a
- * backend reads it as that input.
- */
-
 import { POLICY_CONTRACT_HEADER } from './policy-resolution-wire';
 import { appendSearchParams } from './search-params';
 import {
@@ -30,28 +6,18 @@ import {
 } from './session-report';
 import type { SessionExperiment } from './session-report';
 
-/** Client package version, as the `x-c15t-version` header carried it. */
 export const INIT_VERSION_PARAM = 'v';
 
-/** Policy wire contract the client reads (`x-c15t-policy-contract`). */
 export const INIT_POLICY_CONTRACT_PARAM = 'contract';
 
-/** Country override, an ISO 3166-1 alpha-2 code (`x-c15t-country`). */
 export const INIT_COUNTRY_PARAM = 'country';
 
-/** Region override, an ISO 3166-2 subdivision code (`x-c15t-region`). */
 export const INIT_REGION_PARAM = 'region';
 
-/** GPC override, `1` or `0` (`x-c15t-gpc`). Any other value is ignored. */
 export const INIT_GPC_PARAM = 'gpc';
 
-/**
- * Banner-experiment arm as `<id>=<arm>`, both parts URI-encoded
- * (`x-c15t-experiment`). Sent only while the visitor has no stored choice.
- */
 export const INIT_EXPERIMENT_PARAM = 'experiment';
 
-/** Each init query parameter and the legacy header it replaces. */
 export const INIT_PARAM_HEADERS: readonly (readonly [string, string])[] = [
 	[INIT_VERSION_PARAM, 'x-c15t-version'],
 	[INIT_POLICY_CONTRACT_PARAM, POLICY_CONTRACT_HEADER],
@@ -61,32 +27,15 @@ export const INIT_PARAM_HEADERS: readonly (readonly [string, string])[] = [
 	[INIT_EXPERIMENT_PARAM, CONSENT_EXPERIMENT_HEADER],
 ];
 
-/** The `GET /init` inputs that travel in the query string. */
 export interface InitRequestParams {
-	/** Client package version. */
 	version?: string;
-	/** Policy wire contract the client reads. */
 	policyContract?: number;
-	/** Country override. */
 	country?: string;
-	/** Region override. */
 	region?: string;
-	/** GPC override. */
 	gpc?: boolean;
-	/** Experiment arm, while the visitor has no stored choice. */
 	experiment?: SessionExperiment;
 }
 
-/**
- * Append the init inputs to a `GET /init` URL.
- *
- * Parameters are written in a fixed order, so two callers with the same
- * inputs build the same URL and a cache keyed on it sees one entry.
- *
- * @param url - The init URL, absolute or relative, or `''` for just the query.
- * @param params - The inputs. Absent fields are left out.
- * @returns The URL with the parameters.
- */
 export const appendInitParams = function appendInitParams(
 	url: string,
 	params: InitRequestParams
@@ -122,7 +71,6 @@ const toSearchParams = function toSearchParams(
 	if (source instanceof URL) {
 		return source.searchParams;
 	}
-	// A `?` inside a fragment is not a query.
 	const fragment = source.indexOf('#');
 	const base = fragment === -1 ? source : source.slice(0, fragment);
 	const query = base.indexOf('?');
@@ -132,19 +80,6 @@ const toSearchParams = function toSearchParams(
 	return new URLSearchParams(base.slice(query + 1));
 };
 
-/**
- * The request headers with the init query parameters folded onto their
- * legacy header names.
- *
- * A parameter wins over a header with the same meaning: a client that sends
- * the parameter is newer than any header a proxy might add. An empty
- * parameter is ignored, and so is a `gpc` other than `1` or `0`, so a
- * malformed value never hides a browser's `Sec-GPC`.
- *
- * @param url - The request URL, absolute or relative.
- * @param headers - The request headers. Left unchanged.
- * @returns A copy of the headers with the parameters applied.
- */
 export const applyInitParamsToHeaders = function applyInitParamsToHeaders(
 	url: string | URL,
 	headers: Headers

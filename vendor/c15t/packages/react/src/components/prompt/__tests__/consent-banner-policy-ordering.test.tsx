@@ -210,9 +210,6 @@ describe('ConsentBanner policy ordering', () => {
 			)
 		);
 
-		// Two sub-groups, not one plus a loose button: the shared default
-		// layout is what Svelte, Vue and Astro render, and `space-between`
-		// only works when both sides are groups.
 		expect(footerGroups).toEqual([
 			['consent-banner-reject-button', 'consent-banner-accept-button'],
 			['consent-banner-customize-button'],

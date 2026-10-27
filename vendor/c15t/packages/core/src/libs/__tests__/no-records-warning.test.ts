@@ -44,7 +44,6 @@ describe('the local mode warning', () => {
 		expect(noRecordsWarnings(warn)).toHaveLength(1);
 	});
 
-	// A custom transport can resolve policy with it and save elsewhere.
 	test('createOfflineTransport() warns on save, not when only its init runs', async () => {
 		const transport = createOfflineTransport();
 		await transport.init({ overrides: {}, user: null });
@@ -83,7 +82,6 @@ describe('the local mode warning', () => {
 		expect(noRecordsWarnings(warn)).toEqual([]);
 	});
 
-	// A page the server resolved builds the transport but never inits it.
 	test('warns from the data mode without an init', () => {
 		clientMode(localData())(context);
 

@@ -29,34 +29,15 @@ const DEFAULT_MODELS: C15tCoreTypes.Model[] = ['iab'];
 
 interface IABConsentDialogRootProps {
 	children: ReactNode;
-	/**
-	 * Control the open state. If omitted, follows activeUI === 'dialog' from context.
-	 */
 	open?: boolean;
 	noStyle?: boolean;
 	disableAnimation?: boolean;
 	scrollLock?: boolean;
 	trapFocus?: boolean;
-	/**
-	 * Which consent models this dialog responds to.
-	 * @default ['iab']
-	 */
 	models?: C15tCoreTypes.Model[];
-	/**
-	 * Override the UI source identifier sent with consent API calls.
-	 * @default 'iab_dialog'
-	 */
 	uiSource?: string;
 }
 
-/**
- * Root component for the IAB Consent Dialog.
- *
- * @remarks
- * Handles portal rendering, visibility animations, scroll lock, and overlay.
- *
- * @public
- */
 const IABConsentDialogRoot: FC<IABConsentDialogRootProps> = ({
 	children,
 	open,
@@ -81,7 +62,6 @@ const IABConsentDialogRoot: FC<IABConsentDialogRootProps> = ({
 	const isMounted = useIsHydrated();
 	const [isVisible, setIsVisible] = useState(false);
 
-	// IABConsentDialog only opens when the consent model matches
 	const sheetsReady = useSurfaceSheetsReady(IAB_DIALOG_SHEETS, noStyle);
 	const isOpen =
 		sheetsReady &&
@@ -100,7 +80,6 @@ const IABConsentDialogRoot: FC<IABConsentDialogRootProps> = ({
 		[disableAnimation, noStyle, resolvedScrollLock]
 	);
 
-	// Scroll lock
 	useScrollLock(Boolean(isOpen && resolvedScrollLock));
 
 	useEffect(() => {
@@ -119,7 +98,6 @@ const IABConsentDialogRoot: FC<IABConsentDialogRootProps> = ({
 		return () => document.removeEventListener('keydown', handleKeyDown);
 	}, [isOpen, setActiveUI]);
 
-	// Visibility animation
 	useEffect(() => {
 		if (isOpen) {
 			const frame = requestAnimationFrame(() => setIsVisible(true));
@@ -151,7 +129,6 @@ const IABConsentDialogRoot: FC<IABConsentDialogRootProps> = ({
 		[uiSource]
 	);
 
-	// Don't render if not mounted or IAB is disabled
 	if (!isMounted || !iabState?.config.enabled) {
 		return null;
 	}

@@ -1,14 +1,3 @@
-/**
- * A plain `ConsentProvider` loads the script loader from its mount effect,
- * not during its first render, and ships none of the code that decides an
- * earlier load.
- *
- * Starting the download during render is opt-in: the Next.js and TanStack
- * Start `ConsentRoot` pass `__preloadScriptLoader`, whose decision reads
- * the stream fold, stored records and GPC. Every app that renders the
- * provider ships its static module graph, so one value import of that
- * module would put those bytes into every React first load.
- */
 import type * as ScriptLoaderModule from '@c15t/core/modules/script-loader';
 import type { Script } from '@c15t/core/modules/script-loader';
 import { createRoot } from 'react-dom/client';
@@ -35,7 +24,6 @@ vi.mock('@c15t/core/modules/script-loader', async (importOriginal) => {
 	};
 });
 
-// Raw source text, inlined by Vite so the scan works in browser-mode vitest.
 const rawSources = import.meta.glob(
 	[
 		'../**/*.{ts,tsx}',
@@ -50,12 +38,10 @@ const rawSources = import.meta.glob(
 
 const CORE_SOURCE = '../../../core/src/';
 
-/** `@c15t/core` subpaths whose file name differs from the subpath. */
 const CORE_ENTRY_ALIASES: Record<string, string> = {
 	'modules/network-hold': 'modules/network-blocker/hold.ts',
 };
 
-/** Value imports and re-exports; `import type` and `export type` erase. */
 const STATIC_IMPORT =
 	/^\s*(?:import|export)\s+(?!type\s)(?:[^'";]*?\s+from\s+)?['"](?<specifier>[^'"]+)['"]/gmu;
 
@@ -80,7 +66,6 @@ const firstSource = function firstSource(base: string): string | undefined {
 	].find((candidate) => candidate in rawSources);
 };
 
-/** The source file a value import resolves to, or `undefined` outside it. */
 const resolveImport = function resolveImport(
 	from: string,
 	specifier: string
@@ -111,7 +96,6 @@ const resolveImport = function resolveImport(
 	return undefined;
 };
 
-/** Every React and core source file reachable through value imports. */
 const staticGraph = function staticGraph(entries: string[]): Set<string> {
 	const files = new Set<string>();
 	const pending = [...entries];
@@ -145,13 +129,10 @@ const mode = custom({
 });
 
 const never = new Promise<never>(() => {
-	// Never settles.
 });
 
-/** Set once the provider has rendered down to its children. */
 let held = false;
 
-/** Suspends forever, so the tree around it never commits. */
 const Hold = (): null => {
 	held = true;
 	throw never;
@@ -174,8 +155,6 @@ describe('ConsentProvider: script loader at mount', () => {
 		);
 	});
 
-	// Order matters: the module evaluates once per file, so the case that
-	// must not load it runs first.
 	test("a returning visitor's grant does not load it before the provider mounts", async () => {
 		const container = document.createElement('div');
 		document.body.append(container);

@@ -1,15 +1,3 @@
-/**
- * Validates the policy projection the evaluator consumes.
- *
- * Fingerprints arrive precomputed from policy resolution; this module
- * neither hashes nor imports a hash implementation. Its job is to reject
- * invalid model/prompt pairings, durations, scope entries and GPC
- * mappings before anything reaches the evaluator, and to canonicalize
- * the category sets it accepts.
- *
- * @internal
- */
-
 import { compareCanonical } from '@c15t/schema/types';
 
 import type {
@@ -21,26 +9,18 @@ import type {
 } from './types';
 import { isNonEmptyString, isOptionalConsentCategory } from './validation';
 
-/** Fully specified policy input. Fingerprints are supplied, not computed. */
 export interface EvaluationPolicyInput {
 	model: PolicyModel;
 	prompt: PolicyPrompt;
-	/** Optional categories the policy governs. Wildcards already expanded. */
 	scope: readonly OptionalConsentCategory[];
 	scopeMode: 'strict' | 'permissive';
-	/** Displayed categories required for a choice. Defaults to the policy scope. */
 	choiceScope?: readonly OptionalConsentCategory[];
-	/** Choice prompt fingerprint and semantic validity. */
 	choice: RecordValidity;
-	/** Notice prompt fingerprint and semantic validity. */
 	notice: RecordValidity;
-	/** Explicit GPC deny mapping. Omit or leave empty when GPC is not honored. */
 	gpcDenyCategories?: readonly OptionalConsentCategory[];
-	/** Legacy material fingerprint of the same policy, when resolution has it. */
 	legacyMaterialFingerprint?: string | null;
 }
 
-/** Sorted, deduplicated copy of a category set. */
 export const canonicalizeCategories = function canonicalizeCategories<
 	CategoryType extends string,
 >(categories: readonly CategoryType[]): CategoryType[] {
@@ -125,12 +105,6 @@ const assertGpcMapping = function assertGpcMapping(
 	}
 };
 
-/**
- * Validates and canonicalizes a policy projection.
- *
- * @throws {TypeError} when the model/prompt pairing, fingerprints,
- * durations, scope, or GPC mapping are invalid.
- */
 export const createEvaluationPolicy = function createEvaluationPolicy(
 	input: EvaluationPolicyInput
 ): EvaluationPolicy {

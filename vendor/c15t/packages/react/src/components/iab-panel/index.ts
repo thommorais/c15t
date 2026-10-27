@@ -1,14 +1,5 @@
 'use client';
 
-/**
- * Enhanced IABConsentDialog component with compound components attached.
- *
- * @remarks
- * This is the main export that provides access to all IABConsentDialog components.
- * It follows the compound components pattern, allowing for flexible composition
- * of the consent dialog's parts.
- */
-
 import type { FC } from 'react';
 
 import { IABConsentDialogCard } from './atoms/card';
@@ -25,10 +16,6 @@ import { VendorList } from './atoms/vendor-list';
 import { IABConsentDialog as IABConsentDialogComponent } from './iab-panel';
 import type { IABConsentDialogProps } from './iab-panel';
 
-/**
- * This interface extends the base IABConsentDialog component with additional sub-components
- * that can be used to compose the consent dialog's structure.
- */
 export interface IABConsentDialogCompoundComponent extends FC<IABConsentDialogProps> {
 	Root: typeof IABConsentDialogRoot;
 	Card: typeof IABConsentDialogCard;
@@ -44,45 +31,6 @@ export interface IABConsentDialogCompoundComponent extends FC<IABConsentDialogPr
 	VendorList: typeof VendorList;
 }
 
-/**
- * IAB TCF 2.4 compliant consent dialog dialog component.
- *
- * @remarks
- * This component serves as the main entry point for rendering an IAB-compliant consent dialog.
- * It provides a structured layout with required IAB TCF elements.
- *
- * Key features:
- * - IAB TCF 2.4 compliant
- * - Fully accessible by default
- * - Customizable appearance
- * - Compound component pattern support
- *
- * @example
- * Simple usage with default settings:
- * ```tsx
- * <IABConsentDialog />
- * ```
- *
- * @example
- * Using compound components for custom layout:
- * ```tsx
- * <IABConsentDialog.Root>
- *   <IABConsentDialog.Card>
- *     <IABConsentDialog.Header />
- *     <IABConsentDialog.Tabs />
- *     <IABConsentDialog.Content>
- *       Custom content
- *     </IABConsentDialog.Content>
- *     <IABConsentDialog.Footer />
- *   </IABConsentDialog.Card>
- * </IABConsentDialog.Root>
- * ```
- *
- * Note: Next.js Server Components do not support compound components.
- * Ensure you add 'use client' to the file.
- *
- * @public
- */
 const IABConsentDialog = Object.assign(IABConsentDialogComponent, {
 	Card: IABConsentDialogCard,
 	Content: IABConsentDialogContent,
@@ -98,10 +46,8 @@ const IABConsentDialog = Object.assign(IABConsentDialogComponent, {
 	VendorList,
 }) as IABConsentDialogCompoundComponent;
 
-// Export the main component as both default and named export
 export default IABConsentDialog;
 
-// Export individual components for direct usage
 export { IABConsentDialogCard } from './atoms/card';
 export { IABConsentDialogContent } from './atoms/content';
 export { FeatureItem, type FeatureItemProps } from './atoms/feature-item';
@@ -113,13 +59,11 @@ export { IABConsentDialogRoot } from './atoms/root';
 export { StackItem } from './atoms/stack-item';
 export { IABConsentDialogTabButton, IABConsentDialogTabs } from './atoms/tabs';
 export { VendorList } from './atoms/vendor-list';
-// Export hooks
 export {
 	type IABDisplayModel,
 	useIABDisplayModel,
 } from './hooks/use-display-model';
 export { type GVLData, useGVLData } from './hooks/use-gvl-data';
-// Export types
 export type {
 	ProcessedPurpose,
 	ProcessedSpecialFeature,

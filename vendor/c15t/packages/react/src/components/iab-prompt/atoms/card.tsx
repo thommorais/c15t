@@ -14,14 +14,6 @@ interface IABConsentBannerCardProps extends HTMLAttributes<HTMLDivElement> {
 	'data-testid'?: string;
 }
 
-/**
- * Card component for the IAB Consent Banner.
- *
- * @remarks
- * Main container for the banner content. Handles focus trap when trapFocus is enabled.
- *
- * @public
- */
 const IABConsentBannerCard = createForwardRef<
 	HTMLDivElement,
 	IABConsentBannerCardProps
@@ -53,8 +45,6 @@ const IABConsentBannerCard = createForwardRef<
 	});
 
 	return (
-		// A `div`, not a `dialog`: the user agent's dialog padding is 1em,
-		// which the card sets for itself.
 		<div
 			ref={setCardRef}
 			{...themedStyle}
