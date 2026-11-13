@@ -47,7 +47,8 @@ const (
 var schema = map[string]map[string]rule{
 	"subject": {
 		"id": keep, "tenantId": keep, "createdAt": keep, "updatedAt": keep,
-		"erasedAt":   keep,
+		"erasedAt": keep,
+		"clientId": clear, "recordTokenHash": clear,
 		"externalId": clear, "identityProvider": clear,
 	},
 	"consent": {
@@ -57,6 +58,7 @@ var schema = map[string]map[string]rule{
 		"jurisdiction": keep, "jurisdictionModel": keep, "tcString": keep,
 		"uiSource": keep, "consentAction": keep, "runtimePolicySource": keep,
 		"submissionKey": keep,
+		"choice":        keep,
 		"ipAddress":     clear, "userAgent": clear, "metadata": reduceMetadata,
 	},
 	"auditLog": {
@@ -81,6 +83,7 @@ var schema = map[string]map[string]rule{
 		"policyI18n": keep, "uiMode": keep, "bannerUi": keep, "dialogUi": keep,
 		"categories": keep, "preselectedCategories": keep, "proofConfig": keep,
 		"dedupeKey": keep, "packId": keep,
+		"policyResolution": keep,
 	},
 	// PocketBase's own auth collection, for operator accounts. The app never
 	// stores a visitor in it.

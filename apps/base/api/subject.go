@@ -7,26 +7,30 @@ import (
 	"github.com/pocketbase/pocketbase/core"
 
 	"thom/core/apikey"
+	"thom/core/consent"
 )
 
 type subjectPayload struct {
-	ID               string         `json:"id"`
-	ExternalID       string         `json:"externalId,omitempty"`
-	IdentityProvider string         `json:"identityProvider,omitempty"`
-	CreatedAt        time.Time      `json:"createdAt"`
-	UpdatedAt        time.Time      `json:"updatedAt"`
-	Consents         []enrichedItem `json:"consents,omitempty"`
+	SubjectChoice    *consent.Choice `json:"subjectChoice"`
+	ID               string          `json:"id"`
+	ExternalID       string          `json:"externalId,omitempty"`
+	IdentityProvider string          `json:"identityProvider,omitempty"`
+	CreatedAt        time.Time       `json:"createdAt"`
+	UpdatedAt        time.Time       `json:"updatedAt"`
+	Consents         []enrichedItem  `json:"consents,omitempty"`
 }
 
 type enrichedItem struct {
-	ID             string     `json:"id"`
-	PolicyType     string     `json:"type"`
-	PolicyID       string     `json:"policyId,omitempty"`
-	PolicyVersion  string     `json:"policyVersion,omitempty"`
-	IsLatestPolicy bool       `json:"isLatestPolicy"`
-	GivenAt        time.Time  `json:"givenAt"`
-	ValidUntil     *time.Time `json:"validUntil,omitempty"`
-	Action         string     `json:"action,omitempty"`
+	Choice         *consent.Choice `json:"choice,omitempty"`
+	Preferences    map[string]bool `json:"preferences,omitempty"`
+	ID             string          `json:"id"`
+	PolicyType     string          `json:"type"`
+	PolicyID       string          `json:"policyId,omitempty"`
+	PolicyVersion  string          `json:"policyVersion,omitempty"`
+	IsLatestPolicy bool            `json:"isLatestPolicy"`
+	GivenAt        time.Time       `json:"givenAt"`
+	ValidUntil     *time.Time      `json:"validUntil,omitempty"`
+	Action         string          `json:"action,omitempty"`
 }
 
 func toSubject(r *core.Record) subjectPayload {
@@ -63,6 +67,7 @@ func (h *Handler) getSubject(c *Ctx, _ any) (subjectPayload, error) {
 		return subjectPayload{}, err
 	}
 	out.Consents = consents
+	out.SubjectChoice = subjectChoice(consents)
 
 	return out, nil
 }
@@ -87,6 +92,7 @@ func (h *Handler) listSubjects(c *Ctx, _ any) (map[string]any, error) {
 			return nil, err
 		}
 		item.Consents = consents
+		item.SubjectChoice = subjectChoice(consents)
 
 		out = append(out, item)
 	}
@@ -95,6 +101,7 @@ func (h *Handler) listSubjects(c *Ctx, _ any) (map[string]any, error) {
 }
 
 type patchSubjectRequest struct {
+	SubjectToken     string `json:"subjectToken"`
 	ExternalID       string `json:"externalId"`
 	IdentityProvider string `json:"identityProvider"`
 }
@@ -125,9 +132,13 @@ func (h *Handler) patchSubject(c *Ctx, body patchSubjectRequest) (subjectPayload
 	}
 
 	current := apikey.Link{
+		// Proof identifies the browser independently from the external link.
 		ExternalID: record.GetString("externalId"),
 		Provider:   record.GetString("identityProvider"),
 		Erased:     !record.GetDateTime("erasedAt").IsZero(),
+	}
+	if err := requireSubjectProof(c, record, body.SubjectToken, false); err != nil {
+		return subjectPayload{}, err
 	}
 	switch err := c.Tenant.Scope.CheckLink(current, apikey.Link{ExternalID: body.ExternalID, Provider: provider}); err {
 	case nil:
@@ -241,9 +252,42 @@ func (h *Handler) enrichConsents(db *scope, subjectID string) ([]enrichedItem, e
 				item.IsLatestPolicy = latest == policyID
 			}
 		}
+		if err := record.UnmarshalJSONField("choice", &item.Choice); err != nil {
+			return nil, err
+		}
+		if item.Choice != nil {
+			if err := item.Choice.Validate(time.Now().UTC(), ""); err != nil {
+				return nil, err
+			}
+		}
+		item.Preferences = map[string]bool{}
+		for _, id := range record.GetStringSlice("purposes") {
+			purpose, err := db.FindByID("consentPurpose", id)
+			if err != nil {
+				return nil, err
+			}
+			item.Preferences[purpose.GetString("code")] = true
+		}
 
 		out = append(out, item)
 	}
 
 	return out, nil
+}
+
+func subjectChoice(items []enrichedItem) *consent.Choice {
+	rows := []consent.ChoiceRow{}
+	for _, item := range items {
+		if item.PolicyType != consent.DefaultPolicyType {
+			continue
+		}
+		granted := []string{}
+		for category, value := range item.Preferences {
+			if value {
+				granted = append(granted, category)
+			}
+		}
+		rows = append(rows, consent.ChoiceRow{Choice: item.Choice, GivenAt: item.GivenAt, Granted: granted})
+	}
+	return consent.MergeChoice(rows)
 }

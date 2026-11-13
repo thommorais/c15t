@@ -47,7 +47,7 @@ import { userEvent } from 'vitest/browser';
 import { validateStoredConsentEnvelope } from '../../../c15t-core/src/modules/persistence/record-codec';
 import { encodeStoredConsentEnvelopeJson } from '../../../c15t-core/src/modules/persistence/writer/encode';
 import { gpcFromHeaders } from '../../../c15t-core/src/transports/decision-inputs';
-import { gtag } from '../../../integrations/src/vendors/analytics/google-tag';
+import { consentModeProbe } from './consent-mode-probe';
 import { ConsentGate } from '../components/consent-gate';
 import { ConsentDialog } from '../components/panel';
 import { ConsentDialogLink } from '../components/panel-link';
@@ -339,11 +339,7 @@ export const createPolicySession: CreatePolicySession = async (setup) => {
 								textContent:
 									'window.dispatchEvent(new Event("c15t-policy-script-loaded"))',
 							},
-							gtag({
-								category: 'marketing',
-								id: 'G-PROBE',
-								script: { callbackOnly: true },
-							}),
+							consentModeProbe(),
 						],
 					})
 				: undefined;

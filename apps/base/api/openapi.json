@@ -26,7 +26,41 @@
         "tags": ["banner"],
         "summary": "Resolve the policy and notice strings for a visitor",
         "parameters": [
-          { "$ref": "#/components/parameters/AcceptLanguage" }
+          {
+            "$ref": "#/components/parameters/AcceptLanguage"
+          },
+          {
+            "name": "country",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "description": "Overrides the corresponding request header. GPC accepts 0 or 1 only."
+          },
+          {
+            "name": "region",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "description": "Overrides the corresponding request header. GPC accepts 0 or 1 only."
+          },
+          {
+            "name": "gpc",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "description": "Overrides the corresponding request header. GPC accepts 0 or 1 only."
+          },
+          {
+            "name": "contract",
+            "in": "query",
+            "schema": {
+              "type": "integer"
+            },
+            "description": "Overrides the corresponding request header. GPC accepts 0 or 1 only."
+          }
         ],
         "responses": {
           "200": { "description": "What the banner should show.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Init" } } } },
@@ -184,7 +218,11 @@
             "required": ["externalId"],
             "properties": {
               "externalId": { "type": "string" },
-              "identityProvider": { "type": "string", "description": "Defaults to `external`." }
+              "identityProvider": { "type": "string", "description": "Defaults to `external`." },
+              "subjectToken": {
+                "type": "string",
+                "description": "Required for publishable-key requests to protected subjects."
+              }
             }
           } } }
         },
@@ -245,6 +283,54 @@
           "422": { "$ref": "#/components/responses/Error" }
         }
       }
+    },
+    "/api/c15t/subjects/{id}/record": {
+      "get": {
+        "tags": [
+          "banner"
+        ],
+        "summary": "Read one browser subject with per-category receipts",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-C15T-Subject-Token",
+            "in": "header",
+            "schema": {
+              "type": "string"
+            },
+            "description": "Required for publishable-key requests."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The subject.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Subject"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "description": "Requires a publishable or secret API key. Publishable keys additionally require the subject proof that created this subject. Responses are no-store."
+      }
     }
   },
   "components": {
@@ -272,9 +358,10 @@
       "Location": {
         "type": "object",
         "properties": {
-          "countryCode": { "type": "string" },
-          "regionCode": { "type": "string" }
-        }
+          "countryCode": { "type": ["string", "null"] },
+          "regionCode": { "type": ["string", "null"] }
+        },
+        "required": ["countryCode", "regionCode"]
       },
       "Jurisdiction": {
         "type": "string",
@@ -333,7 +420,7 @@
       },
       "Init": {
         "type": "object",
-        "required": ["jurisdiction", "location", "translations"],
+        "required": ["jurisdiction", "location", "translations", "policyResolution", "branding"],
         "properties": {
           "jurisdiction": { "$ref": "#/components/schemas/Jurisdiction" },
           "location": { "$ref": "#/components/schemas/Location" },
@@ -356,7 +443,11 @@
               "language": { "type": "string" },
               "translations": { "type": "object", "description": "Notice strings by section." }
             }
-          }
+          },
+          "policyResolution": {"$ref": "#/components/schemas/PolicyResolution"},
+          "branding": {"type": "string", "enum": ["c15t"]},
+          "hosting": {"const": "self-hosted"},
+          "resolvedPrivacySignals": {"type": "object", "properties": {"gpc": {"type": "boolean"}}}
         }
       },
       "ConsentRequest": {
@@ -376,7 +467,18 @@
           "givenAt": { "type": "string", "format": "date-time" },
           "policySnapshotToken": { "type": "string" },
           "documentSnapshotToken": { "type": "string", "description": "Proof of the legal document release shown, for legal document types." },
-          "metadata": { "type": "object" }
+          "metadata": { "type": "object" },
+          "choice": {"$ref": "#/components/schemas/Choice"},
+          "clientSubjectId": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_-]{15,128}$",
+            "description": "Stable browser ID for retry-safe anonymous subject creation. Mutually exclusive with subjectId."
+          },
+          "subjectToken": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$",
+            "description": "Browser-generated 256-bit subject proof. Required with clientSubjectId and for publishable-key writes to protected subjects."
+          }
         }
       },
       "Consent": {
@@ -415,10 +517,13 @@
                 "isLatestPolicy": { "type": "boolean" },
                 "givenAt": { "type": "string", "format": "date-time" },
                 "validUntil": { "type": "string", "format": "date-time" },
-                "action": { "type": "string" }
+                "action": { "type": "string" },
+                "choice": {"$ref": "#/components/schemas/Choice"},
+                "preferences": {"type": "object", "additionalProperties": {"type": "boolean"}}
               }
             }
-          }
+          },
+          "subjectChoice": {"$ref": "#/components/schemas/Choice"}
         }
       },
       "Status": {
@@ -438,6 +543,119 @@
             }
           }
         }
+      },
+      "Choice": {
+        "type": [
+          "object",
+          "null"
+        ],
+        "description": "Receipts for categories confirmed by one act, or the latest per-category receipts on a subject read. Legacy rows prove grants only.",
+        "properties": {
+          "version": {
+            "const": 3
+          },
+          "categories": {
+            "type": "object",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/CategoryDecision"
+            }
+          }
+        },
+        "required": [
+          "version",
+          "categories"
+        ]
+      },
+      "CategoryDecision": {
+        "type": "object",
+        "properties": {
+          "value": {
+            "type": "boolean"
+          },
+          "confirmedAt": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Original confirmation time in epoch milliseconds."
+          },
+          "basis": {
+            "type": "object",
+            "properties": {
+              "kind": {
+                "enum": [
+                  "choice-v1",
+                  "legacy-v2"
+                ]
+              },
+              "fingerprint": {
+                "type": "string"
+              },
+              "materialFingerprint": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "kind"
+            ]
+          }
+        },
+        "required": [
+          "value",
+          "confirmedAt",
+          "basis"
+        ]
+      },
+      "PolicyResolution": {
+        "type": "object",
+        "properties": {
+          "version": {
+            "const": 1
+          },
+          "status": {
+            "enum": [
+              "matched",
+              "no-match",
+              "unconfigured",
+              "failed"
+            ]
+          },
+          "policy": {
+            "type": [
+              "object",
+              "null"
+            ]
+          },
+          "policyId": {
+            "type": "string"
+          },
+          "fingerprints": {
+            "type": "object",
+            "properties": {
+              "policy": {
+                "type": "string"
+              },
+              "choice": {
+                "type": "string"
+              },
+              "notice": {
+                "type": "string"
+              },
+              "legacyMaterial": {
+                "type": "string"
+              }
+            }
+          },
+          "matchedBy": {
+            "type": "string"
+          },
+          "reason": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "version",
+          "status",
+          "policy"
+        ]
       }
     }
   }

@@ -96,7 +96,7 @@ func TestScrubDoesNotChangeItsInput(t *testing.T) {
 
 func TestPersonalFields(t *testing.T) {
 	tests := map[string][]string{
-		"subject":  {"externalId", "identityProvider"},
+		"subject":  {"clientId", "externalId", "identityProvider", "recordTokenHash"},
 		"consent":  {"ipAddress", "metadata", "userAgent"},
 		"auditLog": {"changes", "ipAddress", "metadata", "userAgent"},
 		"domain":   nil,

@@ -16,6 +16,7 @@ import (
 	"thom/core/i18n"
 	"thom/core/jurisdiction"
 	"thom/core/policy"
+	"thom/core/policyrule"
 	"thom/core/ratelimit"
 	"thom/core/request"
 	"thom/core/snapshot"
@@ -88,23 +89,28 @@ func Register(app core.App, se *core.ServeEvent, cfg Config) {
 	g.GET("/subjects", handle(h, apikey.ScopeSecret, h.listSubjects))
 	g.DELETE("/subjects", handle(h, apikey.ScopeSecret, h.eraseSubject))
 	g.GET("/subjects/{id}", handle(h, apikey.ScopeSecret, h.getSubject))
+	g.GET("/subjects/{id}/record", handle(h, apikey.ScopePublishable, h.getSubjectRecord))
 	g.PATCH("/subjects/{id}", handle(h, apikey.ScopePublishable, h.patchSubject))
 	g.PUT("/legal-documents/{type}/current", handle(h, apikey.ScopeSecret, h.syncLegalDocument))
 	g.Any("/{path...}", notFound)
 }
 
 type initResponse struct {
-	Jurisdiction  string           `json:"jurisdiction"`
-	Location      locationPayload  `json:"location"`
-	Policy        *policy.Resolved `json:"policy,omitempty"`
-	Decision      *decisionPayload `json:"policyDecision,omitempty"`
-	SnapshotToken string           `json:"policySnapshotToken,omitempty"`
-	Translations  i18n.Result      `json:"translations"`
+	Resolution     policyrule.WireResolution `json:"policyResolution"`
+	Branding       string                    `json:"branding"`
+	Hosting        string                    `json:"hosting"`
+	Jurisdiction   string                    `json:"jurisdiction"`
+	Location       locationPayload           `json:"location"`
+	Policy         *policy.Resolved          `json:"policy,omitempty"`
+	Decision       *decisionPayload          `json:"policyDecision,omitempty"`
+	SnapshotToken  string                    `json:"policySnapshotToken,omitempty"`
+	Translations   i18n.Result               `json:"translations"`
+	PrivacySignals privacySignals            `json:"resolvedPrivacySignals"`
 }
 
 type locationPayload struct {
-	CountryCode string `json:"countryCode,omitempty"`
-	RegionCode  string `json:"regionCode,omitempty"`
+	CountryCode *string `json:"countryCode"`
+	RegionCode  *string `json:"regionCode"`
 }
 
 type decisionPayload struct {
@@ -115,17 +121,33 @@ type decisionPayload struct {
 }
 
 func (h *Handler) init(c *Ctx, _ any) (initResponse, error) {
+	c.Event.Request = initRequest(c.Event.Request)
 	loc, code, decision, err := h.resolve(c.Event.Request)
 	if err != nil {
 		return initResponse{}, err
 	}
 
 	resp := initResponse{
-		Jurisdiction: string(code),
+		Branding: "c15t", Hosting: "self-hosted",
+		Jurisdiction:   string(code),
+		PrivacySignals: privacySignals{GPC: gpcSignal(c.Event.Request)},
 		Location: locationPayload{
-			CountryCode: loc.CountryCode,
-			RegionCode:  loc.RegionCode,
+			CountryCode: optionalString(loc.CountryCode),
+			RegionCode:  optionalString(loc.RegionCode),
 		},
+	}
+	c.Event.Response.Header().Set(policyrule.ContractHeader, "1")
+	c.Event.Response.Header().Set("Cache-Control", "no-store")
+	c.Event.Response.Header().Set("Access-Control-Expose-Headers", policyrule.ContractHeader)
+	resolution := legacyResolution(decision)
+	if decision != nil && decision.Resolution != nil {
+		resolution = *decision.Resolution
+	}
+	resp.Resolution = policyrule.Wire(resolution)
+	if raw := c.Event.Request.Header.Get(policyrule.ContractHeader); raw != "" {
+		if version, valid := policyrule.ParseContractHeader(raw); !valid || version != policyrule.ContractVersion {
+			resp.Resolution = policyrule.Wire(policyrule.Resolution{Status: policyrule.StatusFailed, Reason: policyrule.ReasonUnsupportedContract})
+		}
 	}
 
 	if decision == nil {
@@ -144,11 +166,13 @@ func (h *Handler) init(c *Ctx, _ any) (initResponse, error) {
 			Jurisdiction: string(code),
 		}
 
-		token, err := h.signSnapshot(c.TenantID(), loc, code, decision, resp.Translations.Language)
-		if err != nil {
-			return initResponse{}, err
+		if resp.Resolution.Status == policyrule.StatusMatched {
+			token, err := h.signSnapshot(c.TenantID(), loc, code, decision, resp.Translations.Language, gpcSignal(c.Event.Request))
+			if err != nil {
+				return initResponse{}, err
+			}
+			resp.SnapshotToken = token
 		}
-		resp.SnapshotToken = token
 	}
 
 	return resp, nil
@@ -186,20 +210,23 @@ func noBannerPolicy() *policy.Resolved {
 }
 
 type consentRequest struct {
-	SubjectID     string         `json:"subjectId"`
-	ExternalID    string         `json:"externalId"`
-	Domain        string         `json:"domain"`
-	Categories    []string       `json:"categories"`
-	PolicyType    string         `json:"policyType"`
-	PolicyID      string         `json:"policyId"`
-	PolicyHash    string         `json:"policyHash"`
-	UISource      string         `json:"uiSource"`
-	Action        string         `json:"action"`
-	TCString      string         `json:"tcString"`
-	GivenAt       *time.Time     `json:"givenAt"`
-	SnapshotToken string         `json:"policySnapshotToken"`
-	DocumentToken string         `json:"documentSnapshotToken"`
-	Metadata      map[string]any `json:"metadata"`
+	Choice          *consent.Choice `json:"choice"`
+	ClientSubjectID string          `json:"clientSubjectId"`
+	SubjectToken    string          `json:"subjectToken"`
+	SubjectID       string          `json:"subjectId"`
+	ExternalID      string          `json:"externalId"`
+	Domain          string          `json:"domain"`
+	Categories      []string        `json:"categories"`
+	PolicyType      string          `json:"policyType"`
+	PolicyID        string          `json:"policyId"`
+	PolicyHash      string          `json:"policyHash"`
+	UISource        string          `json:"uiSource"`
+	Action          string          `json:"action"`
+	TCString        string          `json:"tcString"`
+	GivenAt         *time.Time      `json:"givenAt"`
+	SnapshotToken   string          `json:"policySnapshotToken"`
+	DocumentToken   string          `json:"documentSnapshotToken"`
+	Metadata        map[string]any  `json:"metadata"`
 }
 
 // consentResponse names the stored policy record as policyId, the same id a
@@ -293,6 +320,19 @@ func (h *Handler) recordConsent(c *Ctx, body consentRequest) (Status, error) {
 	givenAt := consent.ClampGivenAt(body.GivenAt, time.Now().UTC())
 
 	claimedAt := *body.GivenAt
+	if body.Choice != nil {
+		fingerprint := ""
+		if decision != nil && decision.Resolution != nil && decision.Resolution.Fingerprints != nil {
+			fingerprint = decision.Resolution.Fingerprints.Choice
+		}
+		if err := body.Choice.Validate(time.Now().UTC(), fingerprint); err != nil {
+			return Status{}, err
+		}
+		if consent.IsLegalDocumentType(policyType) {
+			return Status{}, BadRequest(codeInputValidationFailed, "Category receipts require cookie_banner")
+		}
+		body.Categories = body.Choice.Granted()
+	}
 
 	var (
 		stored    *core.Record
@@ -305,6 +345,9 @@ func (h *Handler) recordConsent(c *Ctx, body consentRequest) (Status, error) {
 		if err != nil {
 			return err
 		}
+		if err := requireSubjectProof(c, subject, body.SubjectToken, false); err != nil {
+			return err
+		}
 
 		domain, err := h.findOrCreateDomain(tx, body.Domain)
 		if err != nil {
@@ -312,6 +355,7 @@ func (h *Handler) recordConsent(c *Ctx, body consentRequest) (Status, error) {
 		}
 
 		record, err := consent.Build(consent.Input{
+			Choice:       body.Choice,
 			SubjectID:    subject.Id,
 			DomainID:     domain.Id,
 			TenantID:     c.TenantID(),
@@ -469,6 +513,18 @@ func (h *Handler) resolve(r *http.Request) (jurisdiction.Location, jurisdiction.
 	loc := h.locationOf(r)
 
 	code := jurisdiction.Resolve(loc, h.cfg.GeoDisabled)
+	if h.cfg.PolicyPacks == nil {
+		resolution := policyrule.Resolve(policyrule.ResolveInput{Rules: h.cfg.PolicyRules, Country: loc.CountryCode, Region: loc.RegionCode, IABEnabled: &h.cfg.IABEnabled})
+		rule, fingerprints := policyrule.SafeFallback()
+		if resolution.Status == policyrule.StatusMatched {
+			rule, fingerprints = *resolution.Policy, *resolution.Fingerprints
+		}
+		matchedBy := resolution.MatchedBy
+		if matchedBy == "" {
+			matchedBy = policyrule.MatchedByFallback
+		}
+		return loc, code, &policy.Decision{Policy: projectRule(rule), Fingerprint: fingerprints.Policy, MatchedBy: policy.MatchedBy(matchedBy), Resolution: &resolution}, nil
+	}
 
 	req := policy.Request{
 		Policies:   h.cfg.PolicyPacks,
@@ -485,6 +541,13 @@ func (h *Handler) resolve(r *http.Request) (jurisdiction.Location, jurisdiction.
 	return loc, code, decision, err
 }
 
+func optionalString(s string) *string {
+	if s == "" {
+		return nil
+	}
+	return &s
+}
+
 func (h *Handler) ipOptions(r *http.Request) request.IPOptions {
 	return request.IPOptions{
 		Peer:            r.RemoteAddr,
@@ -496,7 +559,8 @@ func (h *Handler) ipOptions(r *http.Request) request.IPOptions {
 }
 
 func hasGPCSignal(r *http.Request) bool {
-	return r.Header.Get("Sec-GPC") == "1"
+	value := gpcSignal(r)
+	return value != nil && *value
 }
 
 func acceptLanguage(r *http.Request) string {

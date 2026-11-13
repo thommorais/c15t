@@ -1,6 +1,9 @@
 package jurisdiction
 
-import "net/http"
+import (
+	"net/http"
+	"strings"
+)
 
 // Country and region come from CDN-supplied headers rather than IP lookup, in
 // descending order of trust.
@@ -15,6 +18,7 @@ var (
 	}
 	regionHeaders = []string{
 		"x-c15t-region",
+		"cf-region-code",
 		"x-vercel-ip-country-region",
 		"x-region-code",
 	}
@@ -32,9 +36,13 @@ func (l Location) Known() bool {
 }
 
 func LocationFromHeaders(h http.Header) Location {
+	region := strings.ToUpper(strings.TrimSpace(firstHeader(h, regionHeaders)))
+	if i := strings.LastIndex(region, "-"); i >= 0 {
+		region = region[i+1:]
+	}
 	return Location{
-		CountryCode: firstHeader(h, countryHeaders),
-		RegionCode:  firstHeader(h, regionHeaders),
+		CountryCode: strings.ToUpper(strings.TrimSpace(firstHeader(h, countryHeaders))),
+		RegionCode:  region,
 	}
 }
 

@@ -28,6 +28,26 @@ func TestConfigFromEnvDefaults(t *testing.T) {
 	}
 }
 
+func TestConfigFromEnvReadsV3Rules(t *testing.T) {
+	for _, raw := range []string{`[{"id":"all","match":{"isDefault":true},"model":"opt-in","prompt":"choice"}]`, `[]`, `null`} {
+		cfg, err := ConfigFromEnv(envFrom(map[string]string{"C15T_POLICY_RULES": raw}))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if raw == "null" && cfg.PolicyRules != nil {
+			t.Fatal("null must be unconfigured")
+		}
+		if raw != "null" && cfg.PolicyRules == nil {
+			t.Fatal("lost configured pack")
+		}
+	}
+	for _, raw := range []string{`[] []`, `[{}] trailing`, `[{"unknown":true}]`} {
+		if _, err := ConfigFromEnv(envFrom(map[string]string{"C15T_POLICY_RULES": raw})); err == nil {
+			t.Fatal("accepted malformed rules", raw)
+		}
+	}
+}
+
 func TestConfigFromEnvReadsEveryField(t *testing.T) {
 	got, err := ConfigFromEnv(envFrom(map[string]string{
 		"C15T_TENANT_ID":           "acme",

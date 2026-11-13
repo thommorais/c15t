@@ -1,0 +1,5 @@
+{
+	"extends": "@c15t/typescript-config/react-library.json",
+	"compilerOptions": { "target": "ES2022", "types": ["vite/client", "node"] },
+	"include": ["src", "e2e", "*.ts"]
+}

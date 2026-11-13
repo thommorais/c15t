@@ -70,6 +70,7 @@ const (
 )
 
 type Input struct {
+	Choice       *Choice
 	SubjectID    string
 	DomainID     string
 	TenantID     string
@@ -92,6 +93,7 @@ type Input struct {
 }
 
 type Record struct {
+	Choice            *Choice
 	SubjectID         string
 	DomainID          string
 	TenantID          string
@@ -132,8 +134,12 @@ func Build(in Input) (Record, error) {
 	}
 
 	action := in.Action
-	if gpcApplies(in, action) {
-		categories = withoutGPCCategories(categories)
+	if in.Choice == nil && gpcApplies(in, action) {
+		if in.Policy.Rule != nil {
+			categories = slices.DeleteFunc(slices.Clone(categories), func(c string) bool { return slices.Contains(in.Policy.Rule.PrivacySignals.GPC.DenyCategories, c) })
+		} else {
+			categories = withoutGPCCategories(categories)
+		}
 		action = ActionOptOut
 	}
 
@@ -166,6 +172,7 @@ func Build(in Input) (Record, error) {
 	}
 
 	return Record{
+		Choice:            in.Choice,
 		SubjectID:         in.SubjectID,
 		DomainID:          in.DomainID,
 		TenantID:          in.TenantID,
@@ -190,6 +197,16 @@ func Build(in Input) (Record, error) {
 // records them and leaves enforcement to the client. "necessary" is always in
 // scope: it cannot be refused, so a policy that omits it must not reject it.
 func checkScope(categories []string, p policy.Resolved) error {
+	if p.Rule != nil {
+		if p.Rule.ScopeMode == "strict" {
+			for _, c := range categories {
+				if c != categoryNecessary && !slices.Contains(p.Rule.Scope, c) {
+					return fmt.Errorf("%w: %q", ErrOutOfScope, c)
+				}
+			}
+		}
+		return nil
+	}
 	if p.Consent == nil || p.Consent.ScopeMode != policy.ScopeStrict {
 		return nil
 	}
@@ -229,6 +246,13 @@ func withoutGPCCategories(categories []string) []string {
 }
 
 func validUntil(now time.Time, p policy.Resolved) *time.Time {
+	if p.Rule != nil {
+		// Split milliseconds before converting to Duration to avoid overflow
+		// for valid JS-safe timestamps beyond Duration's 292-year range.
+		ms := int64(p.Rule.Validity.ChoiceMs)
+		t := now.AddDate(0, 0, int(ms/86_400_000)).Add(time.Duration(ms%86_400_000) * time.Millisecond)
+		return &t
+	}
 	if p.Consent == nil || p.Consent.ExpiryDays == nil || *p.Consent.ExpiryDays <= 0 {
 		return nil
 	}

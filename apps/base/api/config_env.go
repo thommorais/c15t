@@ -1,7 +1,9 @@
 package api
 
 import (
+	"encoding/json"
 	"fmt"
+	"io"
 	"net/netip"
 	"os"
 	"strconv"
@@ -9,11 +11,25 @@ import (
 	"time"
 
 	"thom/core/erasure"
+	"thom/core/policyrule"
 	"thom/core/ratelimit"
 )
 
 func ConfigFromEnv(getenv func(string) string) (Config, error) {
 	cfg := DefaultConfig()
+	if raw := getenv("C15T_POLICY_RULES"); raw != "" {
+		var rules *[]policyrule.PolicyRule
+		decoder := json.NewDecoder(strings.NewReader(raw))
+		decoder.DisallowUnknownFields()
+		if err := decoder.Decode(&rules); err != nil {
+			return Config{}, fmt.Errorf("C15T_POLICY_RULES: %w", err)
+		}
+		var extra any
+		if err := decoder.Decode(&extra); err != io.EOF {
+			return Config{}, fmt.Errorf("C15T_POLICY_RULES: expected one JSON value")
+		}
+		cfg.PolicyRules = rules
+	}
 	cfg.TenantID = getenv("C15T_TENANT_ID")
 	cfg.SnapshotSecret = getenv("C15T_SNAPSHOT_SECRET")
 	cfg.SnapshotIssuer = getenv("C15T_SNAPSHOT_ISSUER")

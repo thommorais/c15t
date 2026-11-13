@@ -119,8 +119,8 @@ func (h *Handler) status(c *Ctx, _ any) (statusPayload, error) {
 			UserAgent:      c.Event.Request.UserAgent(),
 			AcceptLanguage: acceptLanguage(c.Event.Request),
 			Region: locationPayload{
-				CountryCode: loc.CountryCode,
-				RegionCode:  loc.RegionCode,
+				CountryCode: optionalString(loc.CountryCode),
+				RegionCode:  optionalString(loc.RegionCode),
 			},
 		},
 	}, nil

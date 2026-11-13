@@ -8,6 +8,7 @@ import (
 	"github.com/pocketbase/dbx"
 	"github.com/pocketbase/pocketbase/core"
 
+	"thom/core/apikey"
 	"thom/core/consent"
 	"thom/core/jurisdiction"
 	"thom/core/policy"
@@ -32,6 +33,18 @@ const initialPolicyVersion = "1.0.0"
 // neither is an anonymous visitor, whose new subject id the client keeps for
 // its next write. Ids are always chosen here, never by the client.
 func (h *Handler) findOrCreateSubject(db *scope, body consentRequest) (*core.Record, error) {
+	if body.ClientSubjectID != "" {
+		if body.SubjectID != "" || !clientSubjectID.MatchString(body.ClientSubjectID) || !subjectSecret.MatchString(body.SubjectToken) {
+			return nil, BadRequest(codeInputValidationFailed, "A valid clientSubjectId and subjectToken are required")
+		}
+		existing, err := db.FindFirst("subject", "clientId = {:id}", dbx.Params{"id": body.ClientSubjectID})
+		if err != nil && !isMissing(err) {
+			return nil, err
+		}
+		if existing != nil {
+			return existing, nil
+		}
+	}
 	if body.SubjectID != "" {
 		record, err := db.FindByID("subject", body.SubjectID)
 		if err != nil {
@@ -43,7 +56,7 @@ func (h *Handler) findOrCreateSubject(db *scope, body consentRequest) (*core.Rec
 		return record, nil
 	}
 
-	if body.ExternalID != "" {
+	if body.ExternalID != "" && body.ClientSubjectID == "" {
 		existing, err := db.FindFirst("subject", "externalId = {:ext}", dbx.Params{"ext": body.ExternalID})
 		if err == nil && existing != nil {
 			return existing, nil
@@ -55,6 +68,10 @@ func (h *Handler) findOrCreateSubject(db *scope, body consentRequest) (*core.Rec
 		return nil, err
 	}
 	record.Set("externalId", body.ExternalID)
+	if body.ClientSubjectID != "" {
+		record.Set("clientId", body.ClientSubjectID)
+		record.Set("recordTokenHash", apikey.Hash(body.SubjectToken))
+	}
 
 	if err := db.Save(record); err != nil {
 		return nil, err
@@ -118,6 +135,9 @@ func (h *Handler) upsertDecision(
 	record.Set("policy", storedPolicy.Id)
 	record.Set("packId", decision.Policy.ID)
 	record.Set("fingerprint", decision.Fingerprint)
+	if decision.Resolution != nil {
+		record.Set("policyResolution", decision.Resolution)
+	}
 	record.Set("matchedBy", string(decision.MatchedBy))
 	record.Set("countryCode", loc.CountryCode)
 	record.Set("regionCode", loc.RegionCode)
@@ -221,6 +241,9 @@ func (h *Handler) insertConsent(
 		record.Set("runtimePolicySource", source)
 	}
 	record.Set("purposes", purposeIDs)
+	if rec.Choice != nil {
+		record.Set("choice", rec.Choice)
+	}
 	record.Set("jurisdiction", rec.Jurisdiction)
 	record.Set("jurisdictionModel", rec.JurisdictionModel)
 	record.Set("ipAddress", rec.IPAddress)

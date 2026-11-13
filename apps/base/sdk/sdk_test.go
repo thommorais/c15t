@@ -129,7 +129,7 @@ func TestInit(t *testing.T) {
 			name:             "california",
 			geo:              sdk.GeoHints{CountryCode: "US", RegionCode: "CA"},
 			wantJurisdiction: "CCPA",
-			wantPolicy:       "california_opt_out",
+			wantPolicy:       "us_privacy_states_opt_out",
 			wantMatchedBy:    "region",
 		},
 		{

@@ -32,7 +32,7 @@ type harness struct {
 	mux http.Handler
 }
 
-func newHarness(t *testing.T, cfg api.Config) *harness {
+func newHarness(t *testing.T, cfg api.Config, origins ...string) *harness {
 	t.Helper()
 
 	app, err := tests.NewTestApp(t.TempDir())
@@ -48,6 +48,9 @@ func newHarness(t *testing.T, cfg api.Config) *harness {
 	pbRouter, err := apis.NewRouter(app)
 	if err != nil {
 		t.Fatalf("NewRouter: %v", err)
+	}
+	if len(origins) > 0 {
+		pbRouter.Bind(apis.CORS(apis.CORSConfig{AllowOrigins: origins, AllowMethods: []string{http.MethodGet, http.MethodPost, http.MethodPatch}}))
 	}
 
 	api.Register(app, &core.ServeEvent{App: app, Router: pbRouter}, cfg)
@@ -244,7 +247,7 @@ func TestInitResolvesPolicy(t *testing.T) {
 			name:             "california",
 			headers:          auth(key, "x-vercel-ip-country", "US", "x-vercel-ip-country-region", "CA"),
 			wantJurisdiction: "CCPA",
-			wantPolicy:       "california_opt_out",
+			wantPolicy:       "us_privacy_states_opt_out",
 			wantModel:        "opt-out",
 			wantMatchedBy:    "region",
 		},
@@ -260,7 +263,7 @@ func TestInitResolvesPolicy(t *testing.T) {
 			name:             "other us state falls to default",
 			headers:          auth(key, "x-vercel-ip-country", "US", "x-vercel-ip-country-region", "NY"),
 			wantJurisdiction: "NONE",
-			wantPolicy:       "world_no_banner",
+			wantPolicy:       "world_none",
 			wantModel:        "none",
 			wantMatchedBy:    "default",
 		},
@@ -332,8 +335,8 @@ func TestInitGeoDisabledFallsBackToGDPR(t *testing.T) {
 	if !ok {
 		t.Fatalf("location missing")
 	}
-	if len(location) != 0 {
-		t.Errorf("location = %v, want empty when geo is disabled", location)
+	if location["countryCode"] != nil || location["regionCode"] != nil {
+		t.Errorf("location = %v, want null codes when geo is disabled", location)
 	}
 }
 
@@ -572,8 +575,6 @@ func TestBrazilGetsTheOptInBannerByDefault(t *testing.T) {
 			auth(key, "cf-ipcountry", "BR"))
 	}
 
-	wantEnvelope(t, post(`["necessary","experience"]`), http.StatusBadRequest, "PURPOSE_NOT_ALLOWED")
-
 	if rec := post(`["necessary","measurement"]`); rec.Code != http.StatusCreated {
 		t.Fatalf("status = %d: %s", rec.Code, rec.Body.String())
 	}
@@ -581,8 +582,8 @@ func TestBrazilGetsTheOptInBannerByDefault(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !stored.GetDateTime("validUntil").IsZero() {
-		t.Errorf("validUntil = %v, want none: the law sets no consent period", stored.GetDateTime("validUntil"))
+	if stored.GetDateTime("validUntil").IsZero() {
+		t.Error("v3 preset choice validity must be stored")
 	}
 	if got := stored.GetString("jurisdiction"); got != "BR" {
 		t.Errorf("jurisdiction = %q, want BR", got)
@@ -2885,7 +2886,7 @@ func TestSnapshotPayloadCarriesPolicyDetail(t *testing.T) {
 	for _, field := range []string{
 		"iss", "aud", "sub", "policyId", "fingerprint", "matchedBy",
 		"jurisdiction", "model", "expiryDays", "scopeMode", "uiMode",
-		"bannerUi", "dialogUi", "proofConfig", "iat", "exp",
+		"rule", "policyResolution", "proofConfig", "iat", "exp",
 	} {
 		if _, present := payload[field]; !present {
 			t.Errorf("snapshot payload missing %q", field)

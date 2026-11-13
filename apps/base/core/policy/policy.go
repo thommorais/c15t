@@ -5,6 +5,8 @@
 // default. Within a matcher type the first match wins by slice order.
 package policy
 
+import "thom/core/policyrule"
+
 type Model string
 
 const (
@@ -164,15 +166,19 @@ type ResolvedUI struct {
 }
 
 type Resolved struct {
-	ID      string           `json:"id"`
-	Model   Model            `json:"model"`
-	I18n    *I18n            `json:"i18n,omitempty"`
-	Consent *ResolvedConsent `json:"consent,omitempty"`
-	UI      *ResolvedUI      `json:"ui,omitempty"`
-	Proof   *ProofConfig     `json:"proof,omitempty"`
+	// Rule is the authoritative v3 rule. The older fields are a projection for
+	// existing Go SDK users and legacy records.
+	Rule    *policyrule.ResolvedPolicyRule `json:"-"`
+	ID      string                         `json:"id"`
+	Model   Model                          `json:"model"`
+	I18n    *I18n                          `json:"i18n,omitempty"`
+	Consent *ResolvedConsent               `json:"consent,omitempty"`
+	UI      *ResolvedUI                    `json:"ui,omitempty"`
+	Proof   *ProofConfig                   `json:"proof,omitempty"`
 }
 
 type Decision struct {
+	Resolution  *policyrule.Resolution
 	Policy      Resolved
 	MatchedBy   MatchedBy
 	Fingerprint string

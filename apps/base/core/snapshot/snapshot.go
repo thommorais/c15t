@@ -10,6 +10,8 @@ import (
 	"errors"
 	"strings"
 	"time"
+
+	"thom/core/policyrule"
 )
 
 const (
@@ -51,19 +53,22 @@ func ReasonOf(err error) (FailureReason, bool) {
 }
 
 type Payload struct {
-	Issuer       string `json:"iss"`
-	Audience     string `json:"aud"`
-	Subject      string `json:"sub"`
-	TenantID     string `json:"tenantId,omitempty"`
-	PolicyID     string `json:"policyId"`
-	Fingerprint  string `json:"fingerprint"`
-	MatchedBy    string `json:"matchedBy"`
-	Country      string `json:"country,omitempty"`
-	Region       string `json:"region,omitempty"`
-	Jurisdiction string `json:"jurisdiction"`
-	Language     string `json:"language,omitempty"`
-	Model        string `json:"model"`
-	PolicyI18n   any    `json:"policyI18n,omitempty"`
+	Rule         *policyrule.ResolvedPolicyRule `json:"rule,omitempty"`
+	Resolution   *policyrule.Resolution         `json:"policyResolution,omitempty"`
+	ResolvedGPC  *bool                          `json:"resolvedGpc,omitempty"`
+	Issuer       string                         `json:"iss"`
+	Audience     string                         `json:"aud"`
+	Subject      string                         `json:"sub"`
+	TenantID     string                         `json:"tenantId,omitempty"`
+	PolicyID     string                         `json:"policyId"`
+	Fingerprint  string                         `json:"fingerprint"`
+	MatchedBy    string                         `json:"matchedBy"`
+	Country      string                         `json:"country,omitempty"`
+	Region       string                         `json:"region,omitempty"`
+	Jurisdiction string                         `json:"jurisdiction"`
+	Language     string                         `json:"language,omitempty"`
+	Model        string                         `json:"model"`
+	PolicyI18n   any                            `json:"policyI18n,omitempty"`
 
 	ExpiryDays            *int     `json:"expiryDays,omitempty"`
 	ScopeMode             string   `json:"scopeMode,omitempty"`

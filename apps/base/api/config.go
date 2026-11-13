@@ -8,6 +8,7 @@ import (
 	"thom/core/erasure"
 	"thom/core/i18n"
 	"thom/core/policy"
+	"thom/core/policyrule"
 	"thom/core/ratelimit"
 )
 
@@ -17,6 +18,9 @@ type Config struct {
 	// a request. Leave empty for a single-tenant database.
 	TenantID string
 
+	// PolicyRules distinguishes no configuration (nil) from an empty pack.
+	PolicyRules *[]policyrule.PolicyRule
+	// Deprecated: explicit legacy packs override PolicyRules for existing Go hosts.
 	PolicyPacks []policy.Config
 	IABEnabled  bool
 
@@ -71,19 +75,14 @@ type Config struct {
 }
 
 func DefaultConfig() Config {
+	rules := defaultRules()
 	return Config{
 		ErasureMode: erasure.Anonymise,
 		CheckRate:   ratelimit.Rule{Limit: 30, Window: time.Minute},
 		WriteRate:   ratelimit.Rule{Limit: 60, Window: time.Minute},
 		DefaultRate: ratelimit.Rule{Limit: 300, Window: time.Minute},
 
-		PolicyPacks: []policy.Config{
-			policy.PresetEuropeOptIn(),
-			policy.PresetCaliforniaOptOut(),
-			policy.PresetQuebec(),
-			policy.PresetBrazilOptIn(),
-			policy.PresetWorldNoBanner(),
-		},
+		PolicyRules: &rules,
 	}
 }
 
@@ -104,17 +103,35 @@ func ValidateConfig(cfg Config) ([]string, error) {
 	}
 
 	result := policy.Inspect(cfg.PolicyPacks, cfg.IABEnabled)
+	label := "policyPacks"
+	if cfg.PolicyPacks == nil && cfg.PolicyRules != nil {
+		label = "policyRules"
+		for _, rule := range *cfg.PolicyRules {
+			if rule.Model == policyrule.ModelIAB {
+				return nil, errors.New("policyRules: IAB TCF is not supported yet")
+			}
+		}
+		inspection := policyrule.Inspect(*cfg.PolicyRules, &policyrule.InspectOptions{IABEnabled: cfg.IABEnabled})
+		result.Errors, result.Warnings = inspection.Errors, inspection.Warnings
+	}
 
 	if len(result.Errors) > 0 {
-		return nil, errors.New("policyPacks: " + result.Errors[0])
+		return nil, errors.New(label + ": " + result.Errors[0])
 	}
 
 	warnings := make([]string, 0, len(result.Warnings))
 	for _, w := range result.Warnings {
-		warnings = append(warnings, "policyPacks: "+w)
+		warnings = append(warnings, label+": "+w)
 	}
 
 	var asked []i18n.PolicyI18n
+	if cfg.PolicyPacks == nil && cfg.PolicyRules != nil {
+		for _, rule := range *cfg.PolicyRules {
+			if rule.I18n != nil {
+				asked = append(asked, i18n.PolicyI18n{PolicyID: rule.ID, Language: rule.I18n.Language, Profile: rule.I18n.MessageProfile})
+			}
+		}
+	}
 	for _, p := range cfg.PolicyPacks {
 		if p.I18n == nil {
 			continue

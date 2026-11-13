@@ -56,7 +56,7 @@ import { encodeStoredConsentEnvelopeJson } from '../../../c15t-core/src/modules/
 import { gpcFromHeaders } from '../../../c15t-core/src/transports/decision-inputs';
 import { createIAB } from '../../../c15t-iab/src/index';
 import type { IABHandle } from '../../../c15t-iab/src/index';
-import { gtag } from '../../../integrations/src/vendors/analytics/google-tag';
+import { consentModeProbe } from './consent-mode-probe';
 import type { FrameworkRoot } from './framework-root';
 
 const consentMarkup = (container: HTMLElement) => {
@@ -373,11 +373,7 @@ export const createFrameworkPolicyDriver = ({
 									textContent:
 										'window.dispatchEvent(new Event("c15t-policy-script-loaded"))',
 								},
-								gtag({
-									category: 'marketing',
-									id: 'G-PROBE',
-									script: { callbackOnly: true },
-								}),
+								consentModeProbe(),
 							],
 						})
 					: undefined;

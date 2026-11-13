@@ -15,12 +15,16 @@ func (h *Handler) signSnapshot(
 	code jurisdiction.Code,
 	decision *policy.Decision,
 	language string,
+	gpc *bool,
 ) (string, error) {
 	if h.signer == nil {
 		return "", nil
 	}
 
 	p := snapshot.Payload{
+		Resolution:   decision.Resolution,
+		Rule:         decision.Policy.Rule,
+		ResolvedGPC:  gpc,
 		TenantID:     tenantID,
 		Subject:      decision.Policy.ID,
 		PolicyID:     decision.Policy.ID,
@@ -97,6 +101,9 @@ func decisionFromSnapshot(p *snapshot.Payload) (jurisdiction.Location, jurisdict
 	}
 
 	resolved := policy.Resolved{ID: p.PolicyID, Model: policy.Model(p.Model)}
+	if p.Rule != nil {
+		resolved = projectRule(*p.Rule)
+	}
 
 	if p.ScopeMode != "" || p.ExpiryDays != nil || p.Categories != nil || p.PreselectedCategories != nil || p.GPC != nil {
 		resolved.Consent = &policy.ResolvedConsent{
@@ -135,6 +142,7 @@ func decisionFromSnapshot(p *snapshot.Payload) (jurisdiction.Location, jurisdict
 
 	loc := jurisdiction.Location{CountryCode: p.Country, RegionCode: p.Region}
 	decision := &policy.Decision{
+		Resolution:  p.Resolution,
 		Policy:      resolved,
 		MatchedBy:   policy.MatchedBy(p.MatchedBy),
 		Fingerprint: p.Fingerprint,
